@@ -1,7 +1,6 @@
-# UAE-Gov-AI-Agents 🇦🇪
+# SYNORA
 
-This repository contains the **SYNORA** team's official submission for the **ITU AI for Good Lab Hackathon: UAE**.
+**ITU AI for Good Lab Hackathon 2026 — UAE**
 
-* **Team Name:** SYNORA
-* **Domain:** Government Services
-* **Objective:** Building an ITU-aligned Multi-Agent AI system backed by a vectorized knowledge base of UAE government policies and regulations.
+Multi-agent system for detecting algorithmic bias in government AI
+(visa & Golden Residency screening).
