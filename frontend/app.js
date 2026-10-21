@@ -84,6 +84,22 @@ runButton.addEventListener("click", async function () {
   runButton.disabled = false;
 });
 
+
+const fileInput = document.getElementById("file");
+const fileInfo = document.getElementById("fileInfo");
+
+fileInput.addEventListener("change", async function () {
+  const file = fileInput.files[0];
+  if (!file) return;
+  const text = await file.text();
+  const lines = text.trim().split(/\r?\n/);
+  const columns = lines[0].split(",");
+  fileInfo.textContent =
+    "الملف: " + file.name +
+    " | عدد السجلات: " + (lines.length - 1) +
+    " | الأعمدة: " + columns.join("، ");
+});
+
 loadData().then(function () {
   renderPipeline({});
 });
