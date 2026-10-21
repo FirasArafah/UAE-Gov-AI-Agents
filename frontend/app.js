@@ -1,20 +1,13 @@
 // 1) بيانات وهمية (لاحقاً رح تيجي من سيرفر زميلك)
-const AGENTS = [
-  { id: "data", name: "وكيل فحص البيانات", summary: "1,000 سجل، 3 أعمدة حسّاسة" },
-  { id: "fair", name: "وكيل مقاييس العدالة", summary: "نسبة الأثر المتباين 0.67" },
-  { id: "cf", name: "وكيل الحالات المقابلة", summary: "14% من القرارات تغيّرت عند تبديل الجنسية فقط" },
-  { id: "rep", name: "وكيل التقرير", summary: "تم إعداد التقرير" }
-];
+let AGENTS = [];
+let RESULT = {};
 
-const RESULT = {
-  groups: [
-    { name: "دول الخليج", approval: 0.82 },
-    { name: "أوروبا", approval: 0.79 },
-    { name: "جنوب آسيا", approval: 0.61 },
-    { name: "أفريقيا", approval: 0.55 }
-  ],
-  report: "أظهر النظام فجوة قبول واضحة بين المجموعات، وتبقى الفجوة بعد ضبط الدخل والتعليم. نوصي بمراجعة بشرية للحالات المرفوضة وإعادة معايرة النموذج."
-};
+async function loadData() {
+  const response = await fetch("../shared/audit-result.example.json");
+  const data = await response.json();
+  AGENTS = data.agents;
+  RESULT = { groups: data.groups, report: data.report };
+}
 
 // 2) عناصر الصفحة
 const runButton = document.getElementById("run");
@@ -73,6 +66,7 @@ function renderResults() {
 
 // 5) تشغيل التدقيق
 runButton.addEventListener("click", async function () {
+  await loadData();
   runButton.disabled = true;
   results.hidden = true;
   const status = {};
@@ -90,4 +84,6 @@ runButton.addEventListener("click", async function () {
   runButton.disabled = false;
 });
 
-renderPipeline({});
+loadData().then(function () {
+  renderPipeline({});
+});
