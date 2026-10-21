@@ -65,3 +65,17 @@ main { max-width: 800px; margin: 0 auto; padding: 24px; }
 
 #report { background: white; padding: 16px 20px; border-radius: 6px; }
 .note { color: #5B6B78; font-size: 0.9rem; }
+
+#preview { overflow-x: auto; margin: 12px 0; }
+#preview table {
+  border-collapse: collapse;
+  width: 100%;
+  background: white;
+  font-size: 0.9rem;
+}
+#preview th, #preview td {
+  border: 1px solid var(--line);
+  padding: 6px 10px;
+  text-align: start;
+}
+#preview th { background: var(--ink); color: var(--paper); }

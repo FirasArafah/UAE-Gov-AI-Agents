@@ -98,6 +98,26 @@ fileInput.addEventListener("change", async function () {
     "الملف: " + file.name +
     " | عدد السجلات: " + (lines.length - 1) +
     " | الأعمدة: " + columns.join("، ");
+
+  const preview = document.getElementById("preview");
+  const table = document.createElement("table");
+
+  const head = table.insertRow();
+  for (const col of columns) {
+    const th = document.createElement("th");
+    th.textContent = col;
+    head.appendChild(th);
+  }
+
+  for (const line of lines.slice(1, 6)) {
+    const row = table.insertRow();
+    for (const cell of line.split(",")) {
+      row.insertCell().textContent = cell;
+    }
+  }
+
+  preview.innerHTML = "";
+  preview.appendChild(table);
 });
 
 loadData().then(function () {
