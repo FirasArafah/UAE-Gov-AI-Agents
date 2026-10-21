@@ -1,15 +1,15 @@
 CREATE TABLE audits (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  id SERIAL PRIMARY KEY,
+  created_at TIMESTAMP DEFAULT NOW(),
   dataset_name TEXT,
   total_records INTEGER,
   disparate_impact REAL,
-  biased INTEGER,
+  biased BOOLEAN,
   report TEXT
 );
 
 CREATE TABLE agent_runs (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id SERIAL PRIMARY KEY,
   audit_id INTEGER REFERENCES audits(id),
   agent_id TEXT,
   status TEXT,
@@ -17,7 +17,7 @@ CREATE TABLE agent_runs (
 );
 
 CREATE TABLE group_results (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id SERIAL PRIMARY KEY,
   audit_id INTEGER REFERENCES audits(id),
   group_name TEXT,
   approval REAL,
