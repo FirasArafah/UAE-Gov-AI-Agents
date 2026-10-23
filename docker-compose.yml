@@ -80,6 +80,8 @@ services:
     volumes:
       - ./src:/app/src:ro
       - ./data:/app/data:ro
+      - ./alembic.ini:/app/alembic.ini:ro
+      - ./alembic:/app/alembic
     command: uvicorn synora.main:app --host 0.0.0.0 --port 8000 --reload
     networks: [synora]
 
