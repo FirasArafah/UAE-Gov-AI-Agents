@@ -7,6 +7,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
+from synora.agents.llm import LLMClient
+from synora.agents.registry import AgentRegistry
+from synora.api.routes import router as api_router
 from synora.config import settings
 from synora.db.session import engine
 
@@ -28,7 +31,7 @@ logger = structlog.get_logger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info(
         "synora.startup",
         env=settings.app_env,
@@ -43,7 +46,16 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     except Exception as exc:
         logger.error("synora.startup.db_failed", error=str(exc))
         raise
+
+    llm = LLMClient()
+    registry = AgentRegistry(llm)
+    await registry.load()
+    app.state.llm = llm
+    app.state.registry = registry
+    logger.info("synora.startup.agents_loaded", count=len(registry.all_slugs()))
+
     yield
+
     await engine.dispose()
     logger.info("synora.shutdown")
 
@@ -64,6 +76,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(api_router)
 
 
 @app.get("/", tags=["meta"])
