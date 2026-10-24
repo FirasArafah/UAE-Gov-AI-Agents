@@ -53,3 +53,6 @@ select = ["E", "F", "I", "N", "UP", "B", "SIM", "C4", "RUF"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "slow: marks tests that call the LLM (require RUN_SLOW=1)",
+]

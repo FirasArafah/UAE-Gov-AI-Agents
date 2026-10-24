@@ -14,13 +14,15 @@ from synora.models.agent import Agent
 from synora.models.audit import AuditLog
 from synora.models.document import DocumentDomain
 from synora.models.enums import MessageRole, SimulationStatus
-from synora.models.scenario import Scenario
+from synora.models.scenario import Scenario, ScenarioEvent
 from synora.models.simulation import Message, SimulationSession
 from synora.schemas.agent import AgentRead
 from synora.schemas.audit import AuditLogRead
 from synora.schemas.chat import StreamMessageRequest
 from synora.schemas.message import MessageRead
+from synora.schemas.scenario import AdvanceRequest, ScenarioRead
 from synora.schemas.session import SessionCreateRequest, SessionRead
+from synora.scenarios.engine import ScenarioEngine
 
 logger = structlog.get_logger(__name__)
 
@@ -58,12 +60,22 @@ async def _next_sequence(db: AsyncSession, session_id: UUID) -> int:
     return (result.scalar() or 0) + 1
 
 
+# ============================================================================
+# Agents
+# ============================================================================
+
+
 @router.get("/agents", response_model=list[AgentRead])
 async def list_agents(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(Agent).where(Agent.is_active.is_(True)).order_by(Agent.slug)
     )
     return result.scalars().all()
+
+
+# ============================================================================
+# Sessions
+# ============================================================================
 
 
 @router.post("/sessions", response_model=SessionRead, status_code=201)
@@ -116,6 +128,11 @@ async def list_audit(session_id: UUID, db: AsyncSession = Depends(get_db)):
     return result.scalars().all()
 
 
+# ============================================================================
+# Free-form streaming (chat)
+# ============================================================================
+
+
 @router.post("/sessions/{session_id}/stream")
 async def stream_message(
     session_id: UUID,
@@ -147,12 +164,6 @@ async def stream_message(
         )
 
         audit = AuditLogger(db)
-        stream_started = True
-        try:
-            pass  # placeholder; logic follows
-        finally:
-            # runs even if client disconnects mid-stream
-            pass
 
         for agent_slug in agent_slugs:
             try:
@@ -283,3 +294,212 @@ async def stream_message(
         yield sse_event("done", {})
 
     return EventSourceResponse(event_generator())
+
+
+# ============================================================================
+# Scenarios (Req #5)
+# ============================================================================
+
+
+@router.get("/scenarios", response_model=list[ScenarioRead])
+async def list_scenarios(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Scenario)
+        .where(Scenario.is_published.is_(True))
+        .order_by(Scenario.slug)
+    )
+    return result.scalars().all()
+
+
+@router.get("/scenarios/{scenario_id}", response_model=ScenarioRead)
+async def get_scenario(scenario_id: UUID, db: AsyncSession = Depends(get_db)):
+    scenario = await db.get(Scenario, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="scenario not found")
+    return scenario
+
+
+@router.post("/sessions/{session_id}/start", response_model=SessionRead)
+async def start_scenario_session(
+    session_id: UUID, db: AsyncSession = Depends(get_db)
+):
+    engine = ScenarioEngine(db)
+    try:
+        session = await engine.start_session(session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    count_q = await db.execute(
+        select(func.count())
+        .select_from(ScenarioEvent)
+        .where(ScenarioEvent.scenario_id == session.scenario_id)
+    )
+    if (count_q.scalar() or 0) == 0:
+        logger.warning(
+            "scenario.start.empty_scenario",
+            session=str(session_id),
+            scenario_id=str(session.scenario_id),
+        )
+
+    return session
+
+
+@router.post("/sessions/{session_id}/advance")
+async def advance_scenario(
+    session_id: UUID,
+    body: AdvanceRequest,
+    db: AsyncSession = Depends(get_db),
+    registry: AgentRegistry = Depends(get_registry),
+):
+    """Release next scenario event, persist messages, audit all agent reasoning."""
+    engine = ScenarioEngine(db)
+    try:
+        event = await engine.next_event(session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    if event is None:
+        return {
+            "status": "completed",
+            "event": None,
+            "assessments": [],
+            "message": (
+                "No further events in this scenario. "
+                "If this happened immediately, check that the session "
+                "was created against a real scenario (not 'adhoc-chat')."
+            ),
+        }
+
+    # Persist the scenario event itself as a user/system message for replay
+    event_seq = await _next_sequence(db, session_id)
+    event_msg = Message(
+        session_id=session_id,
+        role=MessageRole.USER,
+        content=f"[Scenario Event {event.sequence}] {event.title}\n\n{event.content}",
+        sequence=event_seq,
+        message_metadata={
+            "event_sequence": event.sequence,
+            "target_agent_roles": event.target_agent_roles,
+        },
+    )
+    db.add(event_msg)
+    await db.commit()
+    await db.refresh(event_msg)
+
+    audit = AuditLogger(db)
+    agent_results: list[dict] = []
+
+    for slug in (event.target_agent_roles or ["coordinator"]):
+        try:
+            agent = await registry.get(slug)
+        except KeyError:
+            agent_results.append({"agent_slug": slug, "error": "agent not found"})
+            continue
+
+        try:
+            response = await agent.respond(
+                user_message=event.content,
+                context=[{"title": event.title, "content": event.content}],
+            )
+        except Exception as exc:
+            logger.error(
+                "scenario.advance.agent_failed",
+                session=str(session_id),
+                agent=slug,
+                error=str(exc),
+            )
+            agent_results.append({"agent_slug": slug, "error": str(exc)})
+            continue
+
+        try:
+            # Persist the agent's response message
+            asst_seq = await _next_sequence(db, session_id)
+            asst_msg = Message(
+                session_id=session_id,
+                agent_id=agent.agent.id,
+                role=MessageRole.ASSISTANT,
+                content=response.content or "(no content)",
+                thinking_trace=response.thinking_trace,
+                sequence=asst_seq,
+                message_metadata={
+                    "event_sequence": event.sequence,
+                    "source": "scenario_advance",
+                },
+            )
+            db.add(asst_msg)
+            await db.commit()
+            await db.refresh(asst_msg)
+
+            references = response.references or []
+
+            # Persist audit trail
+            if references:
+                await audit.log_retrieval(
+                    session_id=session_id,
+                    agent_id=agent.agent.id,
+                    query=event.content,
+                    references=references,
+                )
+
+            if response.thinking_trace:
+                await audit.log_reasoning(
+                    session_id=session_id,
+                    agent_id=agent.agent.id,
+                    message_id=asst_msg.id,
+                    reasoning=response.thinking_trace,
+                    policy_references=references,
+                )
+
+            await audit.log_decision(
+                session_id=session_id,
+                agent_id=agent.agent.id,
+                message_id=asst_msg.id,
+                reasoning=response.content or "(no content)",
+                source_attributions=references,
+            )
+            await db.commit()
+
+            agent_results.append(
+                {
+                    "agent_slug": response.agent_slug,
+                    "agent_name": response.agent_name,
+                    "role": response.role,
+                    "content": response.content,
+                    "thinking": response.thinking_trace,
+                    "references_count": len(references),
+                    "message_id": str(asst_msg.id),
+                }
+            )
+        except Exception as persist_exc:
+            logger.error(
+                "scenario.advance.persist_failed",
+                session=str(session_id),
+                agent=slug,
+                error=str(persist_exc),
+            )
+            await db.rollback()
+            agent_results.append(
+                {
+                    "agent_slug": slug,
+                    "error": f"persist failed: {persist_exc}",
+                }
+            )
+
+    return {
+        "status": "running",
+        "event": {
+            "sequence": event.sequence,
+            "title": event.title,
+            "target_agent_roles": event.target_agent_roles,
+        },
+        "assessments": agent_results,
+    }
+
+
+@router.get("/sessions/{session_id}/timeline")
+async def session_timeline(session_id: UUID, db: AsyncSession = Depends(get_db)):
+    engine = ScenarioEngine(db)
+    try:
+        return await engine.timeline(session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

@@ -13,6 +13,9 @@ logger = structlog.get_logger(__name__)
 THINKING_PATTERN = re.compile(r"<thinking>(.*?)</thinking>", re.DOTALL)
 RESPONSE_PATTERN = re.compile(r"<response>(.*?)</response>", re.DOTALL)
 
+# Orphan tag cleanup (when model produces only one of the pair)
+TAG_REMNANTS = ("<thinking>", "</thinking>", "<response>", "</response>")
+
 TEMPERATURE_MAP: dict[AgentRole, float] = {
     AgentRole.ICP: 0.3,
     AgentRole.AUDITOR: 0.1,
@@ -21,10 +24,18 @@ TEMPERATURE_MAP: dict[AgentRole, float] = {
 }
 
 STRUCTURED_OUTPUT_SUFFIX = (
-    "\n\nIMPORTANT: Structure your response as:\n"
+    "\n\nIMPORTANT: Structure your response exactly as:\n"
     "<thinking>\n[step-by-step reasoning with policy citations]\n</thinking>\n"
-    "<response>\n[your concise final answer]\n</response>"
+    "<response>\n[your concise final answer]\n</response>\n"
+    "Both closing tags are mandatory."
 )
+
+
+def _strip_all_tags(text: str) -> str:
+    """Remove any thinking/response tag remnant from text."""
+    for tag in TAG_REMNANTS:
+        text = text.replace(tag, "")
+    return text.strip()
 
 
 class BaseAgent:
@@ -52,11 +63,34 @@ class BaseAgent:
         return TEMPERATURE_MAP.get(role, 0.3)
 
     def _parse_response(self, raw: str) -> tuple[str | None, str]:
+        """Parse LLM output, tolerating missing/mismatched closing tags.
+
+        Cases handled:
+          1. Both <thinking>…</thinking> and <response>…</response> present → clean.
+          2. Only <thinking>…</thinking> present → thinking extracted, content falls back to stripping.
+          3. Only <response>…</response> present → content extracted, thinking = None.
+          4. Orphan tags (<response>… without </response>, or <thinking>… without </thinking>) → stripped.
+          5. No tags → full text is content.
+        """
         thinking_match = THINKING_PATTERN.search(raw)
         response_match = RESPONSE_PATTERN.search(raw)
 
         thinking = thinking_match.group(1).strip() if thinking_match else None
-        response = response_match.group(1).strip() if response_match else raw.strip()
+
+        if response_match:
+            response = response_match.group(1).strip()
+        else:
+            # Fallback: strip anything that looks like a tag remnant
+            response = raw
+            if thinking_match:
+                response = THINKING_PATTERN.sub("", response)
+            response = _strip_all_tags(response)
+            if not response:
+                response = "(no response produced)"
+
+        # Final safety: never leak a tag into the final content
+        response = _strip_all_tags(response) or "(no response produced)"
+
         return thinking, response
 
     async def _retrieve(self, query: str) -> list[dict]:
@@ -140,6 +174,7 @@ class BaseAgent:
             agent=self.agent.slug,
             content_len=len(content),
             thinking_len=len(thinking) if thinking else 0,
+            raw_len=len(raw),
         )
 
         return AgentResponse(

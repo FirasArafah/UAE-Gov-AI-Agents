@@ -14,10 +14,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 COPY pyproject.toml uv.lock* README.md ./
-RUN uv sync --no-install-project --no-dev
+
+ARG INSTALL_DEV=false
+
+RUN if [ "$INSTALL_DEV" = "true" ]; then \
+        uv sync --no-install-project; \
+    else \
+        uv sync --no-install-project --no-dev; \
+    fi
 
 COPY src/ ./src/
-RUN uv sync --no-dev
+COPY alembic.ini ./
+COPY alembic ./alembic
+
+RUN if [ "$INSTALL_DEV" = "true" ]; then \
+        uv sync; \
+    else \
+        uv sync --no-dev; \
+    fi
 
 ENV PATH="/app/.venv/bin:$PATH"
 

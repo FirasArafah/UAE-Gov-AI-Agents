@@ -61,6 +61,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        INSTALL_DEV: ${INSTALL_DEV:-false}
     container_name: synora-backend
     restart: unless-stopped
     depends_on:
@@ -75,11 +77,13 @@ services:
       OLLAMA_EMBED_MODEL: ${OLLAMA_EMBED_MODEL:-bge-m3}
       APP_ENV: ${APP_ENV:-development}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      RUN_SLOW: ${RUN_SLOW:-0}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
       - ./src:/app/src:ro
       - ./data:/app/data:ro
+      - ./tests:/app/tests:ro
       - ./alembic.ini:/app/alembic.ini:ro
       - ./alembic:/app/alembic
     command: uvicorn synora.main:app --host 0.0.0.0 --port 8000
