@@ -1,3 +1,4 @@
+import structlog
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -7,6 +8,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from synora.agents.registry import AgentRegistry
 from synora.api.sse import sse_event
+from synora.audit.logger import AuditLogger
 from synora.db.session import get_db
 from synora.models.agent import Agent
 from synora.models.audit import AuditLog
@@ -19,6 +21,8 @@ from synora.schemas.audit import AuditLogRead
 from synora.schemas.chat import StreamMessageRequest
 from synora.schemas.message import MessageRead
 from synora.schemas.session import SessionCreateRequest, SessionRead
+
+logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/api", tags=["synora"])
 
@@ -142,6 +146,14 @@ async def stream_message(
             {"message_id": str(user_msg.id), "sequence": user_msg.sequence},
         )
 
+        audit = AuditLogger(db)
+        stream_started = True
+        try:
+            pass  # placeholder; logic follows
+        finally:
+            # runs even if client disconnects mid-stream
+            pass
+
         for agent_slug in agent_slugs:
             try:
                 agent = await registry.get(agent_slug)
@@ -163,6 +175,7 @@ async def stream_message(
 
             thinking_acc = ""
             content_acc = ""
+            stream_error: str | None = None
 
             try:
                 async for channel, chunk in agent.stream_tagged(body.message):
@@ -179,34 +192,93 @@ async def stream_message(
                             {"agent_slug": agent_slug, "content": chunk},
                         )
             except Exception as exc:
+                stream_error = str(exc)
+                logger.error(
+                    "stream.llm_failed",
+                    agent=agent_slug,
+                    error=stream_error,
+                )
                 yield sse_event(
                     "error",
-                    {"agent_slug": agent_slug, "message": str(exc)},
+                    {"agent_slug": agent_slug, "message": stream_error},
                 )
-                continue
 
-            asst_seq = await _next_sequence(db, session_id)
-            asst_msg = Message(
-                session_id=session_id,
-                agent_id=agent.agent.id,
-                role=MessageRole.ASSISTANT,
-                content=content_acc or "(no content)",
-                thinking_trace=thinking_acc or None,
-                sequence=asst_seq,
-            )
-            db.add(asst_msg)
-            await db.commit()
-            await db.refresh(asst_msg)
+            try:
+                asst_seq = await _next_sequence(db, session_id)
+                final_content = content_acc
+                if not final_content:
+                    final_content = (
+                        f"(stream interrupted: {stream_error})"
+                        if stream_error
+                        else "(no content)"
+                    )
+                asst_msg = Message(
+                    session_id=session_id,
+                    agent_id=agent.agent.id,
+                    role=MessageRole.ASSISTANT,
+                    content=final_content,
+                    thinking_trace=thinking_acc or None,
+                    sequence=asst_seq,
+                )
+                db.add(asst_msg)
+                await db.commit()
+                await db.refresh(asst_msg)
 
-            yield sse_event(
-                "agent_done",
-                {
-                    "agent_slug": agent_slug,
-                    "message_id": str(asst_msg.id),
-                    "content": content_acc,
-                    "thinking": thinking_acc,
-                },
-            )
+                references = agent.last_references or []
+
+                if references:
+                    await audit.log_retrieval(
+                        session_id=session_id,
+                        agent_id=agent.agent.id,
+                        query=body.message,
+                        references=references,
+                    )
+
+                if thinking_acc:
+                    await audit.log_reasoning(
+                        session_id=session_id,
+                        agent_id=agent.agent.id,
+                        message_id=asst_msg.id,
+                        reasoning=thinking_acc,
+                        policy_references=references,
+                    )
+
+                if content_acc or stream_error:
+                    await audit.log_decision(
+                        session_id=session_id,
+                        agent_id=agent.agent.id,
+                        message_id=asst_msg.id,
+                        reasoning=content_acc or f"(interrupted: {stream_error})",
+                        source_attributions=references,
+                    )
+
+                await db.commit()
+
+                yield sse_event(
+                    "agent_done",
+                    {
+                        "agent_slug": agent_slug,
+                        "message_id": str(asst_msg.id),
+                        "content": content_acc,
+                        "thinking": thinking_acc,
+                        "references_count": len(references),
+                        "interrupted": stream_error is not None,
+                    },
+                )
+            except Exception as persist_exc:
+                logger.error(
+                    "stream.persist_failed",
+                    agent=agent_slug,
+                    error=str(persist_exc),
+                )
+                await db.rollback()
+                yield sse_event(
+                    "error",
+                    {
+                        "agent_slug": agent_slug,
+                        "message": f"persist failed: {persist_exc}",
+                    },
+                )
 
         yield sse_event("done", {})
 

@@ -37,6 +37,12 @@ class BaseAgent:
         self.agent = agent
         self.llm = llm
         self.retriever = retriever
+        self._last_references: list[dict] = []
+
+    @property
+    def last_references(self) -> list[dict]:
+        """References from the most recent retrieve call (for auditing)."""
+        return self._last_references
 
     def _temperature(self) -> float:
         try:
@@ -113,6 +119,7 @@ class BaseAgent:
         use_retrieval: bool = True,
     ) -> AgentResponse:
         references = await self._retrieve(user_message) if use_retrieval else []
+        self._last_references = references
         messages = self._build_messages(user_message, references, context, history)
 
         logger.info(
@@ -153,6 +160,7 @@ class BaseAgent:
         use_retrieval: bool = True,
     ) -> AsyncIterator[str]:
         references = await self._retrieve(user_message) if use_retrieval else []
+        self._last_references = references
         messages = self._build_messages(user_message, references, context, history)
 
         async for token in self.llm.chat_stream(
@@ -168,12 +176,9 @@ class BaseAgent:
         history: list[dict] | None = None,
         use_retrieval: bool = True,
     ) -> AsyncIterator[tuple[str, str]]:
-        """Stream (channel, chunk) pairs where channel is 'thinking' or 'content'.
-
-        Parses <thinking>...</thinking> and <response>...</response> tags on
-        the fly. Uses a small look-behind buffer to avoid emitting partial tags.
-        """
+        """Stream (channel, chunk) pairs where channel is 'thinking' or 'content'."""
         references = await self._retrieve(user_message) if use_retrieval else []
+        self._last_references = references
         messages = self._build_messages(user_message, references, context, history)
 
         buffer = ""
