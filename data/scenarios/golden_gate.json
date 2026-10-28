@@ -1,0 +1,75 @@
+{
+  "slug": "golden-gate-anomaly",
+  "title": "The Golden Gate Anomaly",
+  "description": "A staged incident where the AI screening system for visas and Golden Residency begins disproportionately rejecting applications from a specific nationality. Events are released progressively as an investigation unfolds.",
+  "domain": "government_services",
+  "is_published": true,
+  "metadata": {
+    "scenario_type": "bias_incident",
+    "itu_y3172_pipeline": "ML application -> ML governance",
+    "itu_factors": ["data", "standards", "sandbox"],
+    "itu_dimensions": ["AI & Policies", "AI for Inclusion", "Human Interface"]
+  },
+  "events": [
+    {
+      "sequence": 1,
+      "release_after_seconds": 0,
+      "title": "T+0: Anomaly reported",
+      "content": "The ICP operations team reports that the AI visa screening system has shown a 23% rejection rate for applicants from Country X over the past 30 days, compared to a 9% baseline. The system uses a gradient-boosted classifier trained on historical approval data. ICP asks for a preliminary assessment before any public statement.",
+      "target_agent_roles": ["auditor"],
+      "metadata": {
+        "affected_population": "Country X applicants",
+        "baseline_rejection": "9%",
+        "current_rejection": "23%",
+        "window_days": 30
+      }
+    },
+    {
+      "sequence": 2,
+      "release_after_seconds": 0,
+      "title": "T+30min: Model audit request",
+      "content": "The AI Auditor's initial statistical review confirms the gap is statistically significant (p<0.01). The Auditor requests access to the model's feature importance and training data documentation. ICP initially refuses, stating the data is confidential, but agrees to share aggregated feature weights.",
+      "target_agent_roles": ["privacy", "icp"],
+      "metadata": {
+        "statistical_significance": "p<0.01",
+        "requested_artifacts": ["feature_importance", "training_data_docs"]
+      }
+    },
+    {
+      "sequence": 3,
+      "release_after_seconds": 0,
+      "title": "T+1hr: Proxy variables discovered",
+      "content": "The Privacy Consultant flags that the model uses 'postal_code' and 'mobile_prefix' as input features. Both are correlated with nationality in the UAE context (expatriate neighborhoods and telecom provider prefixes). This creates potential indirect discrimination under UAE PDPL Article 4 (fair processing) and Article 6 (sensitive data).",
+      "target_agent_roles": ["privacy", "auditor"],
+      "metadata": {
+        "proxy_variables": ["postal_code", "mobile_prefix"],
+        "pdpl_articles": ["Art. 4", "Art. 6"]
+      }
+    },
+    {
+      "sequence": 4,
+      "release_after_seconds": 0,
+      "title": "T+2hr: Coordinated response decision",
+      "content": "The Coordinator must synthesize all findings. Options: (a) pause the AI system entirely, (b) apply a fairness-aware re-ranker on top of the model, (c) accept the bias as 'acceptable' given national security concerns. Each option has different implications for ICP operations, PDPL compliance, and public trust.",
+      "target_agent_roles": ["coordinator"],
+      "metadata": {
+        "options": ["pause_system", "fairness_reranker", "accept_bias"]
+      }
+    },
+    {
+      "sequence": 5,
+      "release_after_seconds": 0,
+      "title": "T+3hr: Policy gap report",
+      "content": "Final assessment stage: identify gaps between UAE AI Strategy 2031, PDPL, and current operational practice. Map to global best practices (EU AI Act Art. 10 on data governance, Art. 14 on human oversight; OECD AI Principles on fairness; UNESCO Recommendation on non-discrimination). Produce actionable recommendations.",
+      "target_agent_roles": ["auditor", "privacy", "coordinator"],
+      "metadata": {
+        "global_references": [
+          "EU AI Act Art. 10",
+          "EU AI Act Art. 14",
+          "OECD AI Principles 1.2",
+          "UNESCO Recommendation para 25"
+        ]
+      }
+    }
+  ]
+}
