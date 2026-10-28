@@ -1,1 +1,20 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Database & Indexes
 *.db
+kb_store/
+data/index/
+
+# Unverified data & raw files
+data/_unverified/
+data/raw/
+
+# Audit logs & local models
+data/audit_logs/
+models/
+*.gguf
+
+# Environment variables
+.env

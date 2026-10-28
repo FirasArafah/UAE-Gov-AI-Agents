@@ -22,15 +22,31 @@ A localized Retrieval-Augmented Generation (RAG) framework designed for auditing
 
 ## 📂 Project Structure
 
+````text
+## Project Structure
+
 ```text
 UAE-Gov-AI-Agents/
 ├── data/
-│   ├── raw/                 # Official PDFs (UAE laws & ITU standards)
-│   ├── index/               # FAISS vector index & metadata.pkl
-│   └── audit_logs/          # Generated RAG audit logs (JSON)
-├── kb_store/                # Backup KB store
-├── ingest.py                # PDF ingestion, chunking, and FAISS indexing script
-├── retrieve_and_generate_2.py # End-to-end RAG retrieval, Ollama generation & audit logging
-├── requirements.txt         # Project dependencies
-└── README.md                # Project documentation
-```
+│   ├── kb_manifest.json          # Metadata and configuration for KB documents
+│   └── raw_docs/                 # Storage for all raw Arabic and English PDFs
+│
+├── src/
+│   └── synora/                   # Main Application Package
+│       ├── db/                   # Database connection and async sessions
+│       ├── models/               # SQLAlchemy ORM models (Agents, Chunks, etc.)
+│       │
+│       ├── rag/                  # Core RAG Engine (Legal & Policy)
+│       │   ├── __init__.py
+│       │   ├── enums.py          # Enums for LLM models and supported languages
+│       │   ├── providers/        # LLM Factory Pattern Implementation
+│       │   │   ├── __init__.py
+│       │   │   ├── base.py       # Base Interface for LLM providers
+│       │   │   ├── ollama_provider.py # Ollama integration for embedding/generation
+│       │   │   └── factory.py    # Factory to manage multi-model routing
+│       │   ├── vector_store.py   # PostgreSQL pgvector integration (replaces FAISS)
+│       │   ├── ingester.py       # Document ingestion, chunking, and database logging
+│       │   └── engine.py         # Main RAG Engine API for Agents
+│       │
+│       └── main.py               # FastAPI application entry point
+````

@@ -1,137 +1,58 @@
 {
-  "project": "UAE Government AI Bias & Policy Auditing",
-  "standard_compliance": [
-    "ITU-T Y.3172",
-    "ITU AI Readiness Framework 2.0"
-  ],
-  "documents": [
-    {
-      "id": "DOC-001",
-      "filename": "UAE_PDPL_45_2021.pdf",
-      "title": "Federal Decree-Law No. 45 of 2021 on the Protection of Personal Data",
-      "pdf_path": "data/raw/UAE_PDPL_45_2021.pdf",
-      "source_url": "https://uaelegislation.gov.ae/en/legislations/1972",
-      "verified": true,
-      "metadata": {
-        "source_type": "law",
-        "kb_category": "uae_national",
-        "domain": "data_protection",
-        "jurisdiction": "UAE",
-        "authority": "UAE Data Office",
-        "priority": "Priority 1"
-      }
-    },
-    {
-      "id": "DOC-002",
-      "filename": "UAE_AI_Charter_2024.pdf",
-      "title": "UAE Charter for the Development and Use of Artificial Intelligence (2024)",
-      "pdf_path": "data/raw/UAE_AI_Charter_2024.pdf",
-      "source_url": "https://uaelegislation.gov.ae/en/policy/details/the-uae-charter-for-the-development-and-use-of-artificial-intelligence",
-      "verified": true,
-      "metadata": {
-        "source_type": "policy",
-        "kb_category": "uae_national",
-        "domain": "ai_governance",
-        "jurisdiction": "UAE",
-        "authority": "UAE Cabinet / AI Office",
-        "priority": "Priority 1"
-      }
-    },
-    {
-      "id": "DOC-003",
-      "filename": "UAE_National_AI_Strategy_2031.pdf",
-      "title": "UAE National Strategy for Artificial Intelligence 2031",
-      "pdf_path": "data/raw/UAE_National_AI_Strategy_2031.pdf",
-      "source_url": "https://u.ae/en/about-the-uae/strategies-initiatives-and-awards/strategies-plans-and-visions/government-services-and-digital-transformation/uae-strategy-for-artificial-intelligence",
-      "verified": true,
-      "metadata": {
-        "source_type": "strategy",
-        "kb_category": "uae_national",
-        "domain": "ai_governance",
-        "jurisdiction": "UAE",
-        "authority": "Minister of State for Artificial Intelligence",
-        "priority": "Priority 1"
-      }
-    },
-    {
-      "id": "DOC-004",
-      "filename": "UAE_AI_Ethics_Guidelines.pdf",
-      "title": "UAE AI Ethics Principles and Guidelines",
-      "pdf_path": "data/raw/UAE_AI_Ethics_Guidelines.pdf",
-      "source_url": "https://u.ae/en/about-the-uae/digital-uae/digital-technology/artificial-intelligence/ai-resources",
-      "verified": true,
-      "metadata": {
-        "source_type": "guideline",
-        "kb_category": "uae_national",
-        "domain": "ai_ethics",
-        "jurisdiction": "UAE",
-        "authority": "UAE Council for Artificial Intelligence and Blockchain",
-        "priority": "Priority 2"
-      }
-    },
-    {
-      "id": "DOC-005",
-      "filename": "UAE_Decree_Law_29_2021_Entry_Residence.pdf",
-      "title": "Federal Decree-Law No. 29 of 2021 Concerning the Entry and Residence of Foreigners",
-      "pdf_path": "data/raw/UAE_Decree_Law_29_2021_Entry_Residence.pdf",
-      "source_url": "https://uaelegislation.gov.ae/en/legislations/1528",
-      "verified": true,
-      "metadata": {
-        "source_type": "law",
-        "kb_category": "uae_national",
-        "domain": "public_services_residency",
-        "jurisdiction": "UAE",
-        "authority": "Federal Authority for Identity, Citizenship, Customs & Port Security (ICP)",
-        "priority": "Priority 2"
-      }
-    },
-    {
-      "id": "DOC-006",
-      "filename": "UAE_Cabinet_Resolution_65_2022.pdf",
-      "title": "Cabinet Resolution No. 65 of 2022 Issuing the Executive Regulations of Federal Decree-Law No. 29 of 2021",
-      "pdf_path": "data/raw/UAE_Cabinet_Resolution_65_2022.pdf",
-      "source_url": "https://uaelegislation.gov.ae/en/legislations/1601",
-      "verified": true,
-      "metadata": {
-        "source_type": "regulation",
-        "kb_category": "uae_national",
-        "domain": "public_services_residency",
-        "jurisdiction": "UAE",
-        "authority": "UAE Cabinet / ICP",
-        "priority": "Optional (Policy-Gap Analysis)"
-      }
-    },
-    {
-      "id": "DOC-007",
-      "filename": "ITU_Y_3172_Architecture.pdf",
-      "title": "ITU-T Recommendation Y.3172: Architectural framework for machine learning in future networks including IMT-2020",
-      "pdf_path": "data/raw/ITU_Y_3172_Architecture.pdf",
-      "source_url": "https://www.itu.int/rec/T-REC-Y.3172-201906-I",
-      "verified": true,
-      "metadata": {
-        "source_type": "standard",
-        "kb_category": "standard",
-        "domain": "telecom_ml_architecture",
-        "jurisdiction": "International (ITU)",
-        "authority": "ITU-T",
-        "priority": "ITU Standard"
-      }
-    },
-    {
-      "id": "DOC-008",
-      "filename": "AI Ready Framework 2025.pdf",
-      "title": "ITU AI Ready – Analysis Towards a Standardized Readiness Framework (Report 2.0, Jan 2026)",
-      "pdf_path": "data/raw/AI Ready Framework 2025.pdf",
-      "source_url": "https://aiforgood.itu.int/event/ai-for-good-sandbox-hackathon-united-arab-emirates/",
-      "verified": true,
-      "metadata": {
-        "source_type": "standard",
-        "kb_category": "standard",
-        "domain": "ai_readiness_framework",
-        "jurisdiction": "International (ITU)",
-        "authority": "ITU AI for Good",
-        "priority": "ITU Standard"
-      }
-    }
-  ]
+  "UAE_PDPL_45_2021.pdf": {
+    "title": "Federal Decree-Law No. 45 of 2021 on the Protection of Personal Data",
+    "source_uri": "https://uaelegislation.gov.ae/en/legislations/1972",
+    "country_code": "AE",
+    "language": "en",
+    "domain": "cross_domain",
+    "doc_type": "law"
+  },
+  "UAE_Residency_29_2021.pdf": {
+    "title": "Federal Decree-Law No. 29 of 2021 Regarding Entry and Residence of Foreigners",
+    "source_uri": "https://uaelegislation.gov.ae/en/legislations/1527",
+    "country_code": "AE",
+    "language": "en",
+    "domain": "government_services",
+    "doc_type": "law"
+  },
+  "UAE_Cabinet_Res_65_2022.pdf": {
+    "title": "Cabinet Resolution No. 65 of 2022 Issuing the Executive Regulations of Decree-Law No. 29 of 2021",
+    "source_uri": "https://uaelegislation.gov.ae",
+    "country_code": "AE",
+    "language": "ar",
+    "domain": "government_services",
+    "doc_type": "regulation"
+  },
+  "UAE_AI_Charter_2024.pdf": {
+    "title": "UAE Charter for the Development and Use of Artificial Intelligence (2024)",
+    "source_uri": "https://ai.gov.ae",
+    "country_code": "AE",
+    "language": "en",
+    "domain": "cross_domain",
+    "doc_type": "strategy"
+  },
+  "EU_AI_Act_2024.pdf": {
+    "title": "Regulation (EU) 2024/1689 Laying Down Harmonised Rules on Artificial Intelligence (EU AI Act)",
+    "source_uri": "https://eur-lex.europa.eu/eli/reg/2024/1689/oj",
+    "country_code": "EU",
+    "language": "en",
+    "domain": "cross_domain",
+    "doc_type": "regulation"
+  },
+  "UNESCO_AI_Ethics_2021.pdf": {
+    "title": "Recommendation on the Ethics of Artificial Intelligence (UNESCO)",
+    "source_uri": "https://unesdoc.unesco.org/ark:/48223/pf0000381137",
+    "country_code": "INT",
+    "language": "en",
+    "domain": "cross_domain",
+    "doc_type": "guideline"
+  },
+  "OECD_AI_Principles_2024.pdf": {
+    "title": "OECD Principles on Artificial Intelligence",
+    "source_uri": "https://oecd.ai/en/ai-principles",
+    "country_code": "INT",
+    "language": "en",
+    "domain": "cross_domain",
+    "doc_type": "standard"
+  }
 }

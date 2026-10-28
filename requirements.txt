@@ -1,7 +1,0 @@
-faiss
-sentence-transformers
-numpy
-pypdf
-requests
-urllib3
-huggingface_hub
