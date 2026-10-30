@@ -2,6 +2,8 @@ import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+import re
+import unicodedata
 
 import structlog
 from bs4 import BeautifulSoup
@@ -74,13 +76,16 @@ class Ingestor:
             return soup.get_text(separator="\n", strip=True)
         else:
             return path.read_text(encoding="utf-8", errors="ignore")
-
     async def ingest_text(
         self,
         text: str,
         metadata: dict[str, Any] | None = None,
     ) -> Document | None:
         """Ingest raw text, create Document + Chunks + IngestionJob."""
+        text = unicodedata.normalize("NFKC", text)
+        text = text.replace("\ufffd", "").replace("\u0640", "")
+        text = re.sub(r"[ \t]+", " ", text).strip()
+        
         meta = metadata or {}
         source_path = str(meta.get("source_uri") or meta.get("source_path") or "inline_text")
         started_at = datetime.now(timezone.utc)
