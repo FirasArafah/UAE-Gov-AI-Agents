@@ -1,9 +1,9 @@
 import hashlib
+import re
+import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-import re
-import unicodedata
 
 import structlog
 from bs4 import BeautifulSoup
@@ -19,6 +19,12 @@ from synora.rag.embedder import Embedder
 from synora.rag.store import VectorStore
 
 logger = structlog.get_logger(__name__)
+
+# Matches "Article (18)", "Article 18", "المادة (18)", "المادة 18"
+ARTICLE_HEADING_RE = re.compile(
+    r"(?:^|\n)\s*(Article\s*\(?\s*\d+\s*\)?|المادة\s*\(?\s*\d+\s*\)?)",
+    re.IGNORECASE,
+)
 
 
 class Ingestor:
@@ -61,6 +67,48 @@ class Ingestor:
 
         return chunks
 
+    def _split_into_sections(self, text: str, default_section: str | None = None) -> list[tuple[str, str]]:
+        """Split legal text by Article/المادة headings if present; fallback to standard chunks."""
+        matches = list(ARTICLE_HEADING_RE.finditer(text))
+        if len(matches) < 2:
+            # Non-article document: fallback to standard sliding window
+            raw_chunks = self._split_text(text)
+            return [
+                (default_section or f"chunk_{idx}", c_text)
+                for idx, c_text in enumerate(raw_chunks)
+            ]
+
+        section_chunks: list[tuple[str, str]] = []
+
+        # Include preamble before the first article if non-empty
+        first_start = matches[0].start()
+        if first_start > 0:
+            preamble = text[:first_start].strip()
+            for sub_idx, sub_chunk in enumerate(self._split_text(preamble)):
+                sec_label = "Preamble" if sub_idx == 0 else f"Preamble (part {sub_idx + 1})"
+                section_chunks.append((sec_label, sub_chunk))
+
+        # Split article by article
+        for i, match in enumerate(matches):
+            raw_heading = re.sub(r"\s+", " ", match.group(1)).strip()
+            start_pos = match.start()
+            end_pos = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+            article_body = text[start_pos:end_pos].strip()
+
+            if len(article_body) <= self.chunk_size * 1.5:
+                section_chunks.append((raw_heading, article_body))
+            else:
+                sub_chunks = self._split_text(article_body)
+                for sub_idx, sub_chunk in enumerate(sub_chunks):
+                    sec_label = (
+                        raw_heading
+                        if sub_idx == 0
+                        else f"{raw_heading} (part {sub_idx + 1})"
+                    )
+                    section_chunks.append((sec_label, f"{raw_heading}\n{sub_chunk}" if sub_idx > 0 else sub_chunk))
+
+        return section_chunks
+
     def _extract_file_text(self, path: Path) -> str:
         """Extract raw text from PDF, HTML, or plain text files."""
         suffix = path.suffix.lower()
@@ -76,6 +124,7 @@ class Ingestor:
             return soup.get_text(separator="\n", strip=True)
         else:
             return path.read_text(encoding="utf-8", errors="ignore")
+
     async def ingest_text(
         self,
         text: str,
@@ -85,7 +134,7 @@ class Ingestor:
         text = unicodedata.normalize("NFKC", text)
         text = text.replace("\ufffd", "").replace("\u0640", "")
         text = re.sub(r"[ \t]+", " ", text).strip()
-        
+
         meta = metadata or {}
         source_path = str(meta.get("source_uri") or meta.get("source_path") or "inline_text")
         started_at = datetime.now(timezone.utc)
@@ -106,7 +155,7 @@ class Ingestor:
             cleaned_text = text.strip()
             if not cleaned_text:
                 logger.warning("rag.ingest.empty_text", source=source_path)
-                
+
                 async with self._session_factory() as session:
                     job_Row = await session.get(IngestionJob, job_id)
                     if job_Row:
@@ -165,7 +214,9 @@ class Ingestor:
                 await session.commit()
                 await session.refresh(doc)
 
-            chunks_text = self._split_text(cleaned_text)
+            # التعديل الرئيسي هنا: استخدام التقسيم الذكي
+            section_pairs = self._split_into_sections(cleaned_text, meta.get("section"))
+            chunks_text = [c_text for _, c_text in section_pairs]
             embeddings = await self._embedder.embed_batch(chunks_text)
 
             chunk_payloads = [
@@ -173,11 +224,11 @@ class Ingestor:
                     "chunk_index": idx,
                     "content": c_text,
                     "embedding": emb,
-                    "section": meta.get("section", f"chunk_{idx}"),
+                    "section": sec_label,
                     "token_count": len(c_text.split()),
-                    "chunk_metadata": {"source": source_path},
+                    "chunk_metadata": {"source": source_path, "article_ref": sec_label},
                 }
-                for idx, (c_text, emb) in enumerate(zip(chunks_text, embeddings))
+                for idx, ((sec_label, c_text), emb) in enumerate(zip(section_pairs, embeddings))
             ]
 
             await self._store.insert_chunks(doc.id, chunk_payloads)

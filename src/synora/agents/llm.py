@@ -32,7 +32,7 @@ class LLMClient:
         self,
         messages: list[dict],
         temperature: float = 0.2,
-        num_predict: int = 1024,
+        num_predict: int = 2048,
     ) -> str:
         try:
             response = await self._client.chat(
@@ -56,7 +56,7 @@ class LLMClient:
         self,
         messages: list[dict],
         temperature: float = 0.2,
-        num_predict: int = 1024,
+        num_predict: int = 2048,
     ) -> AsyncIterator[str]:
         stream = await self._client.chat(
             model=self.model,

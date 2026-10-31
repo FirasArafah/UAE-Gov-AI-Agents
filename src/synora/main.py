@@ -12,6 +12,7 @@ from synora.agents.registry import AgentRegistry
 from synora.api.routes import router as api_router
 from synora.config import settings
 from synora.db.session import engine
+from synora.rag.retriever import PgVectorRetriever
 
 structlog.configure(
     processors=[
@@ -48,7 +49,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         raise
 
     llm = LLMClient()
-    registry = AgentRegistry(llm)
+    retriever = PgVectorRetriever()
+    registry = AgentRegistry(llm, retriever=retriever)
     await registry.load()
     app.state.llm = llm
     app.state.registry = registry
