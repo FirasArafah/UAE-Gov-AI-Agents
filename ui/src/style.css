@@ -24,3 +24,17 @@ body {
   padding: 6px 12px; border-radius: 6px; cursor: pointer;
 }
 main { max-width: 1200px; margin: 0 auto; padding: 32px; }
+
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+.card {
+  background: var(--panel); border: 1px solid var(--line);
+  border-top: 4px solid var(--agent); border-radius: 10px; padding: 20px;
+}
+.avatar {
+  width: 44px; height: 44px; border-radius: 50%; background: var(--agent);
+  color: #fff; display: grid; place-items: center; font-weight: 700; margin-bottom: 12px;
+}
+.card h2 { margin: 0 0 4px; font-size: 1.1rem; }
+.role { color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.mandate { margin-top: 12px; line-height: 1.6; }

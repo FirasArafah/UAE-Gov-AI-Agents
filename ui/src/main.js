@@ -1,6 +1,7 @@
 import "./style.css";
 import { route, startRouter } from "./js/router.js";
 import { renderHome } from "./pages/home.js";
+import { renderRoster } from "./pages/roster.js";
 
 const saved = localStorage.getItem("theme");
 if (saved) document.documentElement.dataset.theme = saved;
@@ -12,4 +13,5 @@ document.getElementById("theme-toggle").addEventListener("click", () => {
 });
 
 route("/", renderHome);
+route("/agents", renderRoster);
 startRouter(document.getElementById("app"));
