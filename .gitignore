@@ -1,28 +1,20 @@
-# Python
+# Python cache
 __pycache__/
 *.py[cod]
-*.egg-info/
-.venv/
-.uv/
-build/
-dist/
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
 
-# Env
+# Database & Indexes
+*.db
+kb_store/
+data/index/
+
+# Unverified data & raw files
+data/_unverified/
+data/raw/
+
+# Audit logs & local models
+data/audit_logs/
+models/
+*.gguf
+
+# Environment variables
 .env
-.env.local
-
-# Data (large artifacts)
-data/knowledge_base/raw/
-data/scenarios/runs/
-
-# UI
-ui/node_modules/
-ui/dist/
-
-# IDE
-.vscode/
-.idea/
-.DS_Store

@@ -17,16 +17,33 @@ RESPONSE_PATTERN = re.compile(r"<response>(.*?)</response>", re.DOTALL)
 TAG_REMNANTS = ("<thinking>", "</thinking>", "<response>", "</response>")
 
 TEMPERATURE_MAP: dict[AgentRole, float] = {
-    AgentRole.ICP: 0.3,
+    AgentRole.ICP: 0.1,
     AgentRole.AUDITOR: 0.1,
     AgentRole.PRIVACY: 0.1,
-    AgentRole.COORDINATOR: 0.5,
+    AgentRole.COORDINATOR: 0.1,
 }
 
 STRUCTURED_OUTPUT_SUFFIX = (
-    "\n\nIMPORTANT: Structure your response exactly as:\n"
-    "<thinking>\n[step-by-step reasoning with policy citations]\n</thinking>\n"
-    "<response>\n[your concise final answer]\n</response>\n"
+    "\n\n[LANGUAGE RULE - HIGHEST PRIORITY]\n"
+    "Every answer must be bilingual: the same complete content in Arabic and in English.\n"
+    "- <thinking>: write in English only (list the relevant excerpt numbers [1], [2], their article numbers, and all sub-paragraphs/exceptions).\n"
+    "- <response>: first write the full answer in Modern Standard Arabic under the heading 'النسخة العربية:', "
+    "then write the same full answer in English under the heading 'English version:'.\n"
+    "- Never write Chinese characters anywhere in <thinking> or <response>.\n"
+    "- Article names: use the form المادة (18) / Article (18).\n\n"
+    "[CITATION AND COMPLETENESS RULES]\n"
+    "1. Use ONLY the RELEVANT POLICY EXCERPTS listed below (or the specialist agent outputs in Context if you are the Coordinator). Do not use any external knowledge.\n"
+    "2. MANDATORY BRACKET CITATIONS: Every single sentence that states a legal rule MUST end with the exact bracketed excerpt number, e.g., [1] or [1, 2], alongside the law title and Article number.\n"
+    "   - Correct Arabic format: '... وفقاً للمادة (18) من المرسوم بقانون اتحادي رقم 45 لسنة 2021 [1].'\n"
+    "   - Correct English format: '... according to Article (18) of UAE Federal Decree-Law No. 45 of 2021 [1].'\n"
+    "3. Never mention an article number that does not appear in the excerpts or specialist agent outputs.\n"
+    "4. If neither the excerpts nor the specialist agent outputs clearly answer the question, write EXACTLY:\n"
+    "   'غير مذكور في المصادر الرسمية المتاحة / Not explicitly covered in the official sources provided' and stop immediately.\n"
+    "5. EXHAUSTIVE PARAGRAPH COVERAGE: When citing an Article, explicitly list ALL its numbered paragraphs, conditions, exceptions (such as contract necessity, statutory obligations, explicit consent), and procedural rights (such as the right to human intervention/review) present in the excerpt. Do not summarize exceptions as 'in certain cases'.\n\n"
+    "Structure your response EXACTLY as:\n"
+    "<thinking>\n[English reasoning identifying exact excerpt numbers [1], [2] and all paragraphs]\n</thinking>\n"
+    "<response>\nالنسخة العربية:\n[detailed Arabic answer enumerating all rules, exceptions, and rights with [1] inline citations]\n\n"
+    "English version:\n[detailed English answer enumerating all rules, exceptions, and rights with [1] inline citations]\n</response>\n"
     "Both closing tags are mandatory."
 )
 
@@ -36,6 +53,25 @@ def _strip_all_tags(text: str) -> str:
     for tag in TAG_REMNANTS:
         text = text.replace(tag, "")
     return text.strip()
+
+
+def _format_sources_footer(references: list[dict]) -> str:
+    """Build a deterministic sources block from retrieved references."""
+    if not references:
+        return ""
+    lines = ["\n\n---\nالمصادر المسترجعة / Retrieved Sources:"]
+    for idx, ref in enumerate(references, start=1):
+        title = ref.get("title", "Untitled")
+        lang = (ref.get("language") or "").upper()
+        section = ref.get("section", "")
+        page = ref.get("page") or (ref.get("metadata") or {}).get("page")
+        parts = [f"[{idx}] {title}" + (f" ({lang})" if lang else "")]
+        if section:
+            parts.append(str(section))
+        if page:
+            parts.append(f"p. {page}")
+        lines.append(" | ".join(parts))
+    return "\n".join(lines)
 
 
 class BaseAgent:
@@ -62,16 +98,13 @@ class BaseAgent:
             return 0.3
         return TEMPERATURE_MAP.get(role, 0.3)
 
-    def _parse_response(self, raw: str) -> tuple[str | None, str]:
-        """Parse LLM output, tolerating missing/mismatched closing tags.
+    def _is_coordinator(self) -> bool:
+        role_str = str(getattr(self.agent, "role", "")).lower()
+        slug_str = str(getattr(self.agent, "slug", "")).lower()
+        return "coordinator" in role_str or slug_str == "coordinator"
 
-        Cases handled:
-          1. Both <thinking>…</thinking> and <response>…</response> present → clean.
-          2. Only <thinking>…</thinking> present → thinking extracted, content falls back to stripping.
-          3. Only <response>…</response> present → content extracted, thinking = None.
-          4. Orphan tags (<response>… without </response>, or <thinking>… without </thinking>) → stripped.
-          5. No tags → full text is content.
-        """
+    def _parse_response(self, raw: str) -> tuple[str | None, str]:
+        """Parse LLM output, tolerating missing/mismatched closing tags."""
         thinking_match = THINKING_PATTERN.search(raw)
         response_match = RESPONSE_PATTERN.search(raw)
 
@@ -80,7 +113,6 @@ class BaseAgent:
         if response_match:
             response = response_match.group(1).strip()
         else:
-            # Fallback: strip anything that looks like a tag remnant
             response = raw
             if thinking_match:
                 response = THINKING_PATTERN.sub("", response)
@@ -88,9 +120,7 @@ class BaseAgent:
             if not response:
                 response = "(no response produced)"
 
-        # Final safety: never leak a tag into the final content
         response = _strip_all_tags(response) or "(no response produced)"
-
         return thinking, response
 
     async def _retrieve(self, query: str) -> list[dict]:
@@ -112,10 +142,34 @@ class BaseAgent:
             refs_lines = []
             for idx, ref in enumerate(references, start=1):
                 title = ref.get("title", "Untitled")
+                lang = (ref.get("language") or "").upper()
+                section = ref.get("section", "")
+                page = ref.get("page") or (ref.get("metadata") or {}).get("page")
                 content = ref.get("content", "")
-                refs_lines.append(f"[{idx}] {title}\n{content}")
-            base += "\n\nRELEVANT POLICY EXCERPTS (cite them as [n]):\n" + "\n\n".join(
+                parts = [f"[{idx}] {title}" + (f" ({lang})" if lang else "")]
+                if section:
+                    parts.append(str(section))
+                if page:
+                    parts.append(f"p. {page}")
+                header = " | ".join(parts)
+                refs_lines.append(f"{header}\n{content}")
+            base += "\n\nRELEVANT POLICY EXCERPTS (cite them inline as [1], [2], etc.):\n" + "\n\n".join(
                 refs_lines
+            )
+        elif self._is_coordinator():
+            base += (
+                "\n\nCOORDINATOR SYNTHESIS MODE:\n"
+                "No direct policy excerpts were retrieved in this synthesis step. "
+                "Synthesize and summarize the specialist agent findings provided in the Context or conversation history, "
+                "preserving all article numbers, exceptions, and citations they reported. "
+                "If the specialist agents reported that the information is not covered in official sources (or if no context is provided), "
+                "output ONLY: 'غير مذكور في المصادر الرسمية المتاحة / Not explicitly covered in the official sources provided'."
+            )
+        else:
+            base += (
+                "\n\nRELEVANT POLICY EXCERPTS:\n"
+                "None retrieved. You MUST output ONLY: "
+                "'غير مذكور في المصادر الرسمية المتاحة / Not explicitly covered in the official sources provided'"
             )
         return base
 
@@ -141,6 +195,12 @@ class BaseAgent:
                 content = item.get("content", "")
                 ctx_lines.append(f"- {title}: {content}" if title else f"- {content}")
             user_content = "Context:\n" + "\n".join(ctx_lines) + "\n\n" + user_message
+
+        if references:
+            user_content += (
+                "\n\n[Reminder: Include inline bracket citations like [1], [2] in every claim, "
+                "list all specific exceptions and human-review rights from the excerpts, and output both Arabic and English sections.]"
+            )
 
         messages.append({"role": "user", "content": user_content})
         return messages
@@ -168,6 +228,8 @@ class BaseAgent:
             temperature=self._temperature(),
         )
         thinking, content = self._parse_response(raw)
+        if references and "Sources:" not in content:
+            content = content + _format_sources_footer(references)
 
         logger.info(
             "agent.respond.done",
@@ -287,3 +349,6 @@ class BaseAgent:
         if buffer:
             channel = "thinking" if state == "thinking" else "content"
             yield (channel, buffer)
+
+        if references:
+            yield ("content", _format_sources_footer(references))
