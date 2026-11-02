@@ -3,10 +3,17 @@ from collections.abc import AsyncIterator
 
 import structlog
 
+from synora.agents.citations import (
+    drop_repeated_paragraphs,
+    find_citation_problems,
+    format_citation_warning,
+    has_repeated_paragraph,
+)
 from synora.agents.llm import LLMClient
 from synora.agents.types import AgentResponse, Retriever
+from synora.config import settings
 from synora.models.agent import Agent
-from synora.models.enums import AgentRole
+from synora.models.enums import AgentRole, DocumentDomain
 
 logger = structlog.get_logger(__name__)
 
@@ -17,11 +24,22 @@ RESPONSE_PATTERN = re.compile(r"<response>(.*?)</response>", re.DOTALL)
 TAG_REMNANTS = ("<thinking>", "</thinking>", "<response>", "</response>")
 
 TEMPERATURE_MAP: dict[AgentRole, float] = {
-    AgentRole.ICP: 0.1,
+    AgentRole.ICP: 0.3,
     AgentRole.AUDITOR: 0.1,
     AgentRole.PRIVACY: 0.1,
-    AgentRole.COORDINATOR: 0.1,
+    AgentRole.COORDINATOR: 0.5,
 }
+
+# Half of each agent's excerpts come from its own legal domain, so a long scenario text cannot
+# crowd out the law the agent must apply. The other half is a general search of all documents.
+ROLE_DOMAINS: dict[AgentRole, list[str]] = {
+    AgentRole.ICP: [DocumentDomain.GOVERNMENT_SERVICES.value],
+    AgentRole.AUDITOR: [DocumentDomain.DATA_PROTECTION.value],
+    AgentRole.PRIVACY: [DocumentDomain.DATA_PROTECTION.value],
+    AgentRole.COORDINATOR: [DocumentDomain.DATA_PROTECTION.value],
+}
+
+CUT_OFF_PROBLEM = "The answer was cut off before it finished"
 
 STRUCTURED_OUTPUT_SUFFIX = (
     "\n\n[LANGUAGE RULE - HIGHEST PRIORITY]\n"
@@ -36,7 +54,7 @@ STRUCTURED_OUTPUT_SUFFIX = (
     "2. MANDATORY BRACKET CITATIONS: Every single sentence that states a legal rule MUST end with the exact bracketed excerpt number, e.g., [1] or [1, 2], alongside the law title and Article number.\n"
     "   - Correct Arabic format: '... وفقاً للمادة (18) من المرسوم بقانون اتحادي رقم 45 لسنة 2021 [1].'\n"
     "   - Correct English format: '... according to Article (18) of UAE Federal Decree-Law No. 45 of 2021 [1].'\n"
-    "3. Never mention an article number that does not appear in the excerpts or specialist agent outputs.\n"
+    "3. Never mention an article number that does not appear in the excerpts or specialist agent outputs. Article numbers named in the question or event text are unverified claims: do not repeat them unless an excerpt contains them.\n"
     "4. If neither the excerpts nor the specialist agent outputs clearly answer the question, write EXACTLY:\n"
     "   'غير مذكور في المصادر الرسمية المتاحة / Not explicitly covered in the official sources provided' and stop immediately.\n"
     "5. EXHAUSTIVE PARAGRAPH COVERAGE: When citing an Article, explicitly list ALL its numbered paragraphs, conditions, exceptions (such as contract necessity, statutory obligations, explicit consent), and procedural rights (such as the right to human intervention/review) present in the excerpt. Do not summarize exceptions as 'in certain cases'.\n\n"
@@ -126,8 +144,19 @@ class BaseAgent:
     async def _retrieve(self, query: str) -> list[dict]:
         if not self.retriever or not query.strip():
             return []
+        top_k = settings.rag_top_k
         try:
-            return await self.retriever.search(query, top_k=6)
+            domains = ROLE_DOMAINS.get(AgentRole(self.agent.role))
+        except ValueError:
+            domains = None
+        try:
+            general = await self.retriever.search(query, top_k=top_k)
+            if not domains:
+                return general
+            scoped = await self.retriever.search(query, top_k=top_k // 2, domains=domains)
+            scoped_ids = {ref["chunk_id"] for ref in scoped}
+            rest = [ref for ref in general if ref["chunk_id"] not in scoped_ids]
+            return scoped + rest[: top_k - len(scoped)]
         except Exception as exc:
             logger.warning(
                 "agent.retrieval.failed",
@@ -135,6 +164,23 @@ class BaseAgent:
                 error=str(exc),
             )
             return []
+
+    def _verification_warning(
+        self,
+        raw: str,
+        content: str,
+        references: list[dict],
+        user_message: str,
+        use_retrieval: bool,
+    ) -> str:
+        """Check an answer against its sources; synthesis may also cite the agent outputs."""
+        extra_sources = None if use_retrieval else [user_message]
+        problems = find_citation_problems(content, references, extra_sources)
+        if "<response>" in raw and "</response>" not in raw:
+            problems.append(CUT_OFF_PROBLEM)
+        if problems:
+            logger.warning("agent.answer.failed_checks", agent=self.agent.slug, problems=problems)
+        return format_citation_warning(problems)
 
     def _build_system_prompt(self, references: list[dict]) -> str:
         base = self.agent.system_prompt + STRUCTURED_OUTPUT_SUFFIX
@@ -153,8 +199,9 @@ class BaseAgent:
                     parts.append(f"p. {page}")
                 header = " | ".join(parts)
                 refs_lines.append(f"{header}\n{content}")
-            base += "\n\nRELEVANT POLICY EXCERPTS (cite them inline as [1], [2], etc.):\n" + "\n\n".join(
-                refs_lines
+            base += (
+                "\n\nRELEVANT POLICY EXCERPTS (cite them inline as [1], [2], etc.):\n"
+                + "\n\n".join(refs_lines)
             )
         elif self._is_coordinator():
             base += (
@@ -228,8 +275,11 @@ class BaseAgent:
             temperature=self._temperature(),
         )
         thinking, content = self._parse_response(raw)
+        content = drop_repeated_paragraphs(content)
+        warning = self._verification_warning(raw, content, references, user_message, use_retrieval)
         if references and "Sources:" not in content:
             content = content + _format_sources_footer(references)
+        content += warning
 
         logger.info(
             "agent.respond.done",
@@ -282,10 +332,13 @@ class BaseAgent:
         state = "before"
         KEEP = 15
 
-        async for token in self.llm.chat_stream(
-            messages=messages, temperature=self._temperature()
-        ):
+        raw = ""
+        async for token in self.llm.chat_stream(messages=messages, temperature=self._temperature()):
+            raw += token
             buffer += token
+            if "\n" in token and has_repeated_paragraph(raw.partition("<response>")[2]):
+                logger.warning("agent.stream.loop_stopped", agent=self.agent.slug)
+                break
 
             while True:
                 if state == "before":
@@ -304,7 +357,7 @@ class BaseAgent:
                     idx, new_state, tag = min(candidates, key=lambda x: x[0])
                     if idx > 0:
                         yield ("content", buffer[:idx])
-                    buffer = buffer[idx + len(tag):]
+                    buffer = buffer[idx + len(tag) :]
                     state = new_state
 
                 elif state == "thinking":
@@ -312,7 +365,7 @@ class BaseAgent:
                     if idx >= 0:
                         if idx > 0:
                             yield ("thinking", buffer[:idx])
-                        buffer = buffer[idx + len("</thinking>"):]
+                        buffer = buffer[idx + len("</thinking>") :]
                         state = "between"
                     else:
                         if len(buffer) > KEEP:
@@ -325,7 +378,7 @@ class BaseAgent:
                     if idx >= 0:
                         if idx > 0:
                             yield ("content", buffer[:idx])
-                        buffer = buffer[idx + len("</response>"):]
+                        buffer = buffer[idx + len("</response>") :]
                         state = "after"
                     else:
                         if len(buffer) > KEEP:
@@ -338,7 +391,7 @@ class BaseAgent:
                     if ri >= 0:
                         if ri > 0:
                             yield ("content", buffer[:ri])
-                        buffer = buffer[ri + len("<response>"):]
+                        buffer = buffer[ri + len("<response>") :]
                         state = "response"
                     else:
                         if len(buffer) > KEEP:
@@ -352,3 +405,8 @@ class BaseAgent:
 
         if references:
             yield ("content", _format_sources_footer(references))
+
+        _, answer = self._parse_response(raw)
+        warning = self._verification_warning(raw, answer, references, user_message, use_retrieval)
+        if warning:
+            yield ("content", warning)

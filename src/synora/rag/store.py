@@ -71,8 +71,9 @@ class VectorStore:
         self,
         query_embedding: list[float],
         top_k: int = 5,
+        domains: list[str] | None = None,
     ) -> list[dict[str, Any]]:
-        """Search for top_k most similar chunks using pgvector cosine distance."""
+        """Search for top_k most similar chunks, optionally within document domains."""
         distance_col = Chunk.embedding.cosine_distance(query_embedding).label("distance")
 
         stmt = (
@@ -81,6 +82,8 @@ class VectorStore:
             .order_by(distance_col.asc())
             .limit(top_k)
         )
+        if domains:
+            stmt = stmt.where(Document.domain.in_(domains))
 
         async with self._session_factory() as session:
             result = await session.execute(stmt)
@@ -90,6 +93,7 @@ class VectorStore:
         for chunk, doc, distance in rows:
             # Cosine similarity = 1 - cosine_distance
             score = max(0.0, 1.0 - float(distance)) if distance is not None else 0.0
+            chunk_meta = chunk.chunk_metadata or {}
             matches.append(
                 {
                     "chunk_id": str(chunk.id),
@@ -97,7 +101,9 @@ class VectorStore:
                     "content": chunk.content,
                     "score": round(score, 4),
                     "title": doc.title,
+                    "language": doc.language,
                     "section": chunk.section,
+                    "page": chunk_meta.get("page"),
                 }
             )
 

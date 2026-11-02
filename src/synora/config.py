@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     # --- Ollama (local LLM + embeddings) ---
     ollama_base_url: str = "http://localhost:11434"
-    ollama_llm_model: str = "llama3.2:latest"
+    ollama_llm_model: str = "qwen2.5:7b-instruct"
     ollama_embed_model: str = "bge-m3"
 
     # --- Embeddings ---

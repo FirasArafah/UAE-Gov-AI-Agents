@@ -20,6 +20,7 @@ class PgVectorRetriever:
         self,
         query: str,
         top_k: int | None = None,
+        domains: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         """Embed the query and return top_k matching chunks."""
         if not query or not query.strip():
@@ -27,4 +28,4 @@ class PgVectorRetriever:
 
         k = top_k if top_k is not None else getattr(settings, "rag_top_k", 5)
         query_embedding = await self._embedder.embed(query)
-        return await self._store.search(query_embedding=query_embedding, top_k=k)
+        return await self._store.search(query_embedding=query_embedding, top_k=k, domains=domains)
