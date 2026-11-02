@@ -10,8 +10,23 @@ from synora.rag.ingest import Ingestor
 
 logger = structlog.get_logger(__name__)
 
-# Default metadata mapping for all 8 known UAE / international reference files
+# Default metadata mapping for the known UAE / international reference files.
+# Arabic keys come first: infer_metadata takes the first key found in the file name.
 KNOWN_METADATA: dict[str, dict[str, Any]] = {
+    "pdpl_45_2021_ar": {
+        "title": "مرسوم بقانون اتحادي رقم 45 لسنة 2021 بشأن حماية البيانات الشخصية (PDPL)",
+        "domain": DocumentDomain.DATA_PROTECTION.value,
+        "doc_type": DocumentType.LAW.value,
+        "country_code": "AE",
+        "language": "ar",
+    },
+    "29_2021_ar": {
+        "title": "مرسوم بقانون اتحادي رقم 29 لسنة 2021 في شأن دخول وإقامة الأجانب",
+        "domain": DocumentDomain.GOVERNMENT_SERVICES.value,
+        "doc_type": DocumentType.LAW.value,
+        "country_code": "AE",
+        "language": "ar",
+    },
     "pdpl": {
         "title": "UAE Federal Decree-Law No. 45 of 2021 (PDPL)",
         "domain": DocumentDomain.DATA_PROTECTION.value,

@@ -20,14 +20,17 @@ from synora.rag.store import VectorStore
 
 logger = structlog.get_logger(__name__)
 
-# Matches "Article (18)", "Article 18", "المادة (18)", "المادة 18", and "## Heading" lines
+# Matches "Article (18)", "Article 18", "المادة (18)", "المادة 18", "( المادة18 )" (how pypdf
+# reads some right-to-left headings), and "## Heading" lines
 # written into hand-verified .ocr.txt files (for scanned PDFs with no text layer).
 ARTICLE_HEADING_RE = re.compile(
     r"(?:^|\n)\s*(Article\s*\(?\s*\d+\s*\)?(?:\s*BIS\b)?"
+    r"|\(\s*\u0627\u0644\u0645\u0627\u062f\u0629\s*\d+\s*\)"
     r"|\u0627\u0644\u0645\u0627\u062f\u0629\s*\(?\s*\d+\s*\)?"
     r"|##[^\n]+)",
     re.IGNORECASE,
 )
+ARABIC_ARTICLE_WORD = "\u0627\u0644\u0645\u0627\u062f\u0629"
 OCR_PAGE_RE = re.compile(r"^--- page (\d+) ---$", re.MULTILINE)
 
 
@@ -143,6 +146,8 @@ class Ingestor:
                 number = int(number_match.group())
                 in_annex = in_annex or number < prev_number
                 prev_number = number
+                if ARABIC_ARTICLE_WORD in raw_heading:
+                    raw_heading = f"{ARABIC_ARTICLE_WORD} ({number})"
             heading = f"Annex, {raw_heading}" if in_annex else raw_heading
 
             start_pos = match.start(1)

@@ -1,5 +1,6 @@
 """Fast tests for answer verification and role-based retrieval (no LLM or database)."""
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -11,6 +12,8 @@ from synora.agents.citations import (
     has_repeated_paragraph,
 )
 from synora.agents.llm import REPEAT_OPTIONS, LLMClient
+from synora.cli.seed_knowledge_base import infer_metadata
+from synora.rag.ingest import Ingestor
 
 PDPL_18 = {"title": "PDPL", "section": "Article (18)", "content": "Article (18)\nRight to object."}
 STRATEGY = {"title": "AI Strategy", "section": "chunk_81", "content": "Eight objectives."}
@@ -62,6 +65,21 @@ def test_repeated_paragraphs_are_detected_and_removed():
 
 def test_unfinished_paragraph_is_not_a_repeat():
     assert not has_repeated_paragraph(f"{LOOP}\n{LOOP[:50]}")
+
+
+def test_reversed_arabic_heading_becomes_its_own_section():
+    text = "المادة (2 )\nنطاق التطبيق\n\n2\n( المادة3 )\nالجهة المعنية\nالمادة (4)\nشروط الدخول"
+    sections = Ingestor()._split_into_sections(text)
+    assert [section for section, _, _ in sections] == ["المادة (2)", "المادة (3)", "المادة (4)"]
+    assert "الجهة المعنية" in sections[1][1]
+
+
+def test_arabic_files_get_arabic_metadata():
+    pdpl = infer_metadata(Path("data/raw/UAE_PDPL_45_2021_AR.pdf"))
+    decree = infer_metadata(Path("data/raw/UAE_Decree_Law_29_2021_AR.pdf"))
+    assert (pdpl["language"], pdpl["domain"]) == ("ar", "data_protection")
+    assert (decree["language"], decree["domain"]) == ("ar", "government_services")
+    assert infer_metadata(Path("data/raw/UAE_PDPL_45_2021.pdf"))["language"] == "en"
 
 
 class FakeRetriever:
