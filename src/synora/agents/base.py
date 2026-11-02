@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 import structlog
 
 from synora.agents.citations import (
+    article_numbers,
     drop_repeated_paragraphs,
     find_citation_problems,
     format_citation_warning,
@@ -39,6 +40,8 @@ ROLE_DOMAINS: dict[AgentRole, list[str]] = {
     AgentRole.COORDINATOR: [DocumentDomain.DATA_PROTECTION.value],
 }
 
+ARABIC_LETTER_RE = re.compile(r"[\u0600-\u06FF]")
+
 CUT_OFF_PROBLEM = "The answer was cut off before it finished"
 
 STRUCTURED_OUTPUT_SUFFIX = (
@@ -64,6 +67,14 @@ STRUCTURED_OUTPUT_SUFFIX = (
     "English version:\n[detailed English answer enumerating all rules, exceptions, and rights with [1] inline citations]\n</response>\n"
     "Both closing tags are mandatory."
 )
+
+
+def _unique_chunks(references: list[dict]) -> list[dict]:
+    """Drop later copies of a chunk returned by more than one search."""
+    unique: dict[str, dict] = {}
+    for ref in references:
+        unique.setdefault(ref["chunk_id"], ref)
+    return list(unique.values())
 
 
 def _strip_all_tags(text: str) -> str:
@@ -154,9 +165,17 @@ class BaseAgent:
             if not domains:
                 return general
             scoped = await self.retriever.search(query, top_k=top_k // 2, domains=domains)
-            scoped_ids = {ref["chunk_id"] for ref in scoped}
-            rest = [ref for ref in general if ref["chunk_id"] not in scoped_ids]
-            return scoped + rest[: top_k - len(scoped)]
+            # An article the query names comes first: similarity search can miss it.
+            numbers = sorted((n for n in article_numbers(query) if n.isdigit()), key=int)
+            named = (
+                await self.retriever.find_articles(
+                    numbers, domains, arabic=ARABIC_LETTER_RE.search(query) is not None
+                )
+                if numbers
+                else []
+            )
+            law = _unique_chunks(named + scoped)[: top_k // 2]
+            return _unique_chunks(law + general)[:top_k]
         except Exception as exc:
             logger.warning(
                 "agent.retrieval.failed",

@@ -46,7 +46,7 @@ def drop_repeated_paragraphs(text: str) -> str:
     return "\n".join(kept)
 
 
-def _article_numbers(text: str) -> set[str]:
+def article_numbers(text: str) -> set[str]:
     numbers: set[str] = set()
     for mention in ARTICLE_MENTION_RE.findall(text):
         numbers.update(ARTICLE_NUMBER_RE.findall(mention))
@@ -56,7 +56,7 @@ def _article_numbers(text: str) -> set[str]:
 def _is_supported(number: str, source: str) -> bool:
     if "." in number:  # Section numbers such as 3.1.2.4 appear without the word "Article"
         return re.search(rf"(?<![\d.]){re.escape(number)}(?![\d.]*\d)", source) is not None
-    return number in _article_numbers(source)
+    return number in article_numbers(source)
 
 
 def find_citation_problems(
@@ -70,7 +70,7 @@ def find_citation_problems(
 
     problems: list[str] = []
     unsupported = sorted(
-        (n for n in _article_numbers(content) if not _is_supported(n, all_sources)),
+        (n for n in article_numbers(content) if not _is_supported(n, all_sources)),
         key=lambda n: [int(part) for part in n.split(".")],
     )
     problems.extend(f"Article ({n}) is not in the retrieved sources" for n in unsupported)
@@ -89,7 +89,7 @@ def find_citation_problems(
         excerpts = [n for n in excerpts if 1 <= n <= len(sources)]
         if not excerpts:
             continue
-        for number in sorted(_article_numbers(sentence) - set(unsupported)):
+        for number in sorted(article_numbers(sentence) - set(unsupported)):
             if not any(_is_supported(number, sources[n - 1]) for n in excerpts):
                 labels = ", ".join(str(n) for n in excerpts)
                 message = f"Article ({number}) is cited to excerpt [{labels}], which lacks it"

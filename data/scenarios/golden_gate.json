@@ -39,11 +39,11 @@
       "sequence": 3,
       "release_after_seconds": 0,
       "title": "T+1hr: Proxy variables discovered",
-      "content": "The Privacy Consultant flags that the model uses 'postal_code' and 'mobile_prefix' as input features. Both are correlated with nationality in the UAE context (expatriate neighborhoods and telecom provider prefixes). This creates potential indirect discrimination under UAE PDPL Article 4 (fair processing) and Article 6 (sensitive data).",
+      "content": "The Privacy Consultant flags that the model uses 'postal_code' and 'mobile_prefix' as input features. Both are correlated with nationality in the UAE context (expatriate neighborhoods and telecom provider prefixes). This raises potential indirect discrimination. Assess it against the fair processing control in UAE PDPL Article (5) and the right to object to automated decisions in Article (18), and determine whether the scope exclusions for governmental entities in Article (2) apply to ICP.",
       "target_agent_roles": ["privacy", "auditor"],
       "metadata": {
         "proxy_variables": ["postal_code", "mobile_prefix"],
-        "pdpl_articles": ["Art. 4", "Art. 6"]
+        "pdpl_articles": ["Art. 2", "Art. 5", "Art. 18"]
       }
     },
     {
@@ -60,14 +60,12 @@
       "sequence": 5,
       "release_after_seconds": 0,
       "title": "T+3hr: Policy gap report",
-      "content": "Final assessment stage: identify gaps between UAE AI Strategy 2031, PDPL, and current operational practice. Map to global best practices (EU AI Act Art. 10 on data governance, Art. 14 on human oversight; OECD AI Principles on fairness; UNESCO Recommendation on non-discrimination). Produce actionable recommendations.",
+      "content": "Final assessment stage: identify gaps between UAE AI Strategy 2031, the UAE AI Charter, the UAE AI Ethics Guidelines, PDPL (including its scope exclusions for governmental entities in Article (2)), and current operational practice. Map them to the international references available: ITU-T Y.3172 and the ITU AI Ready framework. Produce actionable recommendations.",
       "target_agent_roles": ["auditor", "privacy", "coordinator"],
       "metadata": {
         "global_references": [
-          "EU AI Act Art. 10",
-          "EU AI Act Art. 14",
-          "OECD AI Principles 1.2",
-          "UNESCO Recommendation para 25"
+          "ITU-T Y.3172",
+          "ITU AI Ready Report 2.0"
         ]
       }
     }

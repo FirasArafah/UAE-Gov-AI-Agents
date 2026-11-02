@@ -23,3 +23,9 @@ class Retriever(Protocol):
     ) -> list[dict]:
         """Return list of {chunk_id, document_id, content, score}."""
         ...
+
+    async def find_articles(
+        self, numbers: list[str], domains: list[str], arabic: bool = False
+    ) -> list[dict]:
+        """Return the opening chunk of each named article."""
+        ...

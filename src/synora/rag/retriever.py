@@ -29,3 +29,12 @@ class PgVectorRetriever:
         k = top_k if top_k is not None else getattr(settings, "rag_top_k", 5)
         query_embedding = await self._embedder.embed(query)
         return await self._store.search(query_embedding=query_embedding, top_k=k, domains=domains)
+
+    async def find_articles(
+        self,
+        numbers: list[str],
+        domains: list[str],
+        arabic: bool = False,
+    ) -> list[dict[str, Any]]:
+        """Fetch articles by number, for queries that name them."""
+        return await self._store.find_articles(numbers, domains, arabic)

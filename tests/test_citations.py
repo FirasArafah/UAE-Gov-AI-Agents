@@ -94,6 +94,10 @@ class FakeRetriever:
             hits[0]["chunk_id"] = "scoped-0"  # Same chunk returned by both searches
         return hits
 
+    async def find_articles(self, numbers, domains, arabic=False):
+        self.named = (numbers, domains, arabic)
+        return [{"chunk_id": f"article-{number}"} for number in numbers]
+
 
 def _agent(role, retriever=None, llm=None) -> BaseAgent:
     record = SimpleNamespace(role=role, slug=role, name=role, system_prompt="Prompt")
@@ -107,6 +111,22 @@ async def test_privacy_retrieval_mixes_domain_and_general_without_duplicates():
     ids = [ref["chunk_id"] for ref in refs]
     assert ids == ["scoped-0", "scoped-1", "scoped-2", "general-1", "general-2", "general-3"]
     assert (3, ["data_protection"]) in retriever.calls
+
+
+@pytest.mark.asyncio
+async def test_articles_named_in_query_are_retrieved_first():
+    retriever = FakeRetriever()
+    refs = await _agent("privacy", retriever)._retrieve("Assess Article (18) and Article (5).")
+    assert [ref["chunk_id"] for ref in refs][:3] == ["article-5", "article-18", "scoped-0"]
+    assert len(refs) == 6
+    assert retriever.named == (["5", "18"], ["data_protection"], False)
+
+
+@pytest.mark.asyncio
+async def test_arabic_query_asks_for_arabic_articles():
+    retriever = FakeRetriever()
+    await _agent("privacy", retriever)._retrieve("ما حكم المادة (18)؟")
+    assert retriever.named == (["18"], ["data_protection"], True)
 
 
 @pytest.mark.asyncio
