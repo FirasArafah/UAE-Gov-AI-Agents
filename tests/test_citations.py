@@ -84,6 +84,12 @@ def test_repair_keeps_non_legal_excerpts_and_leaves_unknown_articles():
     assert repair_citations("Article (99) applies [1].", [PDPL_18]) == "Article (99) applies [1]."
 
 
+def test_every_agent_is_told_icp_is_a_governmental_entity():
+    prompt = _agent("privacy", None)._build_system_prompt([])
+    assert "ICP and ICA both mean the UAE Federal Authority" in prompt
+    assert "not a private company" in prompt
+
+
 def test_foreign_script_is_detected():
     assert has_wrong_script("لت接纳")
     assert has_wrong_script("للمодيل")
