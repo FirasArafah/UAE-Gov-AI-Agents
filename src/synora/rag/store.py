@@ -119,17 +119,26 @@ class VectorStore:
         arabic: bool = False,
     ) -> list[dict[str, Any]]:
         """Fetch the opening chunk of each named article, in the order the numbers were given."""
-        template = "\u0627\u0644\u0645\u0627\u062f\u0629 ({})" if arabic else "Article ({})"
-        labels = [template.format(number) for number in numbers]
+        # The English PDPL heads some articles "Article 21" and others "Article (13)".
+        templates = (
+            ["\u0627\u0644\u0645\u0627\u062f\u0629 ({})"]
+            if arabic
+            else ["Article ({})", "Article {}"]
+        )
+        order = {
+            template.format(number): idx
+            for idx, number in enumerate(numbers)
+            for template in templates
+        }
         stmt = (
             select(Chunk, Document)
             .join(Document, Chunk.document_id == Document.id)
-            .where(Document.domain.in_(domains), Chunk.section.in_(labels))
+            .where(Document.domain.in_(domains), Chunk.section.in_(order))
         )
         async with self._session_factory() as session:
             rows = (await session.execute(stmt)).all()
 
-        rows.sort(key=lambda row: labels.index(row[0].section))
+        rows.sort(key=lambda row: order[row[0].section])
         return [
             {
                 "chunk_id": str(chunk.id),

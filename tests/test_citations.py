@@ -5,11 +5,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from synora.agents.base import BaseAgent
+from synora.agents.base import BaseAgent, _was_cut_off
 from synora.agents.citations import (
     drop_repeated_paragraphs,
     find_citation_problems,
     has_repeated_paragraph,
+    has_wrong_script,
+    repair_citations,
 )
 from synora.agents.llm import REPEAT_OPTIONS, LLMClient
 from synora.cli.seed_knowledge_base import infer_metadata
@@ -41,6 +43,51 @@ def test_arabic_and_list_mentions_are_flagged():
 def test_article_cited_to_wrong_excerpt_is_flagged():
     problems = find_citation_problems("Article (18) of the PDPL [2] applies.", [PDPL_18, STRATEGY])
     assert problems == ["Article (18) is cited to excerpt [2], which lacks it"]
+
+
+@pytest.mark.parametrize("word", ["المادة", "للمادة", "لمادة", "بالمادة", "المواد"])
+def test_arabic_article_word_forms_are_read(word):
+    assert find_citation_problems(f"وفقاً {word} (18).", [STRATEGY]) == [
+        "Article (18) is not in the retrieved sources"
+    ]
+
+
+def test_paragraph_number_is_not_read_as_an_article():
+    source = {"section": "Article (3)", "content": "Article (3) applies."}
+    assert find_citation_problems("Article 3(4) and Article (3)(1) apply [1].", [source]) == []
+
+
+def test_citation_is_repointed_to_the_excerpt_holding_the_article():
+    scope = {"section": "Article (2)", "content": "Scope.", "language": "en"}
+    controls = {"section": "Article (5)", "content": "Controls.", "language": "en"}
+    answer = "Article (5) of the law applies [1].\nArticle (2) sets the scope [1]."
+    assert repair_citations(answer, [scope, controls]) == (
+        "Article (5) of the law applies [2].\nArticle (2) sets the scope [1]."
+    )
+
+
+def test_repair_prefers_the_sentence_language():
+    english = {"section": "Article (18)", "content": "Object.", "language": "en"}
+    arabic = {"section": "المادة (18)", "content": "الاعتراض", "language": "ar"}
+    other = {"section": "Article (2)", "content": "Scope.", "language": "en"}
+    assert repair_citations("وفقاً للمادة (18) [3].", [english, arabic, other]) == (
+        "وفقاً للمادة (18) [2]."
+    )
+
+
+def test_repair_keeps_non_legal_excerpts_and_leaves_unknown_articles():
+    other = {"section": "Article (2)", "content": ""}
+    answer = "Article (18) and the guidelines apply [2, 3]."
+    assert repair_citations(answer, [PDPL_18, other, STRATEGY]) == (
+        "Article (18) and the guidelines apply [1, 3]."
+    )
+    assert repair_citations("Article (99) applies [1].", [PDPL_18]) == "Article (99) applies [1]."
+
+
+def test_foreign_script_is_detected():
+    assert has_wrong_script("لت接纳")
+    assert has_wrong_script("للمодيل")
+    assert not has_wrong_script("النسخة العربية ICP [1].")
 
 
 def test_excerpt_out_of_range_is_flagged():
@@ -110,7 +157,7 @@ async def test_privacy_retrieval_mixes_domain_and_general_without_duplicates():
     refs = await _agent("privacy", retriever)._retrieve("query")
     ids = [ref["chunk_id"] for ref in refs]
     assert ids == ["scoped-0", "scoped-1", "scoped-2", "general-1", "general-2", "general-3"]
-    assert (3, ["data_protection"]) in retriever.calls
+    assert (6, ["data_protection"]) in retriever.calls
 
 
 @pytest.mark.asyncio
@@ -127,6 +174,35 @@ async def test_arabic_query_asks_for_arabic_articles():
     retriever = FakeRetriever()
     await _agent("privacy", retriever)._retrieve("ما حكم المادة (18)؟")
     assert retriever.named == (["18"], ["data_protection"], True)
+
+
+@pytest.mark.asyncio
+async def test_parts_and_translation_of_one_article_share_a_slot():
+    chunks = [
+        {"chunk_id": "a", "section": "Article 21 (part 2)"},
+        {"chunk_id": "b", "section": "المادة (21) (part 3)"},
+        {"chunk_id": "c", "section": "Article (13)"},
+        {"chunk_id": "d", "section": "chunk_5"},
+    ]
+
+    async def search(query, top_k=None, domains=None):
+        return chunks
+
+    retriever = SimpleNamespace(search=search)
+    refs = await _agent("privacy", retriever)._retrieve("Assess this.")
+    assert [ref["chunk_id"] for ref in refs] == ["a", "c", "d"]
+
+
+@pytest.mark.parametrize(
+    ("text", "warned"),
+    [
+        ("النسخة العربية:\nجواب [1].\n\nEnglish version:\nAnswer [1].", False),
+        ("النسخة العربية:\nجواب [1].\n\nEnglish version:\nAnswer that st", True),
+        ("النسخة العربية:\nجواب فقط [1].", True),
+    ],
+)
+def test_missing_closing_tag_alone_is_not_a_cut_off(text, warned):
+    assert _was_cut_off(f"<response>{text}", text) is warned
 
 
 @pytest.mark.asyncio

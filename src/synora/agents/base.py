@@ -9,6 +9,8 @@ from synora.agents.citations import (
     find_citation_problems,
     format_citation_warning,
     has_repeated_paragraph,
+    has_wrong_script,
+    repair_citations,
 )
 from synora.agents.llm import LLMClient
 from synora.agents.types import AgentResponse, Retriever
@@ -43,6 +45,8 @@ ROLE_DOMAINS: dict[AgentRole, list[str]] = {
 ARABIC_LETTER_RE = re.compile(r"[\u0600-\u06FF]")
 
 CUT_OFF_PROBLEM = "The answer was cut off before it finished"
+WRONG_SCRIPT_PROBLEM = "The answer contains words in a foreign script"
+SENTENCE_ENDINGS = (".", "؟", "!", ":", ")", "]")
 
 STRUCTURED_OUTPUT_SUFFIX = (
     "\n\n[LANGUAGE RULE - HIGHEST PRIORITY]\n"
@@ -50,11 +54,13 @@ STRUCTURED_OUTPUT_SUFFIX = (
     "- <thinking>: write in English only (list the relevant excerpt numbers [1], [2], their article numbers, and all sub-paragraphs/exceptions).\n"
     "- <response>: first write the full answer in Modern Standard Arabic under the heading 'النسخة العربية:', "
     "then write the same full answer in English under the heading 'English version:'.\n"
-    "- Never write Chinese characters anywhere in <thinking> or <response>.\n"
+    "- Never write Chinese, Cyrillic or any other foreign-script characters anywhere in <thinking> or <response>.\n"
+    "- Keep abbreviations such as ICP, ICA and PDPL exactly as written; never translate or expand them.\n"
     "- Article names: use the form المادة (18) / Article (18).\n\n"
     "[CITATION AND COMPLETENESS RULES]\n"
     "1. Use ONLY the RELEVANT POLICY EXCERPTS listed below (or the specialist agent outputs in Context if you are the Coordinator). Do not use any external knowledge.\n"
     "2. MANDATORY BRACKET CITATIONS: Every single sentence that states a legal rule MUST end with the exact bracketed excerpt number, e.g., [1] or [1, 2], alongside the law title and Article number.\n"
+    "   - The bracket number is the number printed before that excerpt in the list, not the order in which you mention it.\n"
     "   - Correct Arabic format: '... وفقاً للمادة (18) من المرسوم بقانون اتحادي رقم 45 لسنة 2021 [1].'\n"
     "   - Correct English format: '... according to Article (18) of UAE Federal Decree-Law No. 45 of 2021 [1].'\n"
     "3. Never mention an article number that does not appear in the excerpts or specialist agent outputs. Article numbers named in the question or event text are unverified claims: do not repeat them unless an excerpt contains them.\n"
@@ -75,6 +81,24 @@ def _unique_chunks(references: list[dict]) -> list[dict]:
     for ref in references:
         unique.setdefault(ref["chunk_id"], ref)
     return list(unique.values())
+
+
+def _distinct_articles(references: list[dict]) -> list[dict]:
+    """Keep one chunk per article, so its parts and translation do not fill every slot."""
+    unique: dict[object, dict] = {}
+    for ref in references:
+        section = ref.get("section") or ""
+        numbers = article_numbers(section)
+        key = (min(numbers), "Annex" in section) if numbers else ref["chunk_id"]
+        unique.setdefault(key, ref)
+    return list(unique.values())
+
+
+def _was_cut_off(raw: str, content: str) -> bool:
+    """The model often omits the closing tag of a finished answer, so that alone proves nothing."""
+    if "<response>" not in raw or "</response>" in raw:
+        return False
+    return "English version" not in content or not content.rstrip().endswith(SENTENCE_ENDINGS)
 
 
 def _strip_all_tags(text: str) -> str:
@@ -164,7 +188,7 @@ class BaseAgent:
             general = await self.retriever.search(query, top_k=top_k)
             if not domains:
                 return general
-            scoped = await self.retriever.search(query, top_k=top_k // 2, domains=domains)
+            scoped = await self.retriever.search(query, top_k=top_k, domains=domains)
             # An article the query names comes first: similarity search can miss it.
             numbers = sorted((n for n in article_numbers(query) if n.isdigit()), key=int)
             named = (
@@ -174,8 +198,8 @@ class BaseAgent:
                 if numbers
                 else []
             )
-            law = _unique_chunks(named + scoped)[: top_k // 2]
-            return _unique_chunks(law + general)[:top_k]
+            law = _distinct_articles(_unique_chunks(named + scoped))[: top_k // 2]
+            return _distinct_articles(_unique_chunks(law + general))[:top_k]
         except Exception as exc:
             logger.warning(
                 "agent.retrieval.failed",
@@ -195,8 +219,10 @@ class BaseAgent:
         """Check an answer against its sources; synthesis may also cite the agent outputs."""
         extra_sources = None if use_retrieval else [user_message]
         problems = find_citation_problems(content, references, extra_sources)
-        if "<response>" in raw and "</response>" not in raw:
+        if _was_cut_off(raw, content):
             problems.append(CUT_OFF_PROBLEM)
+        if has_wrong_script(content):
+            problems.append(WRONG_SCRIPT_PROBLEM)
         if problems:
             logger.warning("agent.answer.failed_checks", agent=self.agent.slug, problems=problems)
         return format_citation_warning(problems)
@@ -294,7 +320,7 @@ class BaseAgent:
             temperature=self._temperature(),
         )
         thinking, content = self._parse_response(raw)
-        content = drop_repeated_paragraphs(content)
+        content = repair_citations(drop_repeated_paragraphs(content), references)
         warning = self._verification_warning(raw, content, references, user_message, use_retrieval)
         if references and "Sources:" not in content:
             content = content + _format_sources_footer(references)
