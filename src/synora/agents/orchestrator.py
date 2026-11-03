@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from uuid import UUID
 
 import structlog
@@ -8,8 +9,43 @@ from synora.models.scenario import ScenarioEvent
 
 logger = structlog.get_logger(__name__)
 
+# Each assessment is bilingual and can run to thousands of tokens. Three of them plus the
+# Coordinator's system prompt would overflow the model context, so synthesis reads excerpts.
+SYNTHESIS_EXCERPT_CHARS = 1200
+SOURCES_MARKER = "\n\n---\n"  # start of the retrieved-sources footer
+
+
+@dataclass
+class AgentOutcome:
+    """Result of one agent's turn: a response, or the reason it failed."""
+
+    slug: str
+    response: AgentResponse | None = None
+    error: str | None = None
+    responding_to: list[str] = field(default_factory=list)
+
+
+def _excerpt(content: str, limit: int = SYNTHESIS_EXCERPT_CHARS) -> str:
+    """Drop the sources footer and cut long answers, keeping the English part when present."""
+    body = content.split(SOURCES_MARKER, 1)[0].strip()
+    english = body.split("English version:", 1)
+    if len(english) == 2 and english[1].strip():
+        body = english[1].strip()
+    return body if len(body) <= limit else body[:limit].rstrip() + " ..."
+
 
 class Orchestrator:
+    """Inter-agent coordination protocol for one scenario event.
+
+    1. Every targeted agent assesses the event under its own mandate. By default the agents
+       work independently and never see each other's drafts, as authorities do when they
+       each file a report with a coordinating body.
+    2. Events flagged ``sequential`` instead pass each assessment to the next agent, so an
+       agent can respond to a specific finding (e.g. ICP answering a privacy allegation).
+    3. When more than one specialist assessed the event, the Coordinator reads all of them and
+       produces a synthesis that names agreements, conflicts and the escalation path.
+    """
+
     def __init__(self, registry: AgentRegistry) -> None:
         self.registry = registry
 
@@ -17,54 +53,70 @@ class Orchestrator:
         self,
         event: ScenarioEvent,
         session_id: UUID | None = None,
-        history: list[dict] | None = None,
-    ) -> tuple[list[AgentResponse], AgentResponse | None]:
-        target_slugs = list(event.target_agent_roles or [])
-        if not target_slugs:
-            target_slugs = ["coordinator"]
+        histories: dict[str, list[dict]] | None = None,
+    ) -> tuple[list[AgentOutcome], AgentOutcome | None]:
+        target_slugs = list(event.target_agent_roles or []) or ["coordinator"]
+        sequential = bool((event.event_metadata or {}).get("sequential"))
+        histories = histories or {}
 
         logger.info(
             "orchestrator.event.start",
             event_seq=event.sequence,
             targets=target_slugs,
+            sequential=sequential,
             session=str(session_id) if session_id else None,
         )
 
-        assessments: list[AgentResponse] = []
+        outcomes: list[AgentOutcome] = []
         for slug in target_slugs:
+            outcome = AgentOutcome(slug=slug)
+            # The event text is the user message; the context only adds what it lacks.
+            context = [{"title": "Scenario event", "content": event.title}]
+            if sequential:
+                for prior in outcomes:
+                    if prior.response:
+                        outcome.responding_to.append(prior.slug)
+                        context.append(
+                            {
+                                "title": f"Assessment by {prior.response.agent_name}",
+                                "content": _excerpt(prior.response.content),
+                            }
+                        )
             try:
                 agent = await self.registry.get(slug)
+                outcome.response = await agent.respond(
+                    user_message=event.content,
+                    context=context,
+                    history=histories.get(slug),
+                )
             except KeyError:
                 logger.warning("orchestrator.agent_missing", slug=slug)
-                continue
-
-            try:
-                response = await agent.respond(
-                    user_message=event.content,
-                    context=[{"title": event.title, "content": event.content}],
-                    history=history,
-                )
-                assessments.append(response)
+                outcome.error = "agent not found"
             except Exception as exc:
-                logger.error(
-                    "orchestrator.agent_failed",
-                    slug=slug,
-                    error=str(exc),
-                )
+                logger.error("orchestrator.agent_failed", slug=slug, error=str(exc))
+                outcome.error = str(exc)
+            outcomes.append(outcome)
 
-        synthesis: AgentResponse | None = None
+        assessments = [o.response for o in outcomes if o.response]
+        synthesis: AgentOutcome | None = None
         if len(assessments) > 1 and "coordinator" not in target_slugs:
+            synthesis = AgentOutcome(
+                slug="coordinator", responding_to=[a.agent_slug for a in assessments]
+            )
             try:
-                synthesis = await self._synthesize(event, assessments, history)
+                synthesis.response = await self._synthesize(
+                    event, assessments, histories.get("coordinator")
+                )
             except Exception as exc:
                 logger.error("orchestrator.synthesis_failed", error=str(exc))
+                synthesis.error = str(exc)
 
         logger.info(
             "orchestrator.event.done",
             assessments=len(assessments),
-            has_synthesis=synthesis is not None,
+            has_synthesis=bool(synthesis and synthesis.response),
         )
-        return assessments, synthesis
+        return outcomes, synthesis
 
     async def _synthesize(
         self,
@@ -79,11 +131,13 @@ class Orchestrator:
             "Independent agent assessments:",
         ]
         for i, a in enumerate(assessments, start=1):
-            parts.append(f"\n[{i}] {a.agent_name} ({a.role}):\n{a.content}")
+            parts.append(f"\n[Assessment {i}] {a.agent_name} ({a.role}):\n{_excerpt(a.content)}")
 
         parts.append(
-            "\n\nSynthesize these assessments into a coordinated response. "
-            "Identify agreements, conflicts, and recommended next steps."
+            "\n\nSynthesize these independent assessments into one coordinated recommendation. "
+            "State where the agencies agree, where their mandates or objectives conflict, which "
+            "authority is responsible for each next step, and what must be escalated to a human "
+            "decision-maker."
         )
 
         return await coordinator.respond(

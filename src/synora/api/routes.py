@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
+from synora.agents.orchestrator import AgentOutcome, Orchestrator
 from synora.agents.registry import AgentRegistry
 from synora.api.sse import sse_event
 from synora.audit.logger import AuditLogger
@@ -15,7 +16,7 @@ from synora.models.audit import AuditLog
 from synora.models.document import DocumentDomain
 from synora.models.enums import MessageRole, SimulationStatus
 from synora.models.scenario import Scenario, ScenarioEvent
-from synora.models.simulation import Message, SimulationSession
+from synora.models.simulation import AgentAssessment, Message, SimulationSession
 from synora.schemas.agent import AgentRead
 from synora.schemas.audit import AuditLogRead
 from synora.schemas.chat import StreamMessageRequest
@@ -59,6 +60,167 @@ async def _next_sequence(db: AsyncSession, session_id: UUID) -> int:
     )
     return (result.scalar() or 0) + 1
 
+
+# Earlier assessments are cut short in history: the agent needs to remember what it found,
+# not re-read every citation, and the context window is shared with the policy excerpts.
+HISTORY_EXCERPT_CHARS = 800
+HISTORY_TURNS = 3
+
+
+async def _agent_histories(
+    db: AsyncSession, session_id: UUID, registry: AgentRegistry
+) -> dict[str, list[dict]]:
+    """Each agent's own earlier turns in this session, so it builds on its past findings.
+
+    An agent never sees another agent's messages here: cross-agent information flows only
+    through the orchestrator (sequential events and Coordinator synthesis).
+    """
+    result = await db.execute(
+        select(Message).where(Message.session_id == session_id).order_by(Message.sequence)
+    )
+    slug_by_id = registry.slugs_by_agent_id()
+    histories: dict[str, list[dict]] = {}
+    last_prompt: str | None = None
+    for msg in result.scalars():
+        if msg.role == MessageRole.USER:
+            last_prompt = msg.content
+            continue
+        slug = slug_by_id.get(msg.agent_id)
+        if not slug or last_prompt is None:
+            continue
+        excerpt = msg.content.split("\n\n---\n", 1)[0]
+        if len(excerpt) > HISTORY_EXCERPT_CHARS:
+            excerpt = excerpt[:HISTORY_EXCERPT_CHARS].rstrip() + " ..."
+        histories.setdefault(slug, []).extend(
+            [
+                {"role": "user", "content": last_prompt[:HISTORY_EXCERPT_CHARS]},
+                {"role": "assistant", "content": excerpt},
+            ]
+        )
+    return {slug: turns[-2 * HISTORY_TURNS :] for slug, turns in histories.items()}
+
+
+def _reference_summaries(references: list[dict]) -> list[dict]:
+    """Citation fields the UI shows, without the full chunk text."""
+    return [
+        {
+            "title": r.get("title"),
+            "section": r.get("section"),
+            "page": r.get("page") or (r.get("metadata") or {}).get("page"),
+            "language": r.get("language"),
+        }
+        for r in references
+    ]
+
+
+async def _persist_outcome(
+    db: AsyncSession,
+    audit: AuditLogger,
+    registry: AgentRegistry,
+    session_id: UUID,
+    event: ScenarioEvent,
+    outcome: AgentOutcome,
+    is_synthesis: bool = False,
+) -> dict:
+    """Store one agent turn as a message, an assessment and its audit trail."""
+    response = outcome.response
+    if response is None:
+        return {
+            "agent_slug": outcome.slug,
+            "error": outcome.error or "no response",
+            "is_synthesis": is_synthesis,
+        }
+
+    try:
+        agent = await registry.get(response.agent_slug)
+        references = response.references or []
+        asst_msg = Message(
+            session_id=session_id,
+            agent_id=agent.agent.id,
+            role=MessageRole.ASSISTANT,
+            content=response.content or "(no content)",
+            thinking_trace=response.thinking_trace,
+            sequence=await _next_sequence(db, session_id),
+            message_metadata={
+                "event_sequence": event.sequence,
+                "source": "scenario_synthesis" if is_synthesis else "scenario_advance",
+                "is_synthesis": is_synthesis,
+                "responding_to": outcome.responding_to,
+                "references": _reference_summaries(references),
+            },
+        )
+        db.add(asst_msg)
+        await db.flush()
+
+        db.add(
+            AgentAssessment(
+                session_id=session_id,
+                agent_id=agent.agent.id,
+                event_sequence=event.sequence,
+                assessment=response.content or "(no content)",
+                confidence=response.confidence,
+                references_used=references,
+            )
+        )
+
+        if references:
+            await audit.log_retrieval(
+                session_id=session_id,
+                agent_id=agent.agent.id,
+                query=event.content,
+                references=references,
+            )
+        if outcome.responding_to:
+            await audit.log_handoff(
+                session_id=session_id,
+                agent_id=agent.agent.id,
+                message_id=asst_msg.id,
+                from_agents=outcome.responding_to,
+                event_sequence=event.sequence,
+            )
+        if response.thinking_trace:
+            await audit.log_reasoning(
+                session_id=session_id,
+                agent_id=agent.agent.id,
+                message_id=asst_msg.id,
+                reasoning=response.thinking_trace,
+                policy_references=references,
+            )
+        await audit.log_decision(
+            session_id=session_id,
+            agent_id=agent.agent.id,
+            message_id=asst_msg.id,
+            reasoning=response.content or "(no content)",
+            confidence=response.confidence,
+            source_attributions=references,
+        )
+        await db.commit()
+    except Exception as exc:
+        logger.error(
+            "scenario.advance.persist_failed",
+            session=str(session_id),
+            agent=outcome.slug,
+            error=str(exc),
+        )
+        await db.rollback()
+        return {
+            "agent_slug": outcome.slug,
+            "error": f"persist failed: {exc}",
+            "is_synthesis": is_synthesis,
+        }
+
+    return {
+        "agent_slug": response.agent_slug,
+        "agent_name": response.agent_name,
+        "role": response.role,
+        "content": response.content,
+        "thinking": response.thinking_trace,
+        "references": _reference_summaries(references),
+        "references_count": len(references),
+        "message_id": str(asst_msg.id),
+        "is_synthesis": is_synthesis,
+        "responding_to": outcome.responding_to,
+    }
 
 # ============================================================================
 # Agents
@@ -386,113 +548,37 @@ async def advance_scenario(
     await db.commit()
     await db.refresh(event_msg)
 
+    histories = await _agent_histories(db, session_id, registry)
+    orchestrator = Orchestrator(registry)
+    outcomes, synthesis = await orchestrator.run_event(
+        event, session_id=session_id, histories=histories
+    )
+
     audit = AuditLogger(db)
     agent_results: list[dict] = []
-
-    for slug in (event.target_agent_roles or ["coordinator"]):
-        try:
-            agent = await registry.get(slug)
-        except KeyError:
-            agent_results.append({"agent_slug": slug, "error": "agent not found"})
-            continue
-
-        try:
-            response = await agent.respond(
-                user_message=event.content,
-                context=[{"title": event.title, "content": event.content}],
+    for outcome in outcomes:
+        agent_results.append(
+            await _persist_outcome(db, audit, registry, session_id, event, outcome)
+        )
+    if synthesis is not None:
+        agent_results.append(
+            await _persist_outcome(
+                db, audit, registry, session_id, event, synthesis, is_synthesis=True
             )
-        except Exception as exc:
-            logger.error(
-                "scenario.advance.agent_failed",
-                session=str(session_id),
-                agent=slug,
-                error=str(exc),
-            )
-            agent_results.append({"agent_slug": slug, "error": str(exc)})
-            continue
+        )
 
-        try:
-            # Persist the agent's response message
-            asst_seq = await _next_sequence(db, session_id)
-            asst_msg = Message(
-                session_id=session_id,
-                agent_id=agent.agent.id,
-                role=MessageRole.ASSISTANT,
-                content=response.content or "(no content)",
-                thinking_trace=response.thinking_trace,
-                sequence=asst_seq,
-                message_metadata={
-                    "event_sequence": event.sequence,
-                    "source": "scenario_advance",
-                },
-            )
-            db.add(asst_msg)
-            await db.commit()
-            await db.refresh(asst_msg)
-
-            references = response.references or []
-
-            # Persist audit trail
-            if references:
-                await audit.log_retrieval(
-                    session_id=session_id,
-                    agent_id=agent.agent.id,
-                    query=event.content,
-                    references=references,
-                )
-
-            if response.thinking_trace:
-                await audit.log_reasoning(
-                    session_id=session_id,
-                    agent_id=agent.agent.id,
-                    message_id=asst_msg.id,
-                    reasoning=response.thinking_trace,
-                    policy_references=references,
-                )
-
-            await audit.log_decision(
-                session_id=session_id,
-                agent_id=agent.agent.id,
-                message_id=asst_msg.id,
-                reasoning=response.content or "(no content)",
-                source_attributions=references,
-            )
-            await db.commit()
-
-            agent_results.append(
-                {
-                    "agent_slug": response.agent_slug,
-                    "agent_name": response.agent_name,
-                    "role": response.role,
-                    "content": response.content,
-                    "thinking": response.thinking_trace,
-                    "references_count": len(references),
-                    "message_id": str(asst_msg.id),
-                }
-            )
-        except Exception as persist_exc:
-            logger.error(
-                "scenario.advance.persist_failed",
-                session=str(session_id),
-                agent=slug,
-                error=str(persist_exc),
-            )
-            await db.rollback()
-            agent_results.append(
-                {
-                    "agent_slug": slug,
-                    "error": f"persist failed: {persist_exc}",
-                }
-            )
-
+    session = await db.get(SimulationSession, session_id)
     return {
         "status": "running",
         "event": {
             "sequence": event.sequence,
             "title": event.title,
             "target_agent_roles": event.target_agent_roles,
+            "content": event.content,
+            "sequential": bool((event.event_metadata or {}).get("sequential")),
         },
         "assessments": agent_results,
+        "session_status": str(session.status) if session else None,
     }
 
 

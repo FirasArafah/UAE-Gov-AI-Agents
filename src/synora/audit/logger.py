@@ -99,3 +99,32 @@ class AuditLogger:
             refs=len(references),
         )
         return entry
+
+    async def log_handoff(
+        self,
+        session_id: UUID,
+        agent_id: UUID,
+        message_id: UUID | None,
+        from_agents: list[str],
+        event_sequence: int | None = None,
+    ) -> AuditLog:
+        """Record that an agent's output was built on other agents' assessments."""
+        entry = AuditLog(
+            session_id=session_id,
+            agent_id=agent_id,
+            message_id=message_id,
+            action=AuditAction.HANDOFF,
+            reasoning="Received assessments from: " + ", ".join(from_agents),
+            policy_references=[],
+            source_attributions=[],
+            audit_metadata={"from_agents": from_agents, "event_sequence": event_sequence},
+        )
+        self.db.add(entry)
+        await self.db.flush()
+        logger.info(
+            "audit.handoff",
+            session=str(session_id),
+            agent=str(agent_id),
+            from_agents=from_agents,
+        )
+        return entry
