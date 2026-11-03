@@ -387,6 +387,7 @@ table.data tr:last-child td { border-bottom: none; }
 table.data tr.clickable { cursor: pointer; }
 table.data tr.clickable:hover td { background: var(--panel-2); }
 table.data td.num { font-variant-numeric: tabular-nums; text-align: end; }
+table.data td.mono { white-space: nowrap; }
 table.data tr.detail td { background: var(--panel-2); }
 .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
 .toolbar .grow { flex: 1; }
