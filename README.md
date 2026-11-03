@@ -1,52 +1,146 @@
 # SYNORA
 
-**ITU AI for Good Lab Hackathon 2026 — UAE**
+**Multi-agent AI governance simulation — ITU AI for Good Lab Hackathon 2026 (UAE)**
 
-Multi-agent system for detecting algorithmic bias in government AI
-(visa & Golden Residency screening).
+SYNORA puts AI agents with different institutional mandates into a staged incident and
+watches how they reason, disagree and coordinate under real legislation. The reference
+scenario, *The Golden Gate Anomaly*, is an AI visa-screening system that starts rejecting
+applicants of one nationality at almost three times the baseline rate. Events are
+released one at a time, each agent sees only what its role would see, every legal claim
+is cited to a retrieved excerpt, and the Coordinator reconciles the independent
+assessments into a policy gap report mapped to international practice.
 
-# UAE Government AI Bias & Policy Auditing System (TrustMed RAG)
-
-A localized Retrieval-Augmented Generation (RAG) framework designed for auditing algorithmic bias in UAE screening systems (such as Golden Residency and visa processing), fully compliant with **ITU-T Y.3172** and the **ITU AI Readiness Framework**.
-
----
-
-## 🚀 Key Features
-
-- **Strict Legal Grounding:** Uses official UAE legislation (e.g., Federal Decree-Law No. 45 of 2021 on Personal Data Protection, AI Charter, National AI Strategy 2031) and ITU international standards.
-- **Local RAG Pipeline:** FAISS vector index (`IndexFlatIP`) paired with `sentence-transformers/all-MiniLM-L6-v2` for semantic retrieval.
-- **Local LLM Generation:** Powered locally via **Ollama (Llama 3.2)** ensuring complete data privacy and local execution.
-- **Auditability & Traceability:** Every generated answer includes exact file citations, Article references, page numbers, and generates automated JSON audit logs.
+Everything runs locally: no data leaves the machine and no external AI API is used.
 
 ---
 
-## 📂 Project Structure
+## What it does
 
-````text
-## Project Structure
+| Hackathon requirement | How SYNORA meets it |
+|---|---|
+| Knowledge base of national policy, mapped to global practice | 15 documents / 2,077 chunks: UAE PDPL (EN + AR), Decree-Law 29/2021 (EN + AR), Cabinet Resolution 65/2022 (EN + AR), National AI Strategy 2031, AI Charter, AI Ethics Guidelines; ITU-T Y.3172, ITU AI Ready report, OECD AI Principles, UNESCO Recommendation (EN + AR), EU AI Act. Chunked by article, with page numbers, in pgvector. |
+| Policy and legal adviser | Every agent answers in Arabic and English from retrieved excerpts only; citations are checked automatically and flagged when an article is not in the sources. |
+| Institutional participants | ICP Representative (system operator), AI Auditor, Privacy Consultant (PDPL), Coordinator — each with its own mandate, temperature and retrieval domain. |
+| Multi-agent coordination | An orchestrator releases each event to its target agents. They assess **independently**; on events flagged *sequential* each agent receives the previous one's assessment; the **Coordinator synthesizes** every multi-agent event (agreements, conflicting mandates, responsible authority, escalation). |
+| Progressive, uneven information | Events are released one at a time; unreleased event text is never sent to the UI; each event reaches only its target agents. |
+| Controversy, not only the happy path | Event 5: ICP invokes sovereign and national-security grounds and the PDPL Article (2) government exclusion to refuse the fix, and no source names a body that can suspend the system. |
+| Audit logging and chain-of-thought | Every retrieval, reasoning trace, decision, hand-off and gap extraction is stored in `audit_logs` with its sources; per-agent assessments in `agent_assessments`; gaps in `policy_gaps`. |
+| Gap identification with global examples | `POST /api/sessions/{id}/gaps` turns the assessments into typed, severity-ranked gaps, each linked only to international excerpts that were actually retrieved. |
+| ITU-T Y.3172 and AI Readiness alignment | See [docs/itu-alignment.md](docs/itu-alignment.md). |
 
-```text
-UAE-Gov-AI-Agents/
-├── data/
-│   ├── kb_manifest.json          # Metadata and configuration for KB documents
-│   └── raw_docs/                 # Storage for all raw Arabic and English PDFs
-│
-├── src/
-│   └── synora/                   # Main Application Package
-│       ├── db/                   # Database connection and async sessions
-│       ├── models/               # SQLAlchemy ORM models (Agents, Chunks, etc.)
-│       │
-│       ├── rag/                  # Core RAG Engine (Legal & Policy)
-│       │   ├── __init__.py
-│       │   ├── enums.py          # Enums for LLM models and supported languages
-│       │   ├── providers/        # LLM Factory Pattern Implementation
-│       │   │   ├── __init__.py
-│       │   │   ├── base.py       # Base Interface for LLM providers
-│       │   │   ├── ollama_provider.py # Ollama integration for embedding/generation
-│       │   │   └── factory.py    # Factory to manage multi-model routing
-│       │   ├── vector_store.py   # PostgreSQL pgvector integration (replaces FAISS)
-│       │   ├── ingester.py       # Document ingestion, chunking, and database logging
-│       │   └── engine.py         # Main RAG Engine API for Agents
-│       │
-│       └── main.py               # FastAPI application entry point
-````
+## Architecture
+
+```
+ SRC            C · PP                    M                         P                       D · SINK
+ UAE law,  ─▶  extraction, article  ─▶  role agents on local  ─▶  citation checks,   ─▶  audit log, assessments,
+ strategies,   chunking, bge-m3         LLM (qwen2.5 7B),         coordinator           policy gap report,
+ ITU, OECD,    embeddings, pgvector     each retrieving its       synthesis, human      UI and JSON export
+ UNESCO, EU                             own legal domain first    escalation
+                         ▲                                                    │
+                         └──────────── Orchestrator (MLFO role) ──────────────┘
+```
+
+| Layer | Technology |
+|---|---|
+| API | FastAPI, SSE streaming |
+| Storage | PostgreSQL 17 + pgvector (schema in `docker/postgres/init/`) |
+| LLM | Ollama, `qwen2.5:7b-instruct`, 8k context per request |
+| Embeddings | `bge-m3` (1024-dim, multilingual Arabic/English) |
+| UI | Vanilla JS + Vite (`ui/`) |
+
+## Quick start
+
+Requirements: Docker with Compose, ~10 GB free disk for the models. A GPU is optional; on CPU
+each agent answer takes one to four minutes.
+
+```bash
+cp .env.example .env
+docker compose up -d postgres ollama
+docker compose up ollama-init          # pulls qwen2.5:7b-instruct and bge-m3 (once)
+docker compose up -d backend ui
+make seed                              # agents + scenarios
+make seed-kb                           # ingest data/knowledge_base/raw (takes a while)
+```
+
+Open http://localhost:5173. API docs: http://localhost:8000/docs.
+
+If port 5432 is taken, set `POSTGRES_PORT` in `.env`.
+
+## Running the scenario
+
+1. **Overview → Start simulation** on *The Golden Gate Anomaly*.
+2. **Release event** one at a time. Agents assess, the Coordinator synthesizes, and each
+   answer shows its sources, reasoning trace and any citation warnings.
+3. After a few events, **Build gap report** at the bottom of the simulation.
+4. **Audit log** shows every recorded step and exports it as JSON.
+
+| # | Event | Agents | Flow |
+|---|---|---|---|
+| 1 | Anomaly reported | Auditor | single |
+| 2 | Model audit request | Privacy → ICP | sequential: ICP answers Privacy's findings |
+| 3 | Proxy variables discovered | Privacy, Auditor | independent + synthesis |
+| 4 | Coordinated response decision | Coordinator | single |
+| 5 | Contested authority (controversy) | ICP, Privacy, Auditor | independent + synthesis |
+| 6 | Policy gap report | Auditor, Privacy | independent + synthesis |
+
+**Ask agents** questions one or several agents directly; several agents get a Coordinator
+synthesis. **Knowledge base** lists coverage per document and runs the agents' retrieval
+for any query.
+
+## API
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/health` | DB, LLM and loaded agents |
+| GET | `/api/agents` | Agent roster |
+| GET | `/api/scenarios` | Published scenarios |
+| GET/POST | `/api/sessions` | List / create sessions |
+| POST | `/api/sessions/{id}/start` | Start a scenario session |
+| POST | `/api/sessions/{id}/advance` | Release the next event and run the coordination protocol |
+| POST | `/api/sessions/{id}/events/{seq}/run` | Re-run a released event that has no recorded assessments |
+| GET | `/api/sessions/{id}/timeline` | Events, with text only once released |
+| GET | `/api/sessions/{id}/messages` | Event and agent messages |
+| GET | `/api/sessions/{id}/assessments` | Structured per-agent assessments |
+| GET/POST | `/api/sessions/{id}/gaps` | Read / build the policy gap report |
+| GET | `/api/sessions/{id}/audit` | Full audit trail |
+| POST | `/api/sessions/{id}/stream` | Free-chat answers over SSE |
+| GET | `/api/documents` | Knowledge base coverage |
+| GET | `/api/kb/search?q=` | Run retrieval directly |
+
+## Development
+
+```bash
+make build-dev          # image with pytest/ruff (INSTALL_DEV=true)
+make test-fast          # unit + API tests, no LLM
+make test-all           # includes the full six-event scenario against the LLM (slow)
+```
+
+- Scenario JSON lives in `data/scenarios/`; `make seed` reloads it with `--force`.
+- `python -m synora.cli.seed_knowledge_base --refresh-metadata` corrects document titles and
+  classification without re-embedding.
+- The database schema is created by `docker/postgres/init/*.sql` on first start; the Alembic
+  baseline is a placeholder for future migrations.
+
+```
+src/synora/
+  agents/      base agent, orchestrator, gap analyst, citation checks, LLM client
+  api/         FastAPI routes
+  audit/       audit logger
+  rag/         ingestion, embeddings, pgvector store and retriever
+  scenarios/   scenario loader and event engine
+  cli/         seeding commands
+ui/src/        pages and shared rendering
+data/          knowledge base sources and scenarios
+```
+
+## Known limitations
+
+- On CPU a full six-event run takes roughly 45–60 minutes.
+- The OECD source currently yields 5 chunks over 2 pages; it appears to be a summary rather
+  than the full Recommendation and should be replaced.
+- The API tests create sessions in the development database.
+- Sessions are kept as immutable audit records; there is no delete endpoint.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
