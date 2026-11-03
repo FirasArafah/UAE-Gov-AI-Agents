@@ -10,8 +10,13 @@ from synora.rag.ingest import Ingestor
 
 logger = structlog.get_logger(__name__)
 
+DEFAULT_RAW_DIR = "data/knowledge_base/raw"
+# The text of this file comes out broken: split words and no article headings.
+SKIPPED_FILES = {"UAE_Cabinet_Resolution_65_2022_AR.pdf"}
+
 # Default metadata mapping for the known UAE / international reference files.
-# Arabic keys come first: infer_metadata takes the first key found in the file name.
+# infer_metadata takes the first key found in the file name, so Arabic keys come first
+# and "unesco" comes before "ethics".
 KNOWN_METADATA: dict[str, dict[str, Any]] = {
     "pdpl_45_2021_ar": {
         "title": "مرسوم بقانون اتحادي رقم 45 لسنة 2021 بشأن حماية البيانات الشخصية (PDPL)",
@@ -25,6 +30,23 @@ KNOWN_METADATA: dict[str, dict[str, Any]] = {
         "domain": DocumentDomain.GOVERNMENT_SERVICES.value,
         "doc_type": DocumentType.LAW.value,
         "country_code": "AE",
+        "language": "ar",
+    },
+    "65_2022_ar": {
+        "title": (
+            "قرار مجلس الوزراء رقم 65 لسنة 2022 بإصدار اللائحة التنفيذية "
+            "للمرسوم بقانون اتحادي رقم 29 لسنة 2021"
+        ),
+        "domain": DocumentDomain.GOVERNMENT_SERVICES.value,
+        "doc_type": DocumentType.REGULATION.value,
+        "country_code": "AE",
+        "language": "ar",
+    },
+    "unesco_ai_ethics_recommendation_ar": {
+        "title": "التوصية الخاصة بأخلاقيات الذكاء الاصطناعي (اليونسكو)",
+        "domain": DocumentDomain.AI_GOVERNANCE.value,
+        "doc_type": DocumentType.GUIDELINE.value,
+        "country_code": "INT",
         "language": "ar",
     },
     "pdpl": {
@@ -59,6 +81,27 @@ KNOWN_METADATA: dict[str, dict[str, Any]] = {
         "title": "ITU-T Y.3172 Architectural Framework for Machine Learning",
         "domain": DocumentDomain.CROSS_DOMAIN.value,
         "doc_type": DocumentType.STANDARD.value,
+        "country_code": "INT",
+        "language": "en",
+    },
+    "unesco": {
+        "title": "UNESCO Recommendation on the Ethics of Artificial Intelligence",
+        "domain": DocumentDomain.AI_GOVERNANCE.value,
+        "doc_type": DocumentType.GUIDELINE.value,
+        "country_code": "INT",
+        "language": "en",
+    },
+    "eu_ai_act": {
+        "title": "Regulation (EU) 2024/1689 on Artificial Intelligence (EU AI Act)",
+        "domain": DocumentDomain.AI_GOVERNANCE.value,
+        "doc_type": DocumentType.REGULATION.value,
+        "country_code": "EU",
+        "language": "en",
+    },
+    "oecd": {
+        "title": "What are the OECD Principles on AI? (OECD summary, 2020)",
+        "domain": DocumentDomain.AI_GOVERNANCE.value,
+        "doc_type": DocumentType.GUIDELINE.value,
         "country_code": "INT",
         "language": "en",
     },
@@ -102,18 +145,25 @@ def infer_metadata(file_path: Path) -> dict[str, Any]:
     }
 
 
+def find_seed_files(raw_dir: Path) -> list[Path]:
+    supported_exts = {".pdf", ".html", ".htm", ".txt"}
+    return sorted(
+        p
+        for p in raw_dir.iterdir()
+        if p.is_file()
+        and p.suffix.lower() in supported_exts
+        and not p.name.endswith(".ocr.txt")
+        and p.name not in SKIPPED_FILES
+    )
+
+
 async def seed_knowledge_base(raw_dir: Path) -> None:
     if not raw_dir.exists():
         logger.warning("seed_kb.directory_not_found", path=str(raw_dir))
         return
 
     ingestor = Ingestor()
-    supported_exts = {".pdf", ".html", ".htm", ".txt"}
-    files = sorted(
-        p
-        for p in raw_dir.iterdir()
-        if p.is_file() and p.suffix.lower() in supported_exts and not p.name.endswith(".ocr.txt")
-    )
+    files = find_seed_files(raw_dir)
 
     if not files:
         logger.warning("seed_kb.no_files_found", path=str(raw_dir))
@@ -138,7 +188,7 @@ def main() -> None:
     parser.add_argument(
         "--path",
         type=str,
-        default="data/raw",
+        default=DEFAULT_RAW_DIR,
         help="Path to raw knowledge base documents directory.",
     )
     args = parser.parse_args()

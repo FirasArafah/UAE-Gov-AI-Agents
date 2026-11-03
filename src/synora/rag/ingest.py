@@ -23,10 +23,13 @@ logger = structlog.get_logger(__name__)
 # Matches "Article (18)", "Article 18", "المادة (18)", "المادة 18", "( المادة18 )" (how pypdf
 # reads some right-to-left headings), and "## Heading" lines
 # written into hand-verified .ocr.txt files (for scanned PDFs with no text layer).
+# "Article 18" counts only alone on its line: "Article 18 of the Charter" is a cross-reference.
 ARTICLE_HEADING_RE = re.compile(
-    r"(?:^|\n)\s*(Article\s*\(?\s*\d+\s*\)?(?:\s*BIS\b)?"
+    r"(?:^|\n)\s*(Article\s*\(\s*\d+\s*\)?(?:\s*BIS\b)?"
+    r"|Article\s*\d+(?:\s*BIS\b)?[ \t]*(?=\n|$)"
     r"|\(\s*\u0627\u0644\u0645\u0627\u062f\u0629\s*\d+\s*\)"
     r"|\u0627\u0644\u0645\u0627\u062f\u0629\s*\(?\s*\d+\s*\)?"
+    r"|(?-i:ANNEX\s+[IVXLC]+)[ \t]*(?=\n|$)"
     r"|##[^\n]+)",
     re.IGNORECASE,
 )
@@ -116,6 +119,10 @@ class Ingestor:
     ) -> list[tuple[str, str, int | None]]:
         """Split legal text by Article/المادة headings and attach 1-based page numbers."""
         matches = list(ARTICLE_HEADING_RE.finditer(text))
+        # Inside a named annex, "Article 49" alone on a line is a cross-reference, not a heading.
+        annexes = [i for i, m in enumerate(matches) if m.group(1).startswith("ANNEX")]
+        if annexes:
+            matches = matches[: annexes[0]] + [matches[i] for i in annexes]
         if len(matches) < 2:
             return [
                 (default_section or f"chunk_{idx}", c_text, page_num)
@@ -141,6 +148,7 @@ class Ingestor:
 
         for i, match in enumerate(matches):
             raw_heading = re.sub(r"\s+", " ", match.group(1)).strip().removeprefix("## ")
+            raw_heading = raw_heading.replace("ANNEX", "Annex")
             number_match = re.search(r"\d+", raw_heading)
             if number_match:
                 number = int(number_match.group())

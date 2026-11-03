@@ -14,7 +14,7 @@ from synora.agents.citations import (
     repair_citations,
 )
 from synora.agents.llm import REPEAT_OPTIONS, LLMClient
-from synora.cli.seed_knowledge_base import infer_metadata
+from synora.cli.seed_knowledge_base import DEFAULT_RAW_DIR, find_seed_files, infer_metadata
 from synora.rag.ingest import Ingestor
 
 PDPL_18 = {"title": "PDPL", "section": "Article (18)", "content": "Article (18)\nRight to object."}
@@ -127,12 +127,56 @@ def test_reversed_arabic_heading_becomes_its_own_section():
     assert "الجهة المعنية" in sections[1][1]
 
 
+def test_cross_references_are_not_article_headings():
+    text = (
+        "Recital on rights under\nArticle 39 of the Charter, and more.\n"
+        "Article 1\nSubject matter\nThe purpose.\n"
+        "Article 2\nScope\nThis follows\nArticle 57 applies only when needed.\n"
+        "Article 3\nDefinitions\nFor the purposes.\n"
+        "ANNEX I\nList\nSee\nArticle 49\nfor details.\n"
+        "ANNEX II\nMore text."
+    )
+    sections = Ingestor()._split_into_sections(text)
+    assert [section for section, _, _ in sections] == [
+        "Preamble",
+        "Article 1",
+        "Article 2",
+        "Article 3",
+        "Annex I",
+        "Annex II",
+    ]
+
+
 def test_arabic_files_get_arabic_metadata():
     pdpl = infer_metadata(Path("data/raw/UAE_PDPL_45_2021_AR.pdf"))
     decree = infer_metadata(Path("data/raw/UAE_Decree_Law_29_2021_AR.pdf"))
     assert (pdpl["language"], pdpl["domain"]) == ("ar", "data_protection")
     assert (decree["language"], decree["domain"]) == ("ar", "government_services")
     assert infer_metadata(Path("data/raw/UAE_PDPL_45_2021.pdf"))["language"] == "en"
+    cabinet = infer_metadata(Path("data/raw/UAE_Cabinet_Resolution_65_2022_AR.pdf"))
+    assert (cabinet["language"], cabinet["domain"]) == ("ar", "government_services")
+
+
+def test_international_files_keep_their_own_metadata():
+    raw = Path(DEFAULT_RAW_DIR)
+    unesco_en = infer_metadata(raw / "UNESCO_AI_Ethics_Recommendation_EN.pdf")
+    unesco_ar = infer_metadata(raw / "UNESCO_AI_Ethics_Recommendation_AR.pdf")
+    assert "UNESCO" in unesco_en["title"]
+    assert (unesco_en["language"], unesco_en["country_code"]) == ("en", "INT")
+    assert (unesco_ar["language"], unesco_ar["country_code"]) == ("ar", "INT")
+    assert infer_metadata(raw / "EU_AI_Act_2024.pdf")["country_code"] == "EU"
+    assert infer_metadata(raw / "OECD_AI_Principles.pdf")["country_code"] == "INT"
+    uae_ethics = infer_metadata(raw / "UAE_AI_Ethics_Guidelines.pdf")
+    assert uae_ethics["title"] == "UAE AI Ethics Guidelines"
+
+
+def test_default_seed_folder_has_the_knowledge_base_with_known_metadata():
+    files = find_seed_files(Path(DEFAULT_RAW_DIR))
+    names = [p.name for p in files]
+    assert len(files) >= 14
+    assert "UAE_Cabinet_Resolution_65_2022.pdf" in names
+    assert "UAE_Cabinet_Resolution_65_2022_AR.pdf" not in names
+    assert [p.name for p in files if infer_metadata(p)["doc_type"] == "other"] == []
 
 
 class FakeRetriever:
