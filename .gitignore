@@ -18,3 +18,14 @@ models/
 
 # Environment variables
 .env
+
+# Tooling caches
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# UI build output
+ui/node_modules/
+ui/dist/
+ui/.vite/

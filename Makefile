@@ -1,4 +1,4 @@
-.PHONY: help up down logs sh test test-fast test-all seed reset build-prod build-dev
+.PHONY: help up down logs sh test test-fast test-all seed seed-kb reset build-prod build-dev
 
 help:
 	@echo "SYNORA — common commands"
@@ -13,6 +13,7 @@ help:
 	@echo "  test-fast      Fast tests (no LLM, ~15s)"
 	@echo "  test-all       All tests including LLM E2E (~11 min)"
 	@echo "  seed           Seed agents + scenarios"
+	@echo "  seed-kb        Ingest data/knowledge_base/raw into the vector store"
 	@echo "  reset          Drop DB + rebuild + seed"
 
 build:
@@ -48,6 +49,9 @@ seed:
 	docker compose exec -T backend python -m synora.cli.seed_agents
 	docker compose exec -T backend python -m synora.cli.seed_scenarios --force
 
+seed-kb:
+	docker compose exec -T backend python -m synora.cli.seed_knowledge_base
+
 reset:
 	docker compose down -v
 	docker compose up -d postgres ollama
@@ -57,3 +61,4 @@ reset:
 	@sleep 8
 	docker compose exec -T backend python -m synora.cli.seed_agents
 	docker compose exec -T backend python -m synora.cli.seed_scenarios --force
+	docker compose exec -T backend python -m synora.cli.seed_knowledge_base
