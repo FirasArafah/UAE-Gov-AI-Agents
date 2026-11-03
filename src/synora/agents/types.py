@@ -18,6 +18,14 @@ class AgentResponse(BaseModel):
 class Retriever(Protocol):
     """Interface implemented by the RAG layer"""
 
-    async def search(self, query: str, top_k: int = 6) -> list[dict]:
+    async def search(
+        self, query: str, top_k: int = 6, domains: list[str] | None = None
+    ) -> list[dict]:
         """Return list of {chunk_id, document_id, content, score}."""
+        ...
+
+    async def find_articles(
+        self, numbers: list[str], domains: list[str], arabic: bool = False
+    ) -> list[dict]:
+        """Return the opening chunk of each named article."""
         ...

@@ -8,8 +8,6 @@ from sqlalchemy.ext.asyncio import (
 
 from synora.config import settings
 
-from pgvector.sqlalchemy import Vector 
-
 engine = create_async_engine(
     settings.database_url,
     echo=False,

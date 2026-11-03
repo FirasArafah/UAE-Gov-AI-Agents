@@ -2,7 +2,7 @@ from typing import Any
 from uuid import UUID
 
 import structlog
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from synora.db.session import AsyncSessionLocal
@@ -71,8 +71,9 @@ class VectorStore:
         self,
         query_embedding: list[float],
         top_k: int = 5,
+        domains: list[str] | None = None,
     ) -> list[dict[str, Any]]:
-        """Search for top_k most similar chunks using pgvector cosine distance."""
+        """Search for top_k most similar chunks, optionally within domains and without preambles."""
         distance_col = Chunk.embedding.cosine_distance(query_embedding).label("distance")
 
         stmt = (
@@ -81,6 +82,11 @@ class VectorStore:
             .order_by(distance_col.asc())
             .limit(top_k)
         )
+        if domains:
+            stmt = stmt.where(
+                Document.domain.in_(domains),
+                func.coalesce(Chunk.section, "").not_like("Preamble%"),
+            )
 
         async with self._session_factory() as session:
             result = await session.execute(stmt)
@@ -90,6 +96,7 @@ class VectorStore:
         for chunk, doc, distance in rows:
             # Cosine similarity = 1 - cosine_distance
             score = max(0.0, 1.0 - float(distance)) if distance is not None else 0.0
+            chunk_meta = chunk.chunk_metadata or {}
             matches.append(
                 {
                     "chunk_id": str(chunk.id),
@@ -97,11 +104,54 @@ class VectorStore:
                     "content": chunk.content,
                     "score": round(score, 4),
                     "title": doc.title,
+                    "language": doc.language,
                     "section": chunk.section,
+                    "page": chunk_meta.get("page"),
                 }
             )
 
         return matches
+
+    async def find_articles(
+        self,
+        numbers: list[str],
+        domains: list[str],
+        arabic: bool = False,
+    ) -> list[dict[str, Any]]:
+        """Fetch the opening chunk of each named article, in the order the numbers were given."""
+        # The English PDPL heads some articles "Article 21" and others "Article (13)".
+        templates = (
+            ["\u0627\u0644\u0645\u0627\u062f\u0629 ({})"]
+            if arabic
+            else ["Article ({})", "Article {}"]
+        )
+        order = {
+            template.format(number): idx
+            for idx, number in enumerate(numbers)
+            for template in templates
+        }
+        stmt = (
+            select(Chunk, Document)
+            .join(Document, Chunk.document_id == Document.id)
+            .where(Document.domain.in_(domains), Chunk.section.in_(order))
+        )
+        async with self._session_factory() as session:
+            rows = (await session.execute(stmt)).all()
+
+        rows.sort(key=lambda row: order[row[0].section])
+        return [
+            {
+                "chunk_id": str(chunk.id),
+                "document_id": str(chunk.document_id),
+                "content": chunk.content,
+                "score": 1.0,  # Exact match on the article label
+                "title": doc.title,
+                "language": doc.language,
+                "section": chunk.section,
+                "page": (chunk.chunk_metadata or {}).get("page"),
+            }
+            for chunk, doc in rows
+        ]
 
     async def delete_document(self, document_id: UUID | str) -> None:
         """Delete a document and its associated chunks (via cascade)."""

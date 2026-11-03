@@ -45,6 +45,8 @@ class AuditAction(StrEnum):
 
 class DocumentDomain(StrEnum):
     GOVERNMENT_SERVICES = "government_services"
+    DATA_PROTECTION = "data_protection"
+    AI_GOVERNANCE = "ai_governance"
     HEALTHCARE = "healthcare"
     EDUCATION = "education"
     TELECOM = "telecom"

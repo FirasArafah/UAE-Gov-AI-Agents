@@ -14,6 +14,9 @@ from synora.config import settings
 
 logger = structlog.get_logger(__name__)
 
+# Stops the model from looping on one paragraph until num_predict cuts the answer off.
+REPEAT_OPTIONS = {"repeat_penalty": 1.1, "repeat_last_n": 256}
+
 
 class LLMClient:
     def __init__(self, host: str | None = None) -> None:
@@ -41,6 +44,7 @@ class LLMClient:
                 options={
                     "temperature": temperature,
                     "num_predict": num_predict,
+                    **REPEAT_OPTIONS,
                 },
             )
             return response["message"]["content"]
@@ -65,6 +69,7 @@ class LLMClient:
             options={
                 "temperature": temperature,
                 "num_predict": num_predict,
+                **REPEAT_OPTIONS,
             },
         )
         async for chunk in stream:
