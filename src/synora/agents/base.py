@@ -278,10 +278,13 @@ class BaseAgent:
             base += (
                 "\n\nCOORDINATOR SYNTHESIS MODE:\n"
                 "No direct policy excerpts were retrieved in this synthesis step. "
-                "Synthesize and summarize the specialist agent findings provided in the Context or conversation history, "
-                "preserving all article numbers, exceptions, and citations they reported. "
-                "If the specialist agents reported that the information is not covered in official sources (or if no context is provided), "
-                "output ONLY: 'غير مذكور في المصادر الرسمية المتاحة / Not explicitly covered in the official sources provided'."
+                "Synthesize the specialist agent findings given in the message, Context or "
+                "conversation history, preserving the article numbers, exceptions and citations "
+                "they reported. Where the agents report that the official sources are silent, "
+                "say so plainly as a finding (a gap in the law) and still summarize what each "
+                "agent did establish. Only if no agent findings are provided at all, output "
+                "ONLY: 'غير مذكور في المصادر الرسمية المتاحة / Not explicitly covered in the "
+                "official sources provided'."
             )
         else:
             base += (
