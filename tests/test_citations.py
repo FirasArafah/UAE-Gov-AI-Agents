@@ -127,6 +127,31 @@ def test_reversed_arabic_heading_becomes_its_own_section():
     assert "الجهة المعنية" in sections[1][1]
 
 
+def _small_ingestor() -> Ingestor:
+    ingestor = Ingestor()
+    ingestor.chunk_size, ingestor.chunk_overlap = 300, 0
+    return ingestor
+
+
+def test_documents_without_articles_are_labelled_by_heading():
+    def body(topic):
+        return " ".join(f"Sentence {i} about {topic} explains the principle." for i in range(6))
+
+    parts = ["Charter title line", "Introduction", body("scope"), "Algorithmic Bias", body("bias")]
+    parts += ["Human Oversight", body("oversight"), "Governance and Accountability", body("duty")]
+    text = "\n\n".join(parts)
+    ingestor = _small_ingestor()
+    labels = [label for label, _, _ in ingestor._split_into_sections(text)]
+    assert "chunk_0" not in labels
+    assert "Algorithmic Bias" in labels or "Human Oversight" in labels
+
+
+def test_text_without_headings_keeps_numbered_chunks():
+    text = "Plain paragraph without any headings at all. " * 40
+    labels = [label for label, _, _ in _small_ingestor()._split_into_sections(text)]
+    assert labels[0] == "chunk_0"
+
+
 def test_arabic_files_get_arabic_metadata():
     pdpl = infer_metadata(Path("data/raw/UAE_PDPL_45_2021_AR.pdf"))
     decree = infer_metadata(Path("data/raw/UAE_Decree_Law_29_2021_AR.pdf"))
