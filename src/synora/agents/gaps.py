@@ -46,9 +46,14 @@ For each gap, name the global best practice that addresses it, using ONLY the nu
 INTERNATIONAL REFERENCES provided, and list the numbers you relied on in reference_ids. If no \
 reference addresses a gap, leave reference_ids empty and say so in global_best_practice.
 
+Each title must name the concrete problem in this incident, for example "No authority is \
+empowered to suspend a government AI system" or "Data protection law excludes the agency \
+operating the screening system". Never use a bare category such as "Technology gaps", \
+"Missing standards" or "Unclear responsibilities" as a title.
+
 Return JSON only, in this exact shape:
 {"gaps": [{
-  "title": "short name of the gap",
+  "title": "specific statement of the gap (6-14 words)",
   "gap_type": "policy | legal | standards | implementation | coordination",
   "description": "what is missing or conflicting, and why it matters (2-4 sentences)",
   "evidence": "which agent assessment(s) surfaced it",
