@@ -57,3 +57,19 @@ main { max-width: 1200px; margin: 0 auto; padding: 32px; }
 }
 .chip i { width: 10px; height: 10px; border-radius: 50%; background: var(--agent); }
 .error { color: #dc2626; font-size: 0.9rem; }
+
+.sim { display: grid; grid-template-columns: 260px 1fr 320px; gap: 20px; align-items: start; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.panel h2 { margin: 0 0 12px; font-size: 1rem; }
+.sim-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sim-head h2 { flex: 1; margin: 0; }
+.timeline { list-style: none; padding: 0; margin: 0; }
+.timeline li { padding: 8px 0; color: var(--muted); border-bottom: 1px solid var(--line); }
+.timeline li.done { color: var(--text); font-weight: 600; }
+.chat { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.bubble { border-inline-start: 4px solid var(--agent); background: var(--bg); border-radius: 8px; padding: 10px 14px; }
+.bubble small { display: block; color: var(--muted); }
+.bubble b { color: var(--agent); }
+.bubble p { margin: 6px 0 0; line-height: 1.6; white-space: pre-wrap; }
+.thinking { font-family: "JetBrains Mono", monospace; font-size: 0.8rem; white-space: pre-wrap; max-height: 60vh; overflow: auto; }
+@media (max-width: 900px) { .sim { grid-template-columns: 1fr; } }
