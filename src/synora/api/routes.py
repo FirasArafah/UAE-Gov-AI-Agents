@@ -690,6 +690,53 @@ async def advance_scenario(
     await db.commit()
     await db.refresh(event_msg)
 
+    return await _run_event(db, registry, session_id, event)
+
+
+@router.post("/sessions/{session_id}/events/{sequence}/run")
+async def rerun_event(
+    session_id: UUID,
+    sequence: int,
+    db: AsyncSession = Depends(get_db),
+    registry: AgentRegistry = Depends(get_registry),
+):
+    """Run the agents again for a released event that has no recorded assessments.
+
+    Assessments are only stored once every agent has answered, so an advance request that
+    was interrupted (timeout, restart) leaves its event released but empty. This recovers it
+    without releasing the next event. Events that already have assessments are immutable.
+    """
+    session = await db.get(SimulationSession, session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="session not found")
+    if sequence > session.current_sequence:
+        raise HTTPException(status_code=409, detail="event has not been released yet")
+    result = await db.execute(
+        select(ScenarioEvent).where(
+            ScenarioEvent.scenario_id == session.scenario_id,
+            ScenarioEvent.sequence == sequence,
+        )
+    )
+    event = result.scalar_one_or_none()
+    if event is None:
+        raise HTTPException(status_code=404, detail="event not found")
+    existing = await db.execute(
+        select(func.count())
+        .select_from(AgentAssessment)
+        .where(
+            AgentAssessment.session_id == session_id,
+            AgentAssessment.event_sequence == sequence,
+        )
+    )
+    if existing.scalar():
+        raise HTTPException(status_code=409, detail="event already has recorded assessments")
+    return await _run_event(db, registry, session_id, event)
+
+
+async def _run_event(
+    db: AsyncSession, registry: AgentRegistry, session_id: UUID, event: ScenarioEvent
+) -> dict:
+    """Run the coordination protocol for one released event and persist every turn."""
     histories = await _agent_histories(db, session_id, registry)
     orchestrator = Orchestrator(registry)
     outcomes, synthesis = await orchestrator.run_event(

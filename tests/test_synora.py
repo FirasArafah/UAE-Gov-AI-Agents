@@ -133,6 +133,41 @@ async def test_timeline_initial(client):
 
 
 @pytest.mark.asyncio
+async def test_unreleased_event_cannot_be_rerun_or_read_ahead(client):
+    r = await client.get("/api/scenarios")
+    golden = next(s for s in r.json() if s["slug"] == "golden-gate-anomaly")
+    r = await client.post("/api/sessions", json={"scenario_id": golden["id"]})
+    session = r.json()
+    await client.post(f"/api/sessions/{session['id']}/start")
+
+    r = await client.post(f"/api/sessions/{session['id']}/events/1/run")
+    assert r.status_code == 409
+
+    r = await client.get(f"/api/sessions/{session['id']}/timeline")
+    assert all(e["content"] is None for e in r.json()["events"])
+
+
+@pytest.mark.asyncio
+async def test_gaps_need_assessments(client):
+    r = await client.post("/api/sessions", json={})
+    r = await client.post(f"/api/sessions/{r.json()['id']}/gaps")
+    assert r.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_knowledge_base_and_health_endpoints(client):
+    r = await client.get("/api/documents")
+    assert r.status_code == 200
+    assert all("chunk_count" in d for d in r.json())
+
+    r = await client.get("/api/health")
+    assert r.json()["agents"]
+
+    r = await client.get("/api/scenarios")
+    assert all(s["slug"] != "adhoc-chat" for s in r.json())
+
+
+@pytest.mark.asyncio
 async def test_advance_adhoc_returns_completed(client):
     """adhoc-chat has no events → advance returns completed immediately."""
     r = await client.post("/api/sessions", json={})
