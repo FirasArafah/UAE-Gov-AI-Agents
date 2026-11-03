@@ -31,8 +31,12 @@ class ScenarioEngine:
         return session
 
     async def next_event(self, session_id: UUID) -> ScenarioEvent | None:
-        """Return the next event to release, or None if scenario exhausted."""
-        session = await self.db.get(SimulationSession, session_id)
+        """Return the next event to release, or None if scenario exhausted.
+
+        The session row is locked until the release is committed, so two concurrent advance
+        requests release consecutive events instead of the same one twice.
+        """
+        session = await self.db.get(SimulationSession, session_id, with_for_update=True)
         if session is None:
             raise ValueError(f"session not found: {session_id}")
 

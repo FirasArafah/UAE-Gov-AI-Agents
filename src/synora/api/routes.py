@@ -35,17 +35,21 @@ def get_registry(request: Request) -> AgentRegistry:
     return request.app.state.registry
 
 
+ADHOC_SCENARIO_SLUG = "adhoc-chat"
+
+
 async def _ensure_adhoc_scenario(db: AsyncSession) -> Scenario:
-    result = await db.execute(select(Scenario).where(Scenario.slug == "adhoc-chat"))
+    result = await db.execute(select(Scenario).where(Scenario.slug == ADHOC_SCENARIO_SLUG))
     existing = result.scalar_one_or_none()
     if existing:
         return existing
     scenario = Scenario(
-        slug="adhoc-chat",
+        slug=ADHOC_SCENARIO_SLUG,
         title="Ad-hoc conversation",
         description="Free-form conversation with agents (no scripted scenario).",
         domain=DocumentDomain.GOVERNMENT_SERVICES,
-        is_published=True,
+        # Internal container for free-chat sessions, not a scenario anyone can run.
+        is_published=False,
     )
     db.add(scenario)
     await db.commit()
@@ -518,7 +522,7 @@ async def stream_message(
 async def list_scenarios(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(Scenario)
-        .where(Scenario.is_published.is_(True))
+        .where(Scenario.is_published.is_(True), Scenario.slug != ADHOC_SCENARIO_SLUG)
         .order_by(Scenario.slug)
     )
     return result.scalars().all()
