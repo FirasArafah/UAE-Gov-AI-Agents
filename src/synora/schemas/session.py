@@ -17,5 +17,11 @@ class SessionRead(BaseModel):
     created_at: datetime
 
 
+class SessionSummary(SessionRead):
+    scenario_slug: str
+    scenario_title: str
+    message_count: int
+
+
 class SessionCreateRequest(BaseModel):
     scenario_id: UUID | None = None

@@ -2,7 +2,7 @@ from uuid import UUID
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy import delete, func, select
+from sqlalchemy import Integer, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
@@ -14,7 +14,7 @@ from synora.audit.logger import AuditLogger
 from synora.db.session import get_db
 from synora.models.agent import Agent
 from synora.models.audit import AuditLog, PolicyGap
-from synora.models.document import DocumentDomain
+from synora.models.document import Chunk, Document, DocumentDomain
 from synora.models.enums import MessageRole, SimulationStatus
 from synora.models.scenario import Scenario, ScenarioEvent
 from synora.models.simulation import AgentAssessment, Message, SimulationSession
@@ -22,9 +22,10 @@ from synora.scenarios.engine import ScenarioEngine
 from synora.schemas.agent import AgentRead
 from synora.schemas.audit import AssessmentRead, AuditLogRead, PolicyGapRead
 from synora.schemas.chat import StreamMessageRequest
+from synora.schemas.document import DocumentRead, DocumentSummary, SearchHit
 from synora.schemas.message import MessageRead
 from synora.schemas.scenario import AdvanceRequest, ScenarioRead
-from synora.schemas.session import SessionCreateRequest, SessionRead
+from synora.schemas.session import SessionCreateRequest, SessionRead, SessionSummary
 
 logger = structlog.get_logger(__name__)
 
@@ -241,8 +242,95 @@ async def list_agents(db: AsyncSession = Depends(get_db)):
 
 
 # ============================================================================
+# Knowledge base
+# ============================================================================
+
+
+@router.get("/documents", response_model=list[DocumentSummary])
+async def list_documents(db: AsyncSession = Depends(get_db)):
+    """Every ingested document with its chunk, page and section coverage."""
+    result = await db.execute(
+        select(
+            Document,
+            func.count(Chunk.id),
+            func.max((Chunk.chunk_metadata["page"].astext).cast(Integer)),
+            func.count(func.distinct(Chunk.section)),
+        )
+        .outerjoin(Chunk, Chunk.document_id == Document.id)
+        .group_by(Document.id)
+        .order_by(Document.country_code, Document.title)
+    )
+    return [
+        DocumentSummary(
+            **DocumentRead.model_validate(doc).model_dump(),
+            chunk_count=chunks,
+            page_count=pages,
+            section_count=sections,
+        )
+        for doc, chunks, pages, sections in result.all()
+    ]
+
+
+@router.get("/kb/search", response_model=list[SearchHit])
+async def search_knowledge_base(
+    q: str,
+    top_k: int = 6,
+    domain: str | None = None,
+    registry: AgentRegistry = Depends(get_registry),
+):
+    """Run the agents' retrieval step directly, to inspect what a query brings back."""
+    if not q.strip():
+        return []
+    if registry.retriever is None:
+        raise HTTPException(status_code=503, detail="retriever not configured")
+    hits = await registry.retriever.search(
+        q, top_k=min(max(top_k, 1), 20), domains=[domain] if domain else None
+    )
+    return [
+        SearchHit(
+            chunk_id=h["chunk_id"],
+            document_id=h["document_id"],
+            title=h.get("title") or "Untitled",
+            section=h.get("section"),
+            page=h.get("page"),
+            language=h.get("language"),
+            score=h.get("score") or 0.0,
+            content=h.get("content") or "",
+        )
+        for h in hits
+    ]
+
+
+# ============================================================================
 # Sessions
 # ============================================================================
+
+
+@router.get("/sessions", response_model=list[SessionSummary])
+async def list_sessions(limit: int = 20, db: AsyncSession = Depends(get_db)):
+    """Recent scenario sessions (free-chat sessions excluded), newest first."""
+    message_count = (
+        select(func.count())
+        .select_from(Message)
+        .where(Message.session_id == SimulationSession.id)
+        .scalar_subquery()
+    )
+    result = await db.execute(
+        select(SimulationSession, Scenario.slug, Scenario.title, message_count)
+        .join(Scenario, Scenario.id == SimulationSession.scenario_id)
+        .where(Scenario.slug != ADHOC_SCENARIO_SLUG)
+        .order_by(SimulationSession.created_at.desc())
+        .limit(min(max(limit, 1), 100))
+    )
+    return [
+        SessionSummary(
+            **SessionRead.model_validate(session).model_dump(),
+            scenario_slug=slug,
+            scenario_title=title,
+            message_count=count,
+        )
+        for session, slug, title, count in result.all()
+    ]
 
 
 @router.post("/sessions", response_model=SessionRead, status_code=201)
@@ -493,8 +581,7 @@ async def stream_message(
         if len(answers) > 1 and "coordinator" not in agent_slugs:
             parts = [f"Question: {body.message}\n", "Independent agent answers:"]
             for i, a in enumerate(answers, start=1):
-                excerpt = assessment_excerpt(a["content"])
-                parts.append(f"\n[Answer {i}] {a['name']}:\n{excerpt}")
+                parts.append(f"\n[Answer {i}] {a['name']}:\n{assessment_excerpt(a['content'])}")
             parts.append(
                 "\n\nSynthesize these answers into one coordinated reply. State where the "
                 "agents agree, where their mandates conflict, and what a human must decide."

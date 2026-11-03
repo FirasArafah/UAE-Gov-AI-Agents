@@ -25,6 +25,7 @@ class ScenarioRead(BaseModel):
     description: str
     domain: DocumentDomain
     is_published: bool
+    scenario_metadata: dict
 
 
 class AdvanceRequest(BaseModel):

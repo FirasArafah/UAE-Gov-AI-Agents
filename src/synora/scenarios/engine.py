@@ -111,12 +111,18 @@ class ScenarioEngine:
             "status": session.status,
             "current_sequence": session.current_sequence,
             "total_events": len(events),
+            "scenario_title": scenario.title,
             "events": [
                 {
                     "sequence": e.sequence,
                     "title": e.title,
                     "target_agent_roles": e.target_agent_roles,
                     "released": e.sequence <= session.current_sequence,
+                    # Event text is only disclosed once released: participants must not
+                    # read ahead of the information they would have at that moment.
+                    "content": e.content if e.sequence <= session.current_sequence else None,
+                    "sequential": bool((e.event_metadata or {}).get("sequential")),
+                    "scenario_type": (e.event_metadata or {}).get("scenario_type"),
                 }
                 for e in events
             ],
