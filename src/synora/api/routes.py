@@ -2,23 +2,24 @@ import structlog
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
+from synora.agents.gaps import GapAnalyst
 from synora.agents.orchestrator import AgentOutcome, Orchestrator
 from synora.agents.registry import AgentRegistry
 from synora.api.sse import sse_event
 from synora.audit.logger import AuditLogger
 from synora.db.session import get_db
 from synora.models.agent import Agent
-from synora.models.audit import AuditLog
+from synora.models.audit import AuditLog, PolicyGap
 from synora.models.document import DocumentDomain
 from synora.models.enums import MessageRole, SimulationStatus
 from synora.models.scenario import Scenario, ScenarioEvent
 from synora.models.simulation import AgentAssessment, Message, SimulationSession
 from synora.schemas.agent import AgentRead
-from synora.schemas.audit import AuditLogRead
+from synora.schemas.audit import AssessmentRead, AuditLogRead, PolicyGapRead
 from synora.schemas.chat import StreamMessageRequest
 from synora.schemas.message import MessageRead
 from synora.schemas.scenario import AdvanceRequest, ScenarioRead
@@ -580,6 +581,102 @@ async def advance_scenario(
         "assessments": agent_results,
         "session_status": str(session.status) if session else None,
     }
+
+
+@router.get("/sessions/{session_id}/assessments", response_model=list[AssessmentRead])
+async def list_assessments(session_id: UUID, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(AgentAssessment)
+        .where(AgentAssessment.session_id == session_id)
+        .order_by(AgentAssessment.event_sequence, AgentAssessment.created_at)
+    )
+    return result.scalars().all()
+
+
+# ============================================================================
+# Policy gaps
+# ============================================================================
+
+
+@router.get("/sessions/{session_id}/gaps", response_model=list[PolicyGapRead])
+async def list_gaps(session_id: UUID, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(PolicyGap)
+        .where(PolicyGap.session_id == session_id)
+        .order_by(PolicyGap.created_at)
+    )
+    return result.scalars().all()
+
+
+@router.post("/sessions/{session_id}/gaps", response_model=list[PolicyGapRead])
+async def extract_gaps(
+    session_id: UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    registry: AgentRegistry = Depends(get_registry),
+):
+    """Build the structured policy gap report from the session's agent assessments.
+
+    Replaces any earlier report for the session, so it can be re-run after more events.
+    """
+    session = await db.get(SimulationSession, session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="session not found")
+
+    result = await db.execute(
+        select(AgentAssessment, Agent.name)
+        .join(Agent, Agent.id == AgentAssessment.agent_id)
+        .where(AgentAssessment.session_id == session_id)
+        .order_by(AgentAssessment.event_sequence, AgentAssessment.created_at)
+    )
+    assessments = [
+        {"agent_name": name, "event": a.event_sequence, "content": a.assessment}
+        for a, name in result.all()
+    ]
+    if not assessments:
+        raise HTTPException(
+            status_code=409,
+            detail="no agent assessments yet: advance the scenario before extracting gaps",
+        )
+
+    analyst = GapAnalyst(request.app.state.llm, registry.retriever)
+    try:
+        gaps, references = await analyst.extract(assessments)
+    except Exception as exc:
+        logger.error("gaps.extract_failed", session=str(session_id), error=str(exc))
+        raise HTTPException(status_code=502, detail=f"gap extraction failed: {exc}") from exc
+
+    try:
+        coordinator_id = (await registry.get("coordinator")).agent.id
+    except KeyError:
+        coordinator_id = None
+
+    await db.execute(delete(PolicyGap).where(PolicyGap.session_id == session_id))
+    rows = [
+        PolicyGap(
+            session_id=session_id,
+            agent_id=coordinator_id,
+            gap_type=g.gap_type,
+            description=g.description,
+            affected_domain=g.affected_domain,
+            global_best_practice=g.global_best_practice,
+            global_references=g.global_references,
+            severity=g.severity,
+        )
+        for g in gaps
+    ]
+    db.add_all(rows)
+    await AuditLogger(db).log_gap_report(
+        session_id=session_id,
+        agent_id=coordinator_id,
+        gap_count=len(rows),
+        assessments_read=len(assessments),
+        references=_reference_summaries(references),
+    )
+    await db.commit()
+    for row in rows:
+        await db.refresh(row)
+    return rows
 
 
 @router.get("/sessions/{session_id}/timeline")
