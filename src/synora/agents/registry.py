@@ -45,5 +45,8 @@ class AgentRegistry:
     def all_slugs(self) -> list[str]:
         return list(self._agents.keys())
 
+    def items(self) -> list[tuple[str, BaseAgent]]:
+        return list(self._agents.items())
+
     def slugs_by_agent_id(self) -> dict[UUID, str]:
         return {a.agent.id: slug for slug, a in self._agents.items()}

@@ -25,7 +25,7 @@ class AgentOutcome:
     responding_to: list[str] = field(default_factory=list)
 
 
-def _excerpt(content: str, limit: int = SYNTHESIS_EXCERPT_CHARS) -> str:
+def assessment_excerpt(content: str, limit: int = SYNTHESIS_EXCERPT_CHARS) -> str:
     """Drop the sources footer and cut long answers, keeping the English part when present."""
     body = content.split(SOURCES_MARKER, 1)[0].strip()
     english = body.split("English version:", 1)
@@ -79,7 +79,7 @@ class Orchestrator:
                         context.append(
                             {
                                 "title": f"Assessment by {prior.response.agent_name}",
-                                "content": _excerpt(prior.response.content),
+                                "content": assessment_excerpt(prior.response.content),
                             }
                         )
             try:
@@ -131,7 +131,8 @@ class Orchestrator:
             "Independent agent assessments:",
         ]
         for i, a in enumerate(assessments, start=1):
-            parts.append(f"\n[Assessment {i}] {a.agent_name} ({a.role}):\n{_excerpt(a.content)}")
+            excerpt = assessment_excerpt(a.content)
+            parts.append(f"\n[Assessment {i}] {a.agent_name} ({a.role}):\n{excerpt}")
 
         parts.append(
             "\n\nSynthesize these independent assessments into one coordinated recommendation. "

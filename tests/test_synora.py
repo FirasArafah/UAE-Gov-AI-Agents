@@ -127,7 +127,7 @@ async def test_timeline_initial(client):
     r = await client.get(f"/api/sessions/{session['id']}/timeline")
     assert r.status_code == 200
     body = r.json()
-    assert body["total_events"] == 5
+    assert body["total_events"] == 6
     assert body["current_sequence"] == 0
     assert all(not e["released"] for e in body["events"])
 
@@ -197,7 +197,7 @@ async def test_full_scenario_flow(client):
 
     await client.post(f"/api/sessions/{session['id']}/start")
 
-    for expected_seq in range(1, 6):
+    for expected_seq in range(1, 7):
         r = await client.post(
             f"/api/sessions/{session['id']}/advance",
             json={"auto_run": True},
@@ -207,6 +207,8 @@ async def test_full_scenario_flow(client):
         body = r.json()
         assert body["event"]["sequence"] == expected_seq
         assert len(body["assessments"]) >= 1
+        if len(body["event"]["target_agent_roles"]) > 1:
+            assert body["assessments"][-1]["is_synthesis"] is True
 
     # Auto-complete after last event
     r = await client.get(f"/api/sessions/{session['id']}")
@@ -215,7 +217,7 @@ async def test_full_scenario_flow(client):
     # Timeline shows all events released
     r = await client.get(f"/api/sessions/{session['id']}/timeline")
     timeline = r.json()
-    assert timeline["current_sequence"] == 5
+    assert timeline["current_sequence"] == 6
     assert all(e["released"] for e in timeline["events"])
 
     # Audit has multiple entries covering REASONING + DECISION
@@ -225,6 +227,10 @@ async def test_full_scenario_flow(client):
     assert "reasoning" in actions
     assert "decision" in actions
     assert len(entries) >= 10
+
+    # Every agent turn is stored as an assessment, synthesis included
+    r = await client.get(f"/api/sessions/{session['id']}/assessments")
+    assert len(r.json()) >= 6
 
     # No leaked <thinking> in decision reasoning
     for e in entries:
