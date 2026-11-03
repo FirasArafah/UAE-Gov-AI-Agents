@@ -570,25 +570,37 @@ async def stream_message(
 
     audit = AuditLogger(db)
 
+    # Team mode: the specialists answer independently and the Coordinator writes the final
+    # answer from theirs. It applies when several specialists are asked, or when the
+    # Coordinator is asked together with at least one specialist.
+    specialists = [s for s in agent_slugs if s != "coordinator"]
+    team = len(specialists) > 1 or (len(specialists) == 1 and "coordinator" in agent_slugs)
+
     async def event_generator():
         yield sse_event(
             "user_message_saved",
-            {"message_id": str(user_msg.id), "sequence": user_msg.sequence},
+            {
+                "message_id": str(user_msg.id),
+                "sequence": user_msg.sequence,
+                "team": team,
+                "agents": specialists if team else agent_slugs,
+            },
         )
 
         answers: list[dict] = []
-        for agent_slug in agent_slugs:
+        for agent_slug in specialists if team else agent_slugs:
             async for event in run_agent(agent_slug, body.message, answers):
                 yield event
 
-        # Several specialists answered: the Coordinator reconciles them, as in simulations.
-        if len(answers) > 1 and "coordinator" not in agent_slugs:
+        if team and answers:
             parts = [f"Question: {body.message}\n", "Independent agent answers:"]
             for i, a in enumerate(answers, start=1):
-                parts.append(f"\n[Answer {i}] {a['name']}:\n{assessment_excerpt(a['content'])}")
+                excerpt = assessment_excerpt(a["content"])
+                parts.append(f"\n[Answer {i}] {a['name']}:\n{excerpt}")
             parts.append(
-                "\n\nSynthesize these answers into one coordinated reply. State where the "
-                "agents agree, where their mandates conflict, and what a human must decide."
+                "\n\nWrite the team's final answer to the question from these answers. State "
+                "where the agents agree, where their mandates conflict, which authority is "
+                "responsible, and what a human must decide."
             )
             async for event in run_agent(
                 "coordinator",

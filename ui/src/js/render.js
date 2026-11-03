@@ -275,3 +275,60 @@ export function timeAgo(iso) {
   if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
   return new Date(iso).toLocaleDateString();
 }
+
+/**
+ * A finished answer without card chrome, for conversation views: language tabs,
+ * prose with citation markers, verification warnings and the sources it relied on.
+ */
+export function renderAnswer(content, references = [], { sourcesLabel = "Sources" } = {}) {
+  const parsed = parseAnswer(content || "");
+  const el = h("div", { class: "answer" });
+  const prose = h("div", { class: "prose" });
+  const hasBoth = parsed.ar && parsed.en;
+  let lang = hasBoth ? preferredLang : parsed.en ? "en" : "ar";
+  let tabs = null;
+
+  const show = () => {
+    const text = (lang === "ar" ? parsed.ar : parsed.en) || content || "";
+    prose.dir = lang === "ar" ? "rtl" : "ltr";
+    prose.lang = lang;
+    prose.innerHTML = formatProse(text || "(empty)");
+    tabs?.querySelectorAll("button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.lang === lang)));
+  };
+  if (hasBoth) {
+    tabs = h("div", { class: "lang-tabs", role: "tablist", "aria-label": "Answer language" },
+      h("button", { type: "button", role: "tab", "data-lang": "en", text: "English" }),
+      h("button", { type: "button", role: "tab", "data-lang": "ar", text: "العربية", class: "ar" }),
+    );
+    tabs.addEventListener("click", (e) => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      lang = preferredLang = b.dataset.lang;
+      try { localStorage.setItem("answerLang", lang); } catch { /* ignore */ }
+      show();
+    });
+    el.append(h("div", { class: "answer-tools" }, tabs));
+  }
+  show();
+  el.append(prose);
+
+  if (parsed.warning.length) {
+    el.append(
+      h("div", { class: "notice warn answer-note" },
+        h("div", {}, h("b", { text: "Citation check flagged this answer" }), h("ul", {}, parsed.warning.map((w) => h("li", { text: w })))),
+      ),
+    );
+  }
+  const items = references?.length
+    ? references.map((r, i) => ({ n: i + 1, title: r.title, detail: [r.section, r.page ? `p. ${r.page}` : null].filter(Boolean).join(" · ") }))
+    : parsed.sources;
+  if (items.length) {
+    el.append(
+      h("details", { class: "answer-sources" },
+        h("summary", { text: `${sourcesLabel} (${items.length})` }),
+        h("ol", { class: "sources" }, items.map((s) => h("li", {}, h("span", { class: "n", text: `[${s.n}]` }), h("span", {}, s.title, s.detail ? h("small", { text: " — " + s.detail }) : null)))),
+      ),
+    );
+  }
+  return el;
+}
