@@ -73,3 +73,12 @@ main { max-width: 1200px; margin: 0 auto; padding: 32px; }
 .bubble p { margin: 6px 0 0; line-height: 1.6; white-space: pre-wrap; }
 .thinking { font-family: "JetBrains Mono", monospace; font-size: 0.8rem; white-space: pre-wrap; max-height: 60vh; overflow: auto; }
 @media (max-width: 900px) { .sim { grid-template-columns: 1fr; } }
+
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 20px; }
+.toolbar select { padding: 9px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; }
+.audit { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); }
+.audit th, .audit td { text-align: start; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.audit th { color: var(--muted); font-size: 0.85rem; text-transform: uppercase; }
+.audit tr.clickable { cursor: pointer; }
+.audit tr.clickable:hover { background: var(--bg); }
+.badge { background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 999px; font-size: 0.8rem; }
