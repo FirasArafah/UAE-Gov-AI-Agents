@@ -50,8 +50,10 @@ Everything runs locally: no data leaves the machine and no external AI API is us
 
 ## Quick start
 
-Requirements: Docker with Compose, ~10 GB free disk for the models. A GPU is optional; on CPU
-each agent answer takes one to four minutes.
+Requirements: Docker with Compose, ~10 GB free disk for the models and **at least 10 GB of
+memory for Docker** (the 7B model with an 8k context plus the embedding model use ~7 GB). With
+less memory, set `OLLAMA_NUM_CTX=4096` in `.env`. A GPU is optional; on CPU each agent answer
+takes one to four minutes.
 
 ```bash
 cp .env.example .env

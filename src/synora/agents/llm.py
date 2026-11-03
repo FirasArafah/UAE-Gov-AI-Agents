@@ -17,6 +17,9 @@ logger = structlog.get_logger(__name__)
 # Stops the model from looping on one paragraph until num_predict cuts the answer off.
 REPEAT_OPTIONS = {"repeat_penalty": 1.1, "repeat_last_n": 256}
 
+# Attempts for a stream that fails before producing any output.
+STREAM_ATTEMPTS = 3
+
 RETRY_POLICY = {
     "stop": stop_after_attempt(3),
     "wait": wait_exponential(multiplier=1, min=2, max=10),
@@ -72,13 +75,26 @@ class LLMClient:
         temperature: float = 0.2,
         num_predict: int = 2048,
     ) -> AsyncIterator[str]:
-        # Only opening the stream is retried: once tokens reach the client they cannot be
-        # taken back, so a stream that breaks mid-answer is reported, not restarted.
-        stream = await self._open_stream(messages, temperature, num_predict)
-        async for chunk in stream:
-            content = chunk.get("message", {}).get("content", "")
-            if content:
-                yield content
+        # A stream is restarted only while nothing has been sent: once tokens reach the client
+        # they cannot be taken back, so a stream that breaks mid-answer is reported instead.
+        # Model runners that run out of memory typically die before the first token.
+        for attempt in range(1, STREAM_ATTEMPTS + 1):
+            sent = False
+            stream = await self._open_stream(messages, temperature, num_predict)
+            try:
+                async for chunk in stream:
+                    content = chunk.get("message", {}).get("content", "")
+                    if content:
+                        sent = True
+                        yield content
+                return
+            except Exception as exc:
+                if sent or attempt == STREAM_ATTEMPTS:
+                    raise
+                logger.warning(
+                    "llm.stream.restarted", model=self.model, attempt=attempt, error=str(exc)
+                )
+                await asyncio.sleep(2 * attempt)
 
     @retry(**RETRY_POLICY)
     async def _open_stream(self, messages: list[dict], temperature: float, num_predict: int):

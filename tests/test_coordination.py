@@ -176,3 +176,47 @@ def test_arabic_text_before_the_heading_is_kept():
     raw = "مقدمة\nالنسخة العربية:\nنص\n\nEnglish version:\nText"
     thinking, content = agent._parse_response(raw)
     assert thinking is None and content.startswith("مقدمة")
+
+
+class CrashingOllama:
+    """Fails the first stream before any token, like a model runner killed for memory."""
+
+    def __init__(self, tokens_before_crash: int) -> None:
+        self.calls = 0
+        self.tokens_before_crash = tokens_before_crash
+
+    async def chat(self, model, messages, options, stream=False):
+        self.calls += 1
+        first = self.calls == 1
+        crash_after = self.tokens_before_crash
+
+        async def tokens():
+            for i in range(3):
+                if first and i == crash_after:
+                    raise RuntimeError("model runner has unexpectedly stopped")
+                yield {"message": {"content": f"t{i} "}}
+
+        return tokens()
+
+
+@pytest.mark.asyncio
+async def test_stream_that_dies_before_output_is_restarted(monkeypatch):
+    import synora.agents.llm as llm_module
+    from synora.agents.llm import LLMClient
+
+    monkeypatch.setattr(llm_module.asyncio, "sleep", _returns(None))
+    llm = LLMClient(host="http://unused")
+    llm._client = CrashingOllama(tokens_before_crash=0)
+    tokens = [t async for t in llm.chat_stream(messages=[])]
+    assert tokens == ["t0 ", "t1 ", "t2 "] and llm._client.calls == 2
+
+
+@pytest.mark.asyncio
+async def test_stream_that_dies_mid_answer_is_not_restarted():
+    from synora.agents.llm import LLMClient
+
+    llm = LLMClient(host="http://unused")
+    llm._client = CrashingOllama(tokens_before_crash=1)
+    with pytest.raises(RuntimeError):
+        _ = [t async for t in llm.chat_stream(messages=[])]
+    assert llm._client.calls == 1
