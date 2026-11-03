@@ -11,7 +11,7 @@ export async function renderSessions(container) {
         h("h1", { text: "Scenario sessions" }),
         h("p", { text: "Every session keeps its full record: released events, agent assessments, reasoning traces, audit log and gap report. Sessions are immutable audit records." }),
       ),
-      h("a", { class: "btn primary", href: "#/", text: "Start a new simulation" }),
+      h("a", { class: "btn primary", href: "#/overview", text: "Start a new simulation" }),
     ),
     list,
   );

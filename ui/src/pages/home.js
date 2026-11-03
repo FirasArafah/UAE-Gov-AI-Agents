@@ -29,7 +29,7 @@ export async function renderHome(container) {
         h("p", { text: "SYNORA runs incident scenarios against agents that each hold a different institutional mandate. Events arrive in stages, every claim is cited to national law or a global reference, and the Coordinator reconciles their independent assessments into a gap report." }),
         h("div", { class: "card-actions" },
           h("a", { class: "btn primary", href: "#scenarios", text: "Run a scenario" }),
-          h("a", { class: "btn", href: "#/chat", text: "Ask the agents" }),
+          h("a", { class: "btn", href: "#/", text: "Ask the agents" }),
           h("a", { class: "btn ghost", href: "#/kb", text: "Browse the knowledge base →" }),
         ),
       ),

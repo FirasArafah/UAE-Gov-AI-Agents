@@ -22,7 +22,7 @@ export function startRouter(container, onNavigate) {
         return;
       }
     }
-    container.innerHTML = `<div class="empty">Page not found. <a href="#/">Back to overview</a></div>`;
+    container.innerHTML = `<div class="empty">Page not found. <a href="#/">Back to Ask agents</a></div>`;
   }
   window.addEventListener("hashchange", go);
   go();

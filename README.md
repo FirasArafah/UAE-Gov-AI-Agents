@@ -64,13 +64,13 @@ make seed                              # agents + scenarios
 make seed-kb                           # ingest data/knowledge_base/raw (takes a while)
 ```
 
-Open http://localhost:5173. API docs: http://localhost:8000/docs.
+Open http://localhost:5173 — it lands on **Ask agents**, the team chat. API docs: http://localhost:8000/docs.
 
 If port 5432 is taken, set `POSTGRES_PORT` in `.env`.
 
 ## Running the scenario
 
-1. **Overview → Start simulation** on *The Golden Gate Anomaly*.
+1. **Overview** (`#/overview`) **→ Start simulation** on *The Golden Gate Anomaly*.
 2. **Release event** one at a time. Agents assess, the Coordinator synthesizes, and each
    answer shows its sources, reasoning trace and any citation warnings.
 3. After a few events, **Build gap report** at the bottom of the simulation.

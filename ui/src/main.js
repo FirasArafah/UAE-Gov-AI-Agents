@@ -24,7 +24,8 @@ document.getElementById("theme-toggle").addEventListener("click", () => {
 
 function markActiveNav(path) {
   const section = "/" + (path.split("/")[1] || "");
-  const current = section === "/session" || section === "/audit" ? "/sessions" : section;
+  const aliases = { "/session": "/sessions", "/audit": "/sessions", "/chat": "/" };
+  const current = aliases[section] ?? section;
   for (const a of document.querySelectorAll("#nav a")) {
     a.classList.toggle("active", a.dataset.nav === current);
     if (a.dataset.nav === current) a.setAttribute("aria-current", "page");
@@ -50,7 +51,9 @@ async function checkHealth() {
 checkHealth();
 setInterval(checkHealth, 30000);
 
-route("/", renderHome);
+// Asking the agent team is the landing page; /chat stays as an alias for older links.
+route("/", renderChat);
+route("/overview", renderHome);
 route("/sessions", renderSessions);
 route("/agents", renderRoster);
 route("/session/:id", renderSimulation);

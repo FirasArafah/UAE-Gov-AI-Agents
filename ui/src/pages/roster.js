@@ -39,7 +39,7 @@ export async function renderRoster(container) {
           RETRIEVAL_DOMAIN[a.slug]
             ? h("div", { class: "tags" }, h("span", { class: "tag", text: "Retrieves first from: " + RETRIEVAL_DOMAIN[a.slug] }))
             : null,
-          h("div", { class: "card-actions" }, h("a", { class: "btn sm", href: "#/chat", text: "Ask this agent" })),
+          h("div", { class: "card-actions" }, h("a", { class: "btn sm", href: "#/", text: "Ask this agent" })),
         ),
       );
     }
