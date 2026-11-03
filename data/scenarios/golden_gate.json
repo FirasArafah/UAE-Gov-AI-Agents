@@ -8,7 +8,8 @@
     "scenario_type": "bias_incident",
     "itu_y3172_pipeline": "ML application -> ML governance",
     "itu_factors": ["data", "standards", "sandbox"],
-    "itu_dimensions": ["AI & Policies", "AI for Inclusion", "Human Interface"]
+    "itu_dimensions": ["AI & Policies", "AI for Inclusion", "Human Interface"],
+    "includes_controversy": true
   },
   "events": [
     {
@@ -28,11 +29,12 @@
       "sequence": 2,
       "release_after_seconds": 0,
       "title": "T+30min: Model audit request",
-      "content": "The AI Auditor's initial statistical review confirms the gap is statistically significant (p<0.01). The Auditor requests access to the model's feature importance and training data documentation. ICP initially refuses, stating the data is confidential, but agrees to share aggregated feature weights.",
+      "content": "The AI Auditor's initial statistical review confirms the gap is statistically significant (p<0.01). The Auditor requests access to the model's feature importance and training data documentation. ICP initially refuses, stating the data is confidential, but agrees to share aggregated feature weights. The Privacy Consultant assesses first; the ICP Representative then responds to the Privacy Consultant's specific findings.",
       "target_agent_roles": ["privacy", "icp"],
       "metadata": {
         "statistical_significance": "p<0.01",
-        "requested_artifacts": ["feature_importance", "training_data_docs"]
+        "requested_artifacts": ["feature_importance", "training_data_docs"],
+        "sequential": true
       }
     },
     {
@@ -59,9 +61,25 @@
     {
       "sequence": 5,
       "release_after_seconds": 0,
-      "title": "T+3hr: Policy gap report",
+      "title": "T+3hr: Contested authority (controversy)",
+      "content": "The Coordinator recommended option (b), a fairness-aware re-ranker. ICP objects: it states that visa and residency screening is a sovereign immigration function, that the model's risk features serve national-security vetting, and that PDPL Article (2) excludes governmental entities from its scope, so neither the Privacy Consultant nor the AI Auditor has authority to order changes. ICP declines to deploy the re-ranker and keeps the system running. The Privacy Consultant maintains that rejecting applicants through nationality proxies conflicts with the non-discrimination principles of the UAE AI Charter. None of the available sources names a body empowered to suspend a government AI system. Under its own mandate, each agent must state who has legal authority to pause or modify the system, what the sources say, and where they are silent.",
+      "target_agent_roles": ["icp", "privacy", "auditor"],
+      "metadata": {
+        "scenario_type": "controversy",
+        "conflict": "national_security_vs_non_discrimination",
+        "expected_gaps": [
+          "No statutory authority to suspend a government AI system",
+          "PDPL scope exclusion for governmental entities",
+          "No independent AI oversight body"
+        ]
+      }
+    },
+    {
+      "sequence": 6,
+      "release_after_seconds": 0,
+      "title": "T+4hr: Policy gap report",
       "content": "Final assessment stage: identify gaps between UAE AI Strategy 2031, the UAE AI Charter, the UAE AI Ethics Guidelines, PDPL (including its scope exclusions for governmental entities in Article (2)), and current operational practice. Map them to the international references available: ITU-T Y.3172 and the ITU AI Ready framework. Produce actionable recommendations.",
-      "target_agent_roles": ["auditor", "privacy", "coordinator"],
+      "target_agent_roles": ["auditor", "privacy"],
       "metadata": {
         "global_references": [
           "ITU-T Y.3172",
