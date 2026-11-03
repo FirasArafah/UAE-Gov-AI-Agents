@@ -97,14 +97,13 @@ services:
     restart: unless-stopped
     depends_on: [backend]
     environment:
-      VITE_API_URL: http://localhost:${BACKEND_PORT:-8000}
+      API_TARGET: http://backend:8000
     ports:
       - "${UI_PORT:-5173}:5173"
     volumes:
       - ./ui:/app
       - /app/node_modules
     command: npm run dev -- --host 0.0.0.0
-    profiles: ["ui"]
     networks: [synora]
 
 volumes:

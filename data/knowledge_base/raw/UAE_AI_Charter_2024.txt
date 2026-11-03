@@ -1,0 +1,85 @@
+The UAE Charter for the Development and Use of Artificial Intelligence
+
+Issued Date: 10 June 2024
+Lead Entity: Minister of State for Artificial Intelligence, Digital Economy and Remote Work Applications Office
+Sectors of Interest: Telecommunication, Technology and Space
+
+Introduction
+
+The Charter for the Development and Use of Artificial Intelligence aims to achieve the strategic goals of the UAE Strategy for Artificial Intelligence, reflecting the leadership's vision of transforming the country into a global hub for developing and adopting AI solutions and applications across various fields. The charter also covers principles to enhance awareness in the AI field for an inclusive future and for leveraging AI advancements to guarantee equitable technological access for all segments of society. Additionally, it includes principles for compliance with existing legislation and agreements related to the development and use of AI in the country.
+
+The UAE seeks to establish itself as a leading global player in the field of AI by developing future-ready infrastructure and an integrated system that utilizes AI in all vital sectors, providing a thriving environment that adheres to the highest standards of safety and privacy, and enhancing public trust in these applications.
+
+Policy Objectives
+
+Ensure the use of artificial intelligence in an ethical and responsible manner.
+Protect privacy and data security.
+Balance technological advancement with social values.
+Encourage innovation and support economic growth.
+Increase awareness and education about artificial intelligence.
+Enhance transparency and accountability in its use.
+Improve the UAE's global standing in technology and innovation.
+
+Priorities and Key Components
+
+Strengthening Human-Machine Ties
+
+The UAE aims to enhance the harmonious and beneficial relationship between AI and humans, ensuring that all AI developments prioritize human well-being and progress.
+
+Safety
+
+The UAE places great importance on safety, ensuring that all AI systems comply with the highest safety standards. The country encourages modifying or removing systems that pose risks.
+
+Algorithmic Bias
+
+The UAE aims to address the challenges posed by AI algorithms regarding algorithmic bias, contributing to a fair and equitable environment for all community members. This promotes responsible development of AI technologies, making them inclusive and accessible to everyone, supporting diversity, and respecting individual differences. It ensures equal technological benefits and improves quality of life without exclusion or discrimination.
+
+Data Privacy
+
+In line with the UAE's stance on privacy rights, while data is essential for AI development, supporting and promoting innovation in AI, the privacy of community members remains a top priority.
+
+Transparency
+
+The UAE seeks to create a clear understanding of AI and how systems operate and make decisions, which helps build trust, enhance responsibility, and accountability in the use of these technologies.
+
+Human Oversight
+
+The Charter emphasizes the irreplaceable value of human judgment and human oversight over AI, aligning with ethical values and social standards to correct any errors or biases that may arise.
+
+Governance and Accountability
+
+The UAE adopts a responsible and proactive stance, emphasizing the importance of governance and accountability in AI to ensure the technology is used ethically and transparently.
+
+Technological Excellence
+
+AI should be a beacon of innovation, reflecting the UAE's vision of digital, technological, and scientific excellence. The UAE seeks global leadership by adopting technological excellence in AI to drive innovation, enhance competitiveness, and improve quality of life through innovative and effective solutions to complex challenges, contributing to sustainable progress benefiting society as a whole.
+
+Human Commitment
+
+Human commitment in AI reflects the spirit of the UAE, essential for ensuring that the development of this technology serves the public good. It focuses on enhancing human well-being and protecting fundamental rights, emphasizing the importance of placing human values at the heart of technological innovation to ensure a positive and lasting impact on society.
+
+Peaceful Coexistence with AI
+
+Peaceful coexistence with AI is crucial to ensure technology enhances the well-being and progress of our communities without compromising human security or fundamental rights.
+
+Promoting AI Awareness for an Inclusive Future
+
+It is essential to create an inclusive future that ensures everyone can benefit from AI advancements, guaranteeing equitable access to this technology and its advantages for all segments of society.
+
+Commitment to Treaties and Applicable Laws
+
+The UAE emphasizes the importance of complying with international treaties and local laws in the development and use of AI.
+
+Expected Outcomes
+
+Enhance innovation and attract investments, thereby increasing efficiency and productivity.
+Improve quality of life by enhancing healthcare and educational services, and by increasing awareness and education about artificial intelligence.
+Utilize artificial intelligence to improve sustainability and protect the environment.
+Enhance government services and improve their efficiency.
+Boost the UAE's global standing in innovation and technology, contributing to an improved ranking in global indices.
+
+Target Audience
+
+The public sector, private sector companies, consumers, AI developers, researchers, educational institutions, research centers, and the international community.
+
+Source: UAE Legislation Portal — https://uaelegislation.gov.ae/en/policy/details/the-uae-charter-for-the-development-and-use-of-artificial-intelligence
