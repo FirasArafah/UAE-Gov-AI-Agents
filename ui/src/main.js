@@ -1,23 +1,60 @@
 import "./style.css";
+import { api } from "./js/api.js";
 import { route, startRouter } from "./js/router.js";
 import { renderHome } from "./pages/home.js";
+import { renderSessions } from "./pages/sessions.js";
 import { renderRoster } from "./pages/roster.js";
 import { renderSimulation } from "./pages/simulation.js";
 import { renderAudit } from "./pages/audit.js";
 import { renderChat } from "./pages/chat.js";
-
-const saved = localStorage.getItem("theme");
-if (saved) document.documentElement.dataset.theme = saved;
+import { renderKnowledgeBase } from "./pages/kb.js";
 
 document.getElementById("theme-toggle").addEventListener("click", () => {
-  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  document.documentElement.dataset.theme = next;
-  localStorage.setItem("theme", next);
+  const root = document.documentElement;
+  const dark = root.dataset.theme
+    ? root.dataset.theme === "dark"
+    : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+  try {
+    localStorage.setItem("theme", root.dataset.theme);
+  } catch {
+    /* storage unavailable */
+  }
 });
 
+function markActiveNav(path) {
+  const section = "/" + (path.split("/")[1] || "");
+  const current = section === "/session" || section === "/audit" ? "/sessions" : section;
+  for (const a of document.querySelectorAll("#nav a")) {
+    a.classList.toggle("active", a.dataset.nav === current);
+    if (a.dataset.nav === current) a.setAttribute("aria-current", "page");
+    else a.removeAttribute("aria-current");
+  }
+}
+
+async function checkHealth() {
+  const el = document.getElementById("health");
+  const label = el.querySelector("span");
+  try {
+    const h = await api("/health");
+    const ok = h.status === "ok";
+    el.className = "health " + (ok ? "ok" : "degraded");
+    label.textContent = ok ? "Local LLM online" : "Degraded";
+    el.title = `Database: ${h.db} · LLM: ${h.ollama} · Agents: ${(h.agents || []).length}`;
+  } catch {
+    el.className = "health down";
+    label.textContent = "Backend offline";
+    el.title = "The API did not respond";
+  }
+}
+checkHealth();
+setInterval(checkHealth, 30000);
+
 route("/", renderHome);
+route("/sessions", renderSessions);
 route("/agents", renderRoster);
 route("/session/:id", renderSimulation);
 route("/audit/:id", renderAudit);
 route("/chat", renderChat);
-startRouter(document.getElementById("app"));
+route("/kb", renderKnowledgeBase);
+startRouter(document.getElementById("app"), markActiveNav);

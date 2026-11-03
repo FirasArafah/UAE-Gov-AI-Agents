@@ -99,6 +99,7 @@ services:
     depends_on: [backend]
     environment:
       API_TARGET: http://backend:8000
+      VITE_POLL: "1"
     ports:
       - "${UI_PORT:-5173}:5173"
     volumes:
