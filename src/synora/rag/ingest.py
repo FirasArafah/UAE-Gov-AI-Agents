@@ -380,5 +380,26 @@ class Ingestor:
         meta.setdefault("title", file_path.stem.replace("_", " ").title())
         meta.setdefault("source_uri", str(file_path))
 
-        raw_text, page_spans = self._extract_file_pages(file_path)
+        try:
+            raw_text, page_spans = self._extract_file_pages(file_path)
+        except Exception as exc:
+            # ingest_text records its own failures; this one happens before it is reached.
+            await self._record_failed_job(str(file_path), meta, f"text extraction failed: {exc}")
+            logger.error("rag.ingest.extract_failed", source=str(file_path), error=str(exc))
+            raise
         return await self.ingest_text(raw_text, metadata=meta, page_spans=page_spans)
+
+    async def _record_failed_job(self, source_path: str, meta: dict[str, Any], error: str) -> None:
+        now = datetime.now(timezone.utc)
+        async with self._session_factory() as session:
+            session.add(
+                IngestionJob(
+                    source_path=source_path,
+                    status="failed",
+                    started_at=now,
+                    finished_at=now,
+                    error_message=error,
+                    job_metadata=meta,
+                )
+            )
+            await session.commit()

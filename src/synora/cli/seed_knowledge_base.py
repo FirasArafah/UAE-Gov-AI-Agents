@@ -4,15 +4,37 @@ from pathlib import Path
 from typing import Any
 
 import structlog
+from sqlalchemy import select
 
+from synora.db.session import AsyncSessionLocal
+from synora.models.document import Document
 from synora.models.enums import DocumentDomain, DocumentType
 from synora.rag.ingest import Ingestor
 
 logger = structlog.get_logger(__name__)
 
 # Default metadata mapping for the known UAE / international reference files.
-# Arabic keys come first: infer_metadata takes the first key found in the file name.
+# infer_metadata takes the first key found in the file name, so specific keys come first:
+# Arabic editions before their English counterparts, and international instruments before
+# generic words such as "ethics" that also appear in UAE file names.
 KNOWN_METADATA: dict[str, dict[str, Any]] = {
+    "unesco_ai_ethics_recommendation_ar": {
+        "title": "توصية اليونسكو بشأن أخلاقيات الذكاء الاصطناعي (2021)",
+        "domain": DocumentDomain.CROSS_DOMAIN.value,
+        "doc_type": DocumentType.GUIDELINE.value,
+        "country_code": "INT",
+        "language": "ar",
+    },
+    "cabinet_resolution_65_2022_ar": {
+        "title": (
+            "قرار مجلس الوزراء رقم 65 لسنة 2022 "
+            "بشأن اللائحة التنفيذية للمرسوم بقانون رقم 29 لسنة 2021"
+        ),
+        "domain": DocumentDomain.GOVERNMENT_SERVICES.value,
+        "doc_type": DocumentType.REGULATION.value,
+        "country_code": "AE",
+        "language": "ar",
+    },
     "pdpl_45_2021_ar": {
         "title": "مرسوم بقانون اتحادي رقم 45 لسنة 2021 بشأن حماية البيانات الشخصية (PDPL)",
         "domain": DocumentDomain.DATA_PROTECTION.value,
@@ -26,6 +48,27 @@ KNOWN_METADATA: dict[str, dict[str, Any]] = {
         "doc_type": DocumentType.LAW.value,
         "country_code": "AE",
         "language": "ar",
+    },
+    "unesco": {
+        "title": "UNESCO Recommendation on the Ethics of Artificial Intelligence (2021)",
+        "domain": DocumentDomain.CROSS_DOMAIN.value,
+        "doc_type": DocumentType.GUIDELINE.value,
+        "country_code": "INT",
+        "language": "en",
+    },
+    "eu_ai_act": {
+        "title": "EU Artificial Intelligence Act (Regulation (EU) 2024/1689)",
+        "domain": DocumentDomain.CROSS_DOMAIN.value,
+        "doc_type": DocumentType.REGULATION.value,
+        "country_code": "EU",
+        "language": "en",
+    },
+    "oecd": {
+        "title": "OECD Recommendation of the Council on Artificial Intelligence (AI Principles)",
+        "domain": DocumentDomain.CROSS_DOMAIN.value,
+        "doc_type": DocumentType.GUIDELINE.value,
+        "country_code": "INT",
+        "language": "en",
     },
     "pdpl": {
         "title": "UAE Federal Decree-Law No. 45 of 2021 (PDPL)",
@@ -102,6 +145,28 @@ def infer_metadata(file_path: Path) -> dict[str, Any]:
     }
 
 
+async def refresh_metadata(raw_dir: Path) -> None:
+    """Correct title, language and classification of documents already ingested.
+
+    Matches stored documents to files in ``raw_dir`` by file name, so mislabelled rows are
+    fixed in place without re-extracting or re-embedding anything.
+    """
+    files = {p.name: p for p in raw_dir.iterdir() if p.is_file()}
+    async with AsyncSessionLocal() as session:
+        documents = (await session.execute(select(Document))).scalars().all()
+        for doc in documents:
+            path = files.get(Path(doc.source_uri or "").name)
+            if path is None:
+                logger.warning("seed_kb.refresh.no_file", title=doc.title, source=doc.source_uri)
+                continue
+            meta = infer_metadata(path)
+            for field in ("title", "country_code", "language", "domain", "doc_type"):
+                setattr(doc, field, meta[field])
+            doc.source_uri = str(path)
+            logger.info("seed_kb.refresh.updated", file=path.name, title=meta["title"])
+        await session.commit()
+
+
 async def seed_knowledge_base(raw_dir: Path) -> None:
     if not raw_dir.exists():
         logger.warning("seed_kb.directory_not_found", path=str(raw_dir))
@@ -138,11 +203,19 @@ def main() -> None:
     parser.add_argument(
         "--path",
         type=str,
-        default="data/raw",
+        default="data/knowledge_base/raw",
         help="Path to raw knowledge base documents directory.",
     )
+    parser.add_argument(
+        "--refresh-metadata",
+        action="store_true",
+        help="Only correct metadata of documents already ingested (no re-embedding).",
+    )
     args = parser.parse_args()
-    asyncio.run(seed_knowledge_base(Path(args.path)))
+    if args.refresh_metadata:
+        asyncio.run(refresh_metadata(Path(args.path)))
+    else:
+        asyncio.run(seed_knowledge_base(Path(args.path)))
 
 
 if __name__ == "__main__":

@@ -135,6 +135,24 @@ def test_arabic_files_get_arabic_metadata():
     assert infer_metadata(Path("data/raw/UAE_PDPL_45_2021.pdf"))["language"] == "en"
 
 
+@pytest.mark.parametrize(
+    ("name", "country", "language", "title_word"),
+    [
+        ("UNESCO_AI_Ethics_Recommendation_EN.pdf", "INT", "en", "UNESCO"),
+        ("UNESCO_AI_Ethics_Recommendation_AR.pdf", "INT", "ar", "اليونسكو"),
+        ("UAE_AI_Ethics_Guidelines.pdf", "AE", "en", "UAE AI Ethics"),
+        ("EU_AI_Act_2024.pdf", "EU", "en", "EU Artificial Intelligence Act"),
+        ("OECD_AI_Principles.pdf", "INT", "en", "OECD"),
+        ("UAE_Cabinet_Resolution_65_2022_AR.pdf", "AE", "ar", "قرار مجلس الوزراء"),
+        ("UAE_Cabinet_Resolution_65_2022.pdf", "AE", "en", "Cabinet Resolution"),
+    ],
+)
+def test_reference_files_do_not_collide_on_shared_words(name, country, language, title_word):
+    meta = infer_metadata(Path("data/knowledge_base/raw") / name)
+    assert (meta["country_code"], meta["language"]) == (country, language)
+    assert title_word in meta["title"]
+
+
 class FakeRetriever:
     def __init__(self) -> None:
         self.calls: list[tuple[int, list[str] | None]] = []
