@@ -82,3 +82,10 @@ main { max-width: 1200px; margin: 0 auto; padding: 32px; }
 .audit tr.clickable { cursor: pointer; }
 .audit tr.clickable:hover { background: var(--bg); }
 .badge { background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 999px; font-size: 0.8rem; }
+
+
+.chat-form { display: flex; gap: 10px; margin-top: 20px; }
+.chat-form input { flex: 1; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; }
+.chat-form select { padding: 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; }
+.thinking-box { background: var(--bg); border: 1px dashed var(--line); border-radius: 6px; padding: 10px; margin: 8px 0; color: var(--muted); font-family: "JetBrains Mono", monospace; font-size: 0.8rem; white-space: pre-wrap; max-height: 240px; overflow: auto; }
+.bubble .toggle { margin-top: 8px; padding: 4px 10px; font-size: 0.85rem; }
