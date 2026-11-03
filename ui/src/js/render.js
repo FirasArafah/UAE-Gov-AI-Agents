@@ -60,6 +60,10 @@ export function parseAnswer(content = "") {
     body = body.slice(0, s);
   }
 
+  // English-only text before the Arabic heading is reasoning that escaped its tags.
+  const arHeading = body.indexOf("النسخة العربية");
+  if (arHeading > 0 && !/[؀-ۿ]/.test(body.slice(0, arHeading))) body = body.slice(arHeading);
+
   let ar = "";
   let en = body.trim();
   const split = body.split(/English version\s*:/i);

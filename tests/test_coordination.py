@@ -160,3 +160,19 @@ def test_requests_set_a_context_window():
 
     options = LLMClient(host="http://unused")._options(0.1, 100)
     assert options["num_ctx"] == settings.ollama_num_ctx
+
+
+def test_reasoning_written_without_tags_is_moved_out_of_the_answer():
+    agent = _agent("privacy")
+    raw = "thinking\nThe relevant articles are 5 and 18.\n\n\n"
+    raw += "النسخة العربية:\nنص\n\nEnglish version:\nText"
+    thinking, content = agent._parse_response(raw)
+    assert thinking == "The relevant articles are 5 and 18."
+    assert content.startswith("النسخة العربية")
+
+
+def test_arabic_text_before_the_heading_is_kept():
+    agent = _agent("privacy")
+    raw = "مقدمة\nالنسخة العربية:\nنص\n\nEnglish version:\nText"
+    thinking, content = agent._parse_response(raw)
+    assert thinking is None and content.startswith("مقدمة")

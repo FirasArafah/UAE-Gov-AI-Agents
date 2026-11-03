@@ -113,6 +113,25 @@ def _strip_all_tags(text: str) -> str:
 SOURCES_HEADING = "المصادر المسترجعة / Retrieved Sources:"
 
 
+ARABIC_SECTION_HEADING = "النسخة العربية"
+LEAKED_THINKING_LABEL = re.compile(r"^\W*thinking\W*", re.IGNORECASE)
+
+
+def split_leaked_reasoning(content: str) -> tuple[str | None, str]:
+    """Separate reasoning the model wrote without <thinking> tags from the answer.
+
+    Every answer must open with the Arabic section heading. English-only text before it is
+    reasoning that escaped its tags (often under a bare "thinking" label), not answer text.
+    """
+    idx = content.find(ARABIC_SECTION_HEADING)
+    if idx <= 0:
+        return None, content
+    preface = content[:idx].strip()
+    if not preface or ARABIC_LETTER_RE.search(preface):
+        return None, content
+    return LEAKED_THINKING_LABEL.sub("", preface).strip() or None, content[idx:]
+
+
 def _format_sources_footer(references: list[dict]) -> str:
     """Build a deterministic sources block from retrieved references."""
     if not references:
@@ -179,6 +198,8 @@ class BaseAgent:
                 response = "(no response produced)"
 
         response = _strip_all_tags(response) or "(no response produced)"
+        if thinking is None:
+            thinking, response = split_leaked_reasoning(response)
         return thinking, response
 
     async def _retrieve(self, query: str) -> list[dict]:

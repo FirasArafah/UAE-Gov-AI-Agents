@@ -154,8 +154,9 @@ export async function renderChat(container) {
           const finished = renderMessage({
             agent_slug: current.data.agent_slug,
             agent_name: current.data.agent_name,
-            content: current.contentText || data.content,
-            thinking: current.thinkingText || data.thinking,
+            // The server's final text has reasoning that escaped its tags moved out.
+            content: data.content || current.contentText,
+            thinking: data.thinking || current.thinkingText,
             references: data.references,
             is_synthesis: data.is_synthesis,
             responding_to: current.data.responding_to,

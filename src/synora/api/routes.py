@@ -6,6 +6,7 @@ from sqlalchemy import Integer, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
+from synora.agents.base import split_leaked_reasoning
 from synora.agents.gaps import GapAnalyst
 from synora.agents.orchestrator import AgentOutcome, Orchestrator, assessment_excerpt
 from synora.agents.registry import AgentRegistry
@@ -487,6 +488,9 @@ async def stream_message(
             yield sse_event("error", {"agent_slug": agent_slug, "message": stream_error})
 
         references = [] if is_synthesis else (agent.last_references or [])
+        leaked, content_acc = split_leaked_reasoning(content_acc)
+        if leaked:
+            thinking_acc = f"{thinking_acc}\n{leaked}".strip()
         try:
             final_content = content_acc or (
                 f"(stream interrupted: {stream_error})" if stream_error else "(no content)"
