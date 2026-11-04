@@ -1,8 +1,12 @@
+import asyncio
+import contextlib
+from collections.abc import AsyncIterator, Callable
 from typing import Literal
 from uuid import UUID
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
+from pydantic import ValidationError
 from sqlalchemy import Integer, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
@@ -16,7 +20,7 @@ from synora.agents.registry import AgentRegistry
 from synora.agents.types import AgentResponse
 from synora.api.sse import sse_event
 from synora.audit.logger import AuditLogger
-from synora.db.session import get_db
+from synora.db.session import AsyncSessionLocal, get_db
 from synora.models.agent import Agent
 from synora.models.audit import AuditLog, PolicyGap
 from synora.models.document import Chunk, Document, DocumentDomain
@@ -473,17 +477,18 @@ async def _chat_history(
     return history
 
 
-@router.post("/sessions/{session_id}/stream")
-async def stream_message(
+async def chat_events(
+    db: AsyncSession,
+    registry: AgentRegistry,
     session_id: UUID,
     body: StreamMessageRequest,
-    db: AsyncSession = Depends(get_db),
-    registry: AgentRegistry = Depends(get_registry),
-):
-    session = await db.get(SimulationSession, session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="session not found")
+    should_stop: Callable[[], bool] = lambda: False,
+) -> AsyncIterator[tuple[str, dict]]:
+    """Answer one chat message as (event, data) pairs, for SSE and the WebSocket alike.
 
+    ``should_stop`` is checked after every token: once it is true the current answer is cut
+    short, kept as an interrupted message, and no further agent or synthesis runs.
+    """
     history = await _chat_history(db, session_id, registry)
 
     seq = await _next_sequence(db, session_id)
@@ -524,10 +529,10 @@ async def stream_message(
         try:
             agent = await registry.get(agent_slug)
         except KeyError:
-            yield sse_event("error", {"agent_slug": agent_slug, "message": "agent not found"})
+            yield ("error", {"agent_slug": agent_slug, "message": "agent not found"})
             return
 
-        yield sse_event(
+        yield (
             "agent_start",
             {
                 "agent_slug": agent_slug,
@@ -541,6 +546,7 @@ async def stream_message(
         thinking_acc = ""
         content_acc = ""
         stream_error: str | None = None
+        stopped = False
 
         try:
             stream = (
@@ -555,16 +561,20 @@ async def stream_message(
                 )
             )
             async for channel, chunk in stream:
+                if should_stop():
+                    stopped = True
+                    await stream.aclose()
+                    break
                 if channel == "thinking":
                     thinking_acc += chunk
-                    yield sse_event("thinking_chunk", {"agent_slug": agent_slug, "content": chunk})
+                    yield ("thinking_chunk", {"agent_slug": agent_slug, "content": chunk})
                 else:
                     content_acc += chunk
-                    yield sse_event("content_chunk", {"agent_slug": agent_slug, "content": chunk})
+                    yield ("content_chunk", {"agent_slug": agent_slug, "content": chunk})
         except Exception as exc:
             stream_error = str(exc)
             logger.error("stream.llm_failed", agent=agent_slug, error=stream_error)
-            yield sse_event("error", {"agent_slug": agent_slug, "message": stream_error})
+            yield ("error", {"agent_slug": agent_slug, "message": stream_error})
 
         references = [] if is_synthesis else (agent.last_references or [])
         leaked, content_acc = split_leaked_reasoning(content_acc)
@@ -572,7 +582,11 @@ async def stream_message(
             thinking_acc = f"{thinking_acc}\n{leaked}".strip()
         try:
             final_content = content_acc or (
-                f"(stream interrupted: {stream_error})" if stream_error else "(no content)"
+                f"(stream interrupted: {stream_error})"
+                if stream_error
+                else "(stopped)"
+                if stopped
+                else "(no content)"
             )
             asst_msg = Message(
                 session_id=session_id,
@@ -627,11 +641,11 @@ async def stream_message(
                 )
             await db.commit()
 
-            if content_acc and not stream_error:
+            if content_acc and not stream_error and not stopped:
                 answers.append(
                     {"slug": agent_slug, "name": agent.agent.name, "content": content_acc}
                 )
-            yield sse_event(
+            yield (
                 "agent_done",
                 {
                     "agent_slug": agent_slug,
@@ -640,14 +654,15 @@ async def stream_message(
                     "thinking": thinking_acc,
                     "references": _reference_summaries(references),
                     "references_count": len(references),
-                    "interrupted": stream_error is not None,
+                    "interrupted": stream_error is not None or stopped,
+                    "stopped": stopped,
                     "is_synthesis": is_synthesis,
                 },
             )
         except Exception as persist_exc:
             logger.error("stream.persist_failed", agent=agent_slug, error=str(persist_exc))
             await db.rollback()
-            yield sse_event(
+            yield (
                 "error", {"agent_slug": agent_slug, "message": f"persist failed: {persist_exc}"}
             )
 
@@ -660,7 +675,7 @@ async def stream_message(
     team = len(specialists) > 1 or (len(specialists) == 1 and "coordinator" in agent_slugs)
 
     async def event_generator():
-        yield sse_event(
+        yield (
             "user_message_saved",
             {
                 "message_id": str(user_msg.id),
@@ -677,8 +692,10 @@ async def stream_message(
             light = kind if conversation else None
             async for event in run_agent(agent_slug, body.message, answers, light=light):
                 yield event
+            if should_stop():
+                break
 
-        if team and answers:
+        if team and answers and not should_stop():
             parts = [f"Question: {body.message}\n", "Independent agent answers:"]
             for i, a in enumerate(answers, start=1):
                 excerpt = assessment_excerpt(a["content"])
@@ -698,9 +715,82 @@ async def stream_message(
             ):
                 yield event
 
-        yield sse_event("done", {})
+        yield ("done", {"stopped": should_stop()})
 
-    return EventSourceResponse(event_generator())
+    async for event in event_generator():
+        yield event
+
+
+@router.post("/sessions/{session_id}/stream")
+async def stream_message(
+    session_id: UUID,
+    body: StreamMessageRequest,
+    db: AsyncSession = Depends(get_db),
+    registry: AgentRegistry = Depends(get_registry),
+):
+    """Answer a chat message as server-sent events (one-way; see the WebSocket for Stop)."""
+    session = await db.get(SimulationSession, session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="session not found")
+
+    async def events():
+        async for name, data in chat_events(db, registry, session_id, body):
+            yield sse_event(name, data)
+
+    return EventSourceResponse(events())
+
+
+@router.websocket("/ws/sessions/{session_id}/chat")
+async def chat_socket(websocket: WebSocket, session_id: UUID):
+    """Two-way chat channel.
+
+    The client sends {"type": "ask", "message": ..., "agents": [...]} and receives the same
+    events as the SSE endpoint as {"event": ..., "data": ...}. While an answer is streaming it
+    may send {"type": "stop"}: the answer is cut short and the model stops generating.
+    """
+    await websocket.accept()
+    registry: AgentRegistry = websocket.app.state.registry
+    async with AsyncSessionLocal() as db:
+        if await db.get(SimulationSession, session_id) is None:
+            await websocket.send_json({"event": "error", "data": {"message": "session not found"}})
+            await websocket.close(code=4404)
+            return
+
+    try:
+        while True:
+            request = await websocket.receive_json()
+            if request.get("type") != "ask":
+                continue
+            try:
+                body = StreamMessageRequest(
+                    message=request.get("message", ""), agents=request.get("agents") or []
+                )
+            except ValidationError as exc:
+                await websocket.send_json({"event": "error", "data": {"message": str(exc)}})
+                continue
+
+            stop = asyncio.Event()
+
+            async def listen_for_stop(stop: asyncio.Event = stop) -> None:
+                while True:
+                    message = await websocket.receive_json()
+                    if message.get("type") == "stop":
+                        stop.set()
+                        return
+
+            listener = asyncio.create_task(listen_for_stop())
+            try:
+                async with AsyncSessionLocal() as db:
+                    async for name, data in chat_events(
+                        db, registry, session_id, body, should_stop=stop.is_set
+                    ):
+                        await websocket.send_json({"event": name, "data": data})
+            finally:
+                listener.cancel()
+                with contextlib.suppress(asyncio.CancelledError, WebSocketDisconnect):
+                    await listener
+    except WebSocketDisconnect:
+        logger.info("chat_socket.closed", session=str(session_id))
 
 
 # ============================================================================

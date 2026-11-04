@@ -335,3 +335,55 @@ async def test_full_scenario_flow(client):
         if e["action"] == "decision" and e["reasoning"]:
             assert "<thinking>" not in e["reasoning"]
             assert "<response>" not in e["reasoning"]
+
+
+def test_chat_socket_rejects_unknown_sessions():
+    from starlette.testclient import TestClient
+
+    with TestClient(app) as test_client:
+        socket_path = "/api/ws/sessions/00000000-0000-0000-0000-000000000000/chat"
+        with test_client.websocket_connect(socket_path) as ws:
+            assert ws.receive_json() == {
+                "event": "error", "data": {"message": "session not found"}
+            }
+
+
+@pytest.mark.asyncio
+async def test_stop_cuts_an_answer_short_and_keeps_it(client):
+    from types import SimpleNamespace
+    from uuid import UUID
+
+    from synora.api.routes import chat_events
+    from synora.schemas.chat import StreamMessageRequest
+
+    session_id = (await client.post("/api/sessions", json={})).json()["id"]
+    privacy = next(a for a in (await client.get("/api/agents")).json() if a["slug"] == "privacy")
+    tokens_sent = 0
+
+    async def stream_tagged(message, **kwargs):
+        nonlocal tokens_sent
+        for i in range(100):
+            tokens_sent += 1
+            yield ("content", f"token{i} ")
+
+    agent = SimpleNamespace(
+        agent=SimpleNamespace(id=UUID(privacy["id"]), name="Privacy", role="privacy"),
+        stream_tagged=stream_tagged,
+        last_references=[],
+    )
+
+    async def get(slug):
+        return agent
+
+    registry = SimpleNamespace(get=get, items=lambda: [], llm=None)
+    body = StreamMessageRequest(message="What does the PDPL say?", agents=["privacy"])
+    async with AsyncSessionLocal() as db:
+        events = [
+            e async for e in chat_events(
+                db, registry, UUID(session_id), body, should_stop=lambda: tokens_sent >= 3
+            )
+        ]
+    done = next(data for name, data in events if name == "agent_done")
+    assert done["stopped"] and done["interrupted"]
+    assert tokens_sent < 10
+    assert events[-1] == ("done", {"stopped": True})
