@@ -535,3 +535,64 @@ async def test_injection_gets_a_fixed_refusal():
     agent = _agent("coordinator", FakeLLM("should not be called"))
     chunks = [c async for c in agent.stream_conversation("x", kind="injection", language="ar")]
     assert chunks == [("content", chunks[0][1])] and "تعليماتي" in chunks[0][1]
+
+
+class RewriteLLM:
+    def __init__(self, reply):
+        self.reply = reply
+        self.prompts = []
+
+    async def chat(self, messages, temperature, num_predict, **kwargs):
+        self.prompts.append(messages[-1]["content"])
+        if isinstance(self.reply, Exception):
+            raise self.reply
+        return self.reply
+
+
+@pytest.mark.asyncio
+async def test_follow_ups_are_searched_with_their_topic():
+    from synora.agents.query import standalone_query
+
+    history = [
+        {"role": "user", "content": "Can ICP use nationality in its visa model?"},
+        {"role": "assistant", "content": "[Coordinator] Only with safeguards [1]."},
+    ]
+    llm = RewriteLLM('"Does PDPL Article (7) apply to ICP using nationality in visa screening?"\n')
+    query = await standalone_query("Does Article 7 apply?", history, llm)
+    assert query == "Does PDPL Article (7) apply to ICP using nationality in visa screening?"
+    assert "Can ICP use nationality" in llm.prompts[0]
+
+    rewrite = RewriteLLM("Does Article 7 apply?")
+    arabic = await standalone_query("هل تنطبق المادة 7؟", history, rewrite)
+    assert arabic == "هل تنطبق المادة 7؟\nDoes Article 7 apply?"
+
+
+@pytest.mark.asyncio
+async def test_query_rewrite_falls_back_to_the_message():
+    from synora.agents.query import standalone_query
+
+    history = [{"role": "user", "content": "q"}, {"role": "assistant", "content": "a"}]
+    first = await standalone_query("And for ICA?", None, RewriteLLM("unused"))
+    assert first == "And for ICA?"
+    assert await standalone_query("And for ICA?", history, RewriteLLM(RuntimeError())) == (
+        "And for ICA?"
+    )
+    assert await standalone_query("And for ICA?", history, RewriteLLM("身份 ICA")) == "And for ICA?"
+    assert await standalone_query("And for ICA?", history, RewriteLLM("  ")) == "And for ICA?"
+
+
+@pytest.mark.asyncio
+async def test_scope_gate_sees_the_earlier_question():
+    from synora.agents.intent import classify
+
+    llm = RoutingLLM("IN")
+    llm.seen = []
+    original = llm.chat
+
+    async def chat(messages, **kwargs):
+        llm.seen.append(messages[-1]["content"])
+        return await original(messages, **kwargs)
+
+    llm.chat = chat
+    await classify("Make it shorter please", llm, previous="What does the PDPL say on consent?")
+    assert "Earlier question: What does the PDPL say on consent?" in llm.seen[0]

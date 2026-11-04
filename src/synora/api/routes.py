@@ -16,6 +16,7 @@ from synora.agents.gaps import GapAnalyst
 from synora.agents.intent import MessageKind, classify
 from synora.agents.language import detect_language
 from synora.agents.orchestrator import AgentOutcome, Orchestrator, assessment_excerpt
+from synora.agents.query import standalone_query
 from synora.agents.registry import AgentRegistry
 from synora.agents.types import AgentResponse
 from synora.api.sse import sse_event
@@ -604,10 +605,15 @@ async def chat_events(
     language = detect_language(body.message)
     # Greetings, questions about the assistant and off-topic questions get one short reply,
     # not four legal assessments.
-    kind = await classify(body.message, registry.llm)
+    previous = next((t["content"] for t in reversed(history) if t["role"] == "user"), None)
+    kind = await classify(body.message, registry.llm, previous=previous)
     conversation = kind != MessageKind.QUESTION
     if conversation:
         agent_slugs = ["coordinator"]
+    # A follow-up ("and for ICP?") is searched with the topic it refers to.
+    search_query = body.message
+    if not conversation:
+        search_query = await standalone_query(body.message, history, registry.llm)
 
     async def run_agent(
         agent_slug: str,
@@ -655,6 +661,7 @@ async def chat_events(
                     use_retrieval=use_retrieval,
                     language=language,
                     support=support,
+                    query=None if is_synthesis else search_query,
                 )
             )
             async for channel, chunk in stream:
@@ -710,7 +717,7 @@ async def chat_events(
                 await audit.log_retrieval(
                     session_id=session_id,
                     agent_id=agent.agent.id,
-                    query=message,
+                    query=search_query,
                     references=references,
                 )
             if responding_to:

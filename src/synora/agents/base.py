@@ -437,9 +437,13 @@ class BaseAgent:
         use_retrieval: bool = True,
         language: str | None = None,
         support: list[str] | None = None,
+        query: str | None = None,
     ) -> AsyncIterator[tuple[str, str]]:
-        """Stream (channel, chunk) pairs where channel is 'thinking' or 'content'."""
-        references = await self._retrieve(user_message) if use_retrieval else []
+        """Stream (channel, chunk) pairs where channel is 'thinking' or 'content'.
+
+        ``query`` replaces the message for retrieval only, e.g. a follow-up made standalone.
+        """
+        references = await self._retrieve(query or user_message) if use_retrieval else []
         self._last_references = references
         language = language or detect_language(user_message)
         messages = self._build_messages(user_message, references, context, history, language)

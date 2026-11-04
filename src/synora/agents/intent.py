@@ -148,20 +148,27 @@ SCOPE_PROMPT = (
     "UNESCO, EU AI Act), and the incident simulations these agents run.\n"
     "Answer with one word: IN if the message is about any of those subjects, OUT if it is not "
     "(general knowledge, maths, coding, entertainment, sport, weather, personal advice and so "
-    "on). When unsure, answer IN."
+    "on). A follow-up to an earlier question on those subjects ('shorten that', 'and for "
+    "ICP?') is IN. When unsure, answer IN."
 )
 
 
-async def classify(text: str, llm) -> MessageKind:
-    """Rules first; one short model call only for messages the rules cannot place."""
+async def classify(text: str, llm, previous: str | None = None) -> MessageKind:
+    """Rules first; one short model call only for messages the rules cannot place.
+
+    ``previous`` is the user's earlier question, so a follow-up is judged with its topic.
+    """
     kind = classify_by_rules(text)
     if kind is not None:
         return kind
+    message = text[:1000]
+    if previous:
+        message = f"Earlier question: {previous[:500]}\nNew message: {message}"
     try:
         verdict = await llm.chat(
             messages=[
                 {"role": "system", "content": SCOPE_PROMPT},
-                {"role": "user", "content": text[:1000]},
+                {"role": "user", "content": message},
             ],
             temperature=0.0,
             num_predict=3,
