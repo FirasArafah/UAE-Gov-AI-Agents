@@ -34,7 +34,13 @@ from synora.schemas.chat import StreamMessageRequest
 from synora.schemas.document import DocumentRead, DocumentSummary, SearchHit
 from synora.schemas.message import MessageRead
 from synora.schemas.scenario import AdvanceRequest, ScenarioRead
-from synora.schemas.session import ChatSummary, SessionCreateRequest, SessionRead, SessionSummary
+from synora.schemas.session import (
+    ChatRenameRequest,
+    ChatSummary,
+    SessionCreateRequest,
+    SessionRead,
+    SessionSummary,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -384,8 +390,13 @@ async def list_chats(limit: int = 30, db: AsyncSession = Depends(get_db)):
         .limit(1)
         .scalar_subquery()
     )
+    custom_title = SimulationSession.session_metadata["title"].astext
     result = await db.execute(
-        select(SimulationSession.id, SimulationSession.created_at, first_question)
+        select(
+            SimulationSession.id,
+            SimulationSession.created_at,
+            func.coalesce(custom_title, first_question),
+        )
         .join(Scenario, Scenario.id == SimulationSession.scenario_id)
         .where(Scenario.slug == ADHOC_SCENARIO_SLUG, first_question.is_not(None))
         .order_by(SimulationSession.created_at.desc())
@@ -395,6 +406,38 @@ async def list_chats(limit: int = 30, db: AsyncSession = Depends(get_db)):
         ChatSummary(id=chat_id, title=title[:80], created_at=created_at)
         for chat_id, created_at, title in result.all()
     ]
+
+
+async def _free_chat(db: AsyncSession, session_id: UUID) -> SimulationSession:
+    """The free-chat session, or 404; scenario runs are immutable audit records."""
+    session = await db.get(SimulationSession, session_id)
+    if session is not None:
+        scenario = await db.get(Scenario, session.scenario_id)
+        if scenario is not None and scenario.slug == ADHOC_SCENARIO_SLUG:
+            return session
+    raise HTTPException(status_code=404, detail="chat not found")
+
+
+@router.patch("/chats/{session_id}", response_model=ChatSummary)
+async def rename_chat(
+    session_id: UUID, body: ChatRenameRequest, db: AsyncSession = Depends(get_db)
+):
+    """Give a conversation its own name instead of its first question."""
+    session = await _free_chat(db, session_id)
+    title = " ".join(body.title.split())
+    if not title:
+        raise HTTPException(status_code=422, detail="title must not be blank")
+    session.session_metadata = {**(session.session_metadata or {}), "title": title}
+    await db.commit()
+    return ChatSummary(id=session.id, title=title, created_at=session.created_at)
+
+
+@router.delete("/chats/{session_id}", status_code=204)
+async def delete_chat(session_id: UUID, db: AsyncSession = Depends(get_db)) -> None:
+    """Delete a conversation with its messages and audit entries."""
+    session = await _free_chat(db, session_id)
+    await db.delete(session)
+    await db.commit()
 
 
 @router.post("/sessions", response_model=SessionRead, status_code=201)

@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from synora.models.enums import SimulationStatus
 
@@ -27,6 +27,10 @@ class ChatSummary(BaseModel):
     id: UUID
     title: str
     created_at: datetime
+
+
+class ChatRenameRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=80)
 
 
 class SessionCreateRequest(BaseModel):

@@ -246,6 +246,35 @@ async def test_chat_list_names_conversations_by_their_first_question(client):
     assert without_question not in titles
 
 
+@pytest.mark.asyncio
+async def test_chats_can_be_renamed_and_deleted(client):
+    chat_id = (await client.post("/api/sessions", json={})).json()["id"]
+    async with AsyncSessionLocal() as db:
+        db.add(Message(session_id=chat_id, role=MessageRole.USER, content="first", sequence=1))
+        await db.commit()
+
+    r = await client.patch(f"/api/chats/{chat_id}", json={"title": "  PDPL   questions "})
+    assert r.status_code == 200
+    assert r.json()["title"] == "PDPL questions"
+    titles = {c["id"]: c["title"] for c in (await client.get("/api/chats")).json()}
+    assert titles[chat_id] == "PDPL questions"
+
+    assert (await client.patch(f"/api/chats/{chat_id}", json={"title": "   "})).status_code == 422
+
+    r = await client.delete(f"/api/chats/{chat_id}")
+    assert r.status_code == 204
+    assert chat_id not in {c["id"] for c in (await client.get("/api/chats")).json()}
+    assert (await client.get(f"/api/sessions/{chat_id}")).status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_scenario_runs_cannot_be_deleted_as_chats(client):
+    golden = (await client.get("/api/scenarios")).json()[0]
+    run_id = (await client.post("/api/sessions", json={"scenario_id": golden["id"]})).json()["id"]
+    assert (await client.delete(f"/api/chats/{run_id}")).status_code == 404
+    assert (await client.get(f"/api/sessions/{run_id}")).status_code == 200
+
+
 # ============================================================================
 # LLM-backed tests — slow (skip unless RUN_SLOW=1)
 # ============================================================================
