@@ -769,13 +769,14 @@ async def advance_scenario(
     await db.commit()
     await db.refresh(event_msg)
 
-    return await _run_event(db, registry, session_id, event)
+    return await _run_event(db, registry, session_id, event, language=body.language)
 
 
 @router.post("/sessions/{session_id}/events/{sequence}/run")
 async def rerun_event(
     session_id: UUID,
     sequence: int,
+    body: AdvanceRequest | None = None,
     db: AsyncSession = Depends(get_db),
     registry: AgentRegistry = Depends(get_registry),
 ):
@@ -807,7 +808,13 @@ async def rerun_event(
     if not missing and not needs_synthesis:
         raise HTTPException(status_code=409, detail="every agent has already answered this event")
     return await _run_event(
-        db, registry, session_id, event, completed=completed, synthesize=not has_synthesis
+        db,
+        registry,
+        session_id,
+        event,
+        completed=completed,
+        synthesize=not has_synthesis,
+        language=body.language if body else None,
     )
 
 
@@ -851,6 +858,7 @@ async def _run_event(
     event: ScenarioEvent,
     completed: list[AgentResponse] | None = None,
     synthesize: bool = True,
+    language: str | None = None,
 ) -> dict:
     """Run the coordination protocol for one released event and persist every turn."""
     histories = await _agent_histories(db, session_id, registry)
@@ -865,6 +873,7 @@ async def _run_event(
         earlier_assessments=earlier,
         completed=completed,
         synthesize=synthesize,
+        language=language,
     )
 
     audit = AuditLogger(db)

@@ -1,3 +1,4 @@
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -31,3 +32,5 @@ class ScenarioRead(BaseModel):
 class AdvanceRequest(BaseModel):
     """Advance the session by one scenario event."""
     auto_run: bool = True
+    # Language the agents answer in; by default the language of the event text.
+    language: Literal["en", "ar"] | None = None

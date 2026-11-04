@@ -70,6 +70,7 @@ def test_excerpt_drops_sources_and_prefers_english():
 class FakeRegistry:
     def __init__(self) -> None:
         self.prompts: dict[str, list[str]] = {}
+        self.languages: dict[str, str | None] = {}
 
     async def get(self, slug):
         registry = self
@@ -79,6 +80,7 @@ class FakeRegistry:
                 registry.prompts.setdefault(slug, []).append(
                     user_message + json.dumps(context or [])
                 )
+                registry.languages[slug] = kwargs.get("language")
                 return AgentResponse(
                     agent_slug=slug, agent_name=slug.title(), role=slug, content=f"{slug} view"
                 )
@@ -307,3 +309,10 @@ async def test_rerun_does_not_synthesize_twice():
         _event(["privacy", "auditor"]), synthesize=False
     )
     assert synthesis is None
+
+
+@pytest.mark.asyncio
+async def test_scenario_answers_follow_the_requested_language():
+    registry = FakeRegistry()
+    await Orchestrator(registry).run_event(_event(["privacy", "auditor"]), language="ar")
+    assert registry.languages == {"privacy": "ar", "auditor": "ar", "coordinator": "ar"}

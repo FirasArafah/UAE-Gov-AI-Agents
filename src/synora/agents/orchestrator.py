@@ -48,6 +48,7 @@ class Orchestrator:
 
     def __init__(self, registry: AgentRegistry) -> None:
         self.registry = registry
+        self.language: str | None = None
 
     async def run_event(
         self,
@@ -57,9 +58,11 @@ class Orchestrator:
         earlier_assessments: list[AgentResponse] | None = None,
         completed: list[AgentResponse] | None = None,
         synthesize: bool = True,
+        language: str | None = None,
     ) -> tuple[list[AgentOutcome], AgentOutcome | None]:
         """Run one event. ``completed`` are answers already recorded for it (a re-run after an
         interruption): those agents are skipped and their answers still feed the synthesis."""
+        self.language = language
         all_targets = list(event.target_agent_roles or []) or ["coordinator"]
         completed = completed or []
         done = {a.agent_slug for a in completed}
@@ -105,6 +108,7 @@ class Orchestrator:
                         user_message=event.content,
                         context=context,
                         history=histories.get(slug),
+                        language=language,
                     )
             except KeyError:
                 logger.warning("orchestrator.agent_missing", slug=slug)
@@ -164,4 +168,5 @@ class Orchestrator:
             history=history,
             use_retrieval=False,
             support=[a.content for a in assessments],
+            language=self.language,
         )
