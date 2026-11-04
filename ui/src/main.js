@@ -57,19 +57,147 @@ function markActiveNav(path) {
   setPageTitle(titles[section] ? t(titles[section]) : "");
 }
 
+const MORE_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="5" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="19" cy="12" r="1.8" fill="currentColor"/></svg>';
+
 async function loadRecents() {
   const list = document.getElementById("recents");
   try {
     const chats = await api("/chats");
-    list.replaceChildren(
-      ...chats.map((c) => h("a", { href: `/chat/${c.id}`, dir: "auto", title: c.title, text: c.title })),
-    );
+    list.replaceChildren(...chats.map(recentItem));
     if (!chats.length) list.replaceChildren(h("small", { class: "muted", text: t("recents.empty") }));
     markActiveRecent();
+    // A renamed chat keeps its name in the title bar too.
+    const open = chats.find((c) => location.pathname === `/chat/${c.id}`);
+    if (open) setPageTitle(open.title);
   } catch {
     list.replaceChildren(h("small", { class: "muted", text: t("recents.error") }));
   }
 }
+
+/** One Recent entry: the link plus a menu to rename or delete the chat. */
+function recentItem(chat) {
+  const link = h("a", { href: `/chat/${chat.id}`, dir: "auto", title: chat.title, text: chat.title });
+  const label = t("recents.options", { title: chat.title });
+  const more = h("button", {
+    class: "recent-more",
+    type: "button",
+    html: MORE_ICON,
+    title: label,
+    "aria-label": label,
+    "aria-haspopup": "menu",
+    "aria-expanded": "false",
+    onclick: (e) => {
+      e.stopPropagation();
+      openRecentMenu(more, [
+        [t("recents.rename"), () => startRename(item, link, chat)],
+        [t("recents.delete"), () => deleteChat(chat), "danger"],
+      ]);
+    },
+  });
+  const item = h("div", { class: "recent-item" }, link, more);
+  return item;
+}
+
+let recentMenu = null;
+
+function closeRecentMenu() {
+  if (!recentMenu) return;
+  recentMenu.opener.setAttribute("aria-expanded", "false");
+  recentMenu.el.remove();
+  recentMenu = null;
+}
+
+function openRecentMenu(opener, entries) {
+  const reopen = recentMenu?.opener === opener;
+  closeRecentMenu();
+  if (reopen) return;
+  const el = h("div", { class: "recent-menu", role: "menu" },
+    ...entries.map(([label, run, tone]) =>
+      h("button", {
+        type: "button",
+        role: "menuitem",
+        class: tone || "",
+        text: label,
+        onclick: () => {
+          closeRecentMenu();
+          run();
+        },
+      }),
+    ),
+  );
+  document.body.append(el);
+  const box = opener.getBoundingClientRect();
+  const rtl = document.documentElement.dir === "rtl";
+  el.style.top = `${Math.min(box.bottom + 4, innerHeight - el.offsetHeight - 8)}px`;
+  el.style.left = rtl ? `${box.left}px` : `${Math.max(8, box.right - el.offsetWidth)}px`;
+  opener.setAttribute("aria-expanded", "true");
+  recentMenu = { el, opener };
+  el.querySelector("button").focus();
+}
+
+document.addEventListener("click", (e) => {
+  if (recentMenu && !recentMenu.el.contains(e.target)) closeRecentMenu();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && recentMenu) {
+    const opener = recentMenu.opener;
+    closeRecentMenu();
+    opener.focus();
+  }
+});
+document.getElementById("recents").addEventListener("scroll", closeRecentMenu);
+
+function startRename(item, link, chat) {
+  const input = h("input", { class: "recent-rename", dir: "auto", maxlength: 80, "aria-label": t("recents.renameLabel") });
+  input.value = chat.title;
+  let done = false;
+  const finish = async (save) => {
+    if (done) return;
+    done = true;
+    const title = input.value.trim();
+    if (save && title && title !== chat.title) {
+      try {
+        await api(`/chats/${chat.id}`, { method: "PATCH", body: JSON.stringify({ title }) });
+      } catch (err) {
+        alert(t("recents.failed", { error: err.message }));
+      }
+      loadRecents();
+    } else {
+      item.classList.remove("renaming");
+      input.replaceWith(link);
+    }
+  };
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      finish(true);
+    } else if (e.key === "Escape") {
+      e.stopPropagation();
+      finish(false);
+    }
+  });
+  input.addEventListener("blur", () => finish(true));
+  link.replaceWith(input);
+  item.classList.add("renaming");
+  input.focus();
+  input.select();
+}
+
+async function deleteChat(chat) {
+  if (!confirm(t("recents.confirmDelete", { title: chat.title }))) return;
+  try {
+    await api(`/chats/${chat.id}`, { method: "DELETE" });
+  } catch (err) {
+    alert(t("recents.failed", { error: err.message }));
+    return;
+  }
+  if (location.pathname === `/chat/${chat.id}`) {
+    forgetChat();
+    navigate("/");
+  }
+  loadRecents();
+}
+
 window.addEventListener("chats-changed", loadRecents);
 loadRecents();
 

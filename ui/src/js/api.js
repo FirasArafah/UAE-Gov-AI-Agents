@@ -13,5 +13,5 @@ export async function api(path, options = {}) {
     }
     throw new Error(`${res.status} ${detail}`);
   }
-  return res.json();
+  return res.status === 204 ? null : res.json();
 }
