@@ -15,6 +15,7 @@ from synora.agents.citations import (
 )
 from synora.agents.llm import REPEAT_OPTIONS, LLMClient
 from synora.cli.seed_knowledge_base import DEFAULT_RAW_DIR, find_seed_files, infer_metadata
+from synora.config import settings
 from synora.rag.ingest import Ingestor
 
 PDPL_18 = {"title": "PDPL", "section": "Article (18)", "content": "Article (18)\nRight to object."}
@@ -237,6 +238,12 @@ class FakeRetriever:
     async def find_articles(self, numbers, domains, arabic=False):
         self.named = (numbers, domains, arabic)
         return [{"chunk_id": f"article-{number}"} for number in numbers]
+
+
+@pytest.fixture(autouse=True)
+def _six_excerpts(monkeypatch):
+    """The retrieval tests below are written for six excerpts per answer."""
+    monkeypatch.setattr(settings, "rag_top_k", 6)
 
 
 def _agent(role, retriever=None, llm=None) -> BaseAgent:
