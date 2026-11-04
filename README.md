@@ -88,7 +88,8 @@ light and dark themes; both choices are remembered by the browser. Every address
   question. In team mode the ICP Representative, AI Auditor and Privacy Consultant assess the
   question independently and the Coordinator writes the final answer; each agent's chain of
   thought streams live in the collapsible panel above it, with its sources and any citation
-  warnings. Past conversations are listed under *Recent*.
+  warnings. Agents remember the last four questions and answers of the conversation. Past
+  conversations are listed under *Recent*, where the ⋯ menu renames or deletes them.
 - **Simulations** (`/simulations`): start a scenario and reopen previous runs.
 - **Simulation** (`/simulation/<id>`): release events one at a time, read each agency's
   assessment with its reasoning and sources, the Coordinator's synthesis, and build the policy
@@ -157,6 +158,7 @@ Add `--with-embeddings` to the command in the Makefile to include the bge-m3 vec
 | GET | `/api/scenarios` | Published scenarios |
 | GET/POST | `/api/sessions` | List / create sessions |
 | GET | `/api/chats` | Recent free-chat conversations |
+| PATCH / DELETE | `/api/chats/{id}` | Rename a conversation (`{"title": ...}`) / delete it with its messages and audit entries |
 | POST | `/api/sessions/{id}/start` | Start a scenario session |
 | POST | `/api/sessions/{id}/advance` | Release the next event and run the coordination protocol |
 | POST | `/api/sessions/{id}/events/{seq}/run` | Re-run a released event that has no recorded assessments |
@@ -205,7 +207,7 @@ data/          knowledge base sources and scenarios
 - The law establishing ICP (Federal Decree-Law No. 14 of 2021) is not in the knowledge base:
   the UAE legislation portal does not allow automated downloads. Save it from
   uaelegislation.gov.ae into `data/knowledge_base/raw` and run `make seed-kb`.
-- Sessions are kept as immutable audit records; there is no delete endpoint.
+- Scenario runs are kept as immutable audit records and cannot be deleted; only free chats can.
 
 ## Team
 
