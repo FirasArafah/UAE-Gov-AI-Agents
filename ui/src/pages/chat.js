@@ -40,7 +40,10 @@ function duration(ms) {
   return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`;
 }
 
-const logo = () => h("img", { src: "/favicon.svg", alt: "", width: 28, height: 28 });
+const logo = () => [
+  h("img", { class: "logo logo-on-light", src: "/logo-black.svg", alt: "", width: 28, height: 28 }),
+  h("img", { class: "logo logo-on-dark", src: "/logo-white.svg", alt: "", width: 28, height: 28 }),
+];
 
 /**
  * One assistant turn. Specialists' reasoning and assessments go into a collapsible
@@ -61,7 +64,7 @@ function createTurn({ team, agents }) {
     h("div", { class: "turn-avatar" }, logo()),
     h("div", { class: "turn-main" },
       h("div", { class: "turn-name" },
-        h("b", { text: team ? "SYNORA team" : agentName(agents[0]) }),
+        h("b", { text: team ? "Mathuq team" : agentName(agents[0]) }),
         team ? h("small", { text: `${names} → Coordinator` }) : null,
       ),
       think,
@@ -217,7 +220,7 @@ export async function renderChat(container, params = {}) {
     h("option", { value: "team", text: "Team · all 4 agents" }),
     Object.entries(AGENTS).map(([slug, a]) => h("option", { value: slug, text: `${a.name} only` })),
   );
-  const input = h("textarea", { class: "composer-input", rows: 1, dir: "auto", placeholder: "Message SYNORA…", "aria-label": "Message" });
+  const input = h("textarea", { class: "composer-input", rows: 1, dir: "auto", placeholder: "Message Mathuq…", "aria-label": "Message" });
   const send = h("button", { class: "send-btn", type: "submit", "aria-label": "Send", html: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 4l-7 7h4.5v9h5v-9H19z"/></svg>' });
   const note = h("small", { class: "composer-note", text: "Runs on a local LLM. A team answer takes several minutes on CPU." });
   const form = h("form", { class: "composer2" },
