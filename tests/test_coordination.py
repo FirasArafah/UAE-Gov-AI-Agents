@@ -316,3 +316,10 @@ async def test_scenario_answers_follow_the_requested_language():
     registry = FakeRegistry()
     await Orchestrator(registry).run_event(_event(["privacy", "auditor"]), language="ar")
     assert registry.languages == {"privacy": "ar", "auditor": "ar", "coordinator": "ar"}
+
+
+def test_gap_report_text_follows_the_requested_language():
+    from synora.agents.gaps import report_language
+
+    assert "Modern Standard Arabic" in report_language("ar")
+    assert "in English" in report_language("en")

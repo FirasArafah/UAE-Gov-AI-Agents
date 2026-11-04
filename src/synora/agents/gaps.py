@@ -65,6 +65,16 @@ Return JSON only, in this exact shape:
 Report between 3 and 6 gaps, most severe first."""
 
 
+def report_language(language: str) -> str:
+    """Language of the report's text; keys and category values stay in English."""
+    name = "Modern Standard Arabic" if language == "ar" else "English"
+    return (
+        f"\n\nWrite every text value (title, description, evidence, global_best_practice) in "
+        f"{name}. Keep the JSON keys and the gap_type, affected_domain and severity values "
+        "exactly as listed, in English."
+    )
+
+
 @dataclass
 class ExtractedGap:
     gap_type: str
@@ -112,7 +122,9 @@ class GapAnalyst:
                 seen.setdefault(hit["chunk_id"], hit)
         return list(seen.values())
 
-    async def extract(self, assessments: list[dict]) -> tuple[list[ExtractedGap], list[dict]]:
+    async def extract(
+        self, assessments: list[dict], language: str = "en"
+    ) -> tuple[list[ExtractedGap], list[dict]]:
         """Return the gaps found in ``assessments`` ({agent_name, event, content}) and the
         international references that were offered to the model."""
         references = await self._global_references()
@@ -136,7 +148,7 @@ class GapAnalyst:
 
         raw = await self.llm.chat(
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": SYSTEM_PROMPT + report_language(language)},
                 {"role": "user", "content": user},
             ],
             temperature=0.2,

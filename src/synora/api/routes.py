@@ -1,3 +1,4 @@
+from typing import Literal
 from uuid import UUID
 
 import structlog
@@ -933,6 +934,7 @@ async def list_gaps(session_id: UUID, db: AsyncSession = Depends(get_db)):
 async def extract_gaps(
     session_id: UUID,
     request: Request,
+    language: Literal["en", "ar"] = "en",
     db: AsyncSession = Depends(get_db),
     registry: AgentRegistry = Depends(get_registry),
 ):
@@ -962,7 +964,7 @@ async def extract_gaps(
 
     analyst = GapAnalyst(request.app.state.llm, registry.retriever)
     try:
-        gaps, references = await analyst.extract(assessments)
+        gaps, references = await analyst.extract(assessments, language)
     except Exception as exc:
         logger.error("gaps.extract_failed", session=str(session_id), error=str(exc))
         raise HTTPException(status_code=502, detail=f"gap extraction failed: {exc}") from exc
