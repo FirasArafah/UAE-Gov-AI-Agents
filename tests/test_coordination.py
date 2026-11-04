@@ -254,3 +254,19 @@ def test_answers_follow_the_language_of_the_question(question, language):
     expected = "Modern Standard Arabic" if language == "ar" else "English"
     assert f"entirely in {expected}" in prompt
     assert "English version" not in prompt
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("=response>\nThe answer [1].", "The answer [1]."),
+        (
+            "<response>[The ICA leads [1].]\n\nNext step [2].</response>",
+            "The ICA leads [1].\n\nNext step [2].",
+        ),
+        ("<response>Only a citation:\n\n[1]</response>", "Only a citation:\n\n[1]"),
+    ],
+)
+def test_malformed_tags_and_template_brackets_are_removed(raw, expected):
+    _, content = _agent("privacy")._parse_response(raw)
+    assert content == expected

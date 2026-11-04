@@ -25,7 +25,10 @@ THINKING_PATTERN = re.compile(r"<thinking>(.*?)</thinking>", re.DOTALL)
 RESPONSE_PATTERN = re.compile(r"<response>(.*?)</response>", re.DOTALL)
 
 # Orphan tag cleanup (when model produces only one of the pair)
-TAG_REMNANTS = ("<thinking>", "</thinking>", "<response>", "</response>")
+# Tag remnants, including malformed ones the model sometimes writes ("=response>", "<response").
+TAG_REMNANT_RE = re.compile(r"[<=]\s*/?\s*(?:thinking|response)\s*>?", re.IGNORECASE)
+# "[A whole sentence or paragraph.]" but not a citation such as "[1]" or "[1, 2]".
+BRACKETED_PARAGRAPH_RE = re.compile(r"\[(?![\d,\s]+\]$)[^\[\]]*(?:\[\d+(?:,\s*\d+)*\][^\[\]]*)*\]")
 
 TEMPERATURE_MAP: dict[AgentRole, float] = {
     AgentRole.ICP: 0.3,
@@ -79,9 +82,12 @@ def _was_cut_off(raw: str, content: str) -> bool:
 
 def _strip_all_tags(text: str) -> str:
     """Remove any thinking/response tag remnant from text."""
-    for tag in TAG_REMNANTS:
-        text = text.replace(tag, "")
-    return text.strip()
+    text = TAG_REMNANT_RE.sub("", text).strip()
+    # The model sometimes wraps a paragraph in the brackets of a template placeholder.
+    paragraphs = [
+        p[1:-1].strip() if BRACKETED_PARAGRAPH_RE.fullmatch(p) else p for p in text.split("\n\n")
+    ]
+    return "\n\n".join(paragraphs)
 
 
 SOURCES_HEADING = "المصادر المسترجعة / Retrieved Sources:"
