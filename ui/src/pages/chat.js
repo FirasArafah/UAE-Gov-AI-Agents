@@ -31,6 +31,10 @@ function storeSession(id) {
   }
 }
 
+export function forgetChat() {
+  storeSession(null);
+}
+
 function duration(ms) {
   const s = Math.max(1, Math.round(ms / 1000));
   return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`;
@@ -106,6 +110,7 @@ function createTurn({ team, agents }) {
       if (!s) return;
       s.thinking += data.content;
       s.text.textContent = s.thinking;
+      s.text.scrollTop = s.text.scrollHeight;
     },
     content(data) {
       const s = bySlug[data.agent_slug];
@@ -124,7 +129,7 @@ function createTurn({ team, agents }) {
       if (!s) return;
       s.node.dataset.state = "done";
       if (data.thinking) s.text.textContent = data.thinking;
-      if (!s.text.textContent.trim()) s.text.remove();
+      if (!s.text.textContent.trim()) s.text.replaceWith(h("div", { class: "step-empty", text: "The model returned no reasoning text for this step." }));
       const text = data.content || s.content;
       if (data.interrupted || /^\(stream interrupted/.test(text)) {
         s.node.dataset.state = "failed";
@@ -155,10 +160,9 @@ function createTurn({ team, agents }) {
     finish() {
       clearInterval(tick);
       const count = Object.keys(bySlug).length;
-      statusText.textContent = `Thought for ${duration(Date.now() - started)}`;
+      statusText.textContent = `Chain of thought · ${duration(Date.now() - started)}`;
       timer.textContent = team ? `· ${count} agents` : "";
       think.classList.add("finished");
-      think.open = false;
       if (!answer.childElementCount) answer.append(h("p", { class: "muted", text: "No answer was produced." }));
     },
   };
@@ -195,16 +199,15 @@ function restoreTurn(assistantMsgs, agentsById) {
     });
   }
   turn.finish();
-  turn.el.querySelector(".think summary span:nth-child(2)").textContent = team ? "Team deliberation" : "Reasoning";
+  turn.el.querySelector(".think summary span:nth-child(2)").textContent = "Chain of thought";
   return turn.el;
 }
 
-export async function renderChat(container) {
+export async function renderChat(container, params = {}) {
   const thread = h("div", { class: "thread", "aria-live": "polite" });
   const empty = h("div", { class: "chat-empty" },
-    h("img", { src: "/favicon.svg", alt: "", width: 44, height: 44 }),
-    h("h1", { text: "Ask the SYNORA team" }),
-    h("p", { text: "Three specialist agents — ICP, AI Auditor and Privacy Consultant — assess your question independently, each grounded in retrieved law. The Coordinator then writes one final answer. Open “Thinking” to follow each agent’s chain of thought." }),
+    h("h1", { text: "What should the agents look into?" }),
+    h("p", { text: "Three specialist agents assess your question independently from retrieved law, then the Coordinator writes one answer. Each agent’s chain of thought stays visible." }),
     h("div", { class: "starter-grid" },
       SUGGESTIONS.map((text) => h("button", { class: "starter", type: "button", dir: "auto", text, onclick: () => { input.value = text; autosize(); input.focus(); } })),
     ),
@@ -214,27 +217,33 @@ export async function renderChat(container) {
     h("option", { value: "team", text: "Team · all 4 agents" }),
     Object.entries(AGENTS).map(([slug, a]) => h("option", { value: slug, text: `${a.name} only` })),
   );
-  const input = h("textarea", { class: "composer-input", rows: 1, dir: "auto", placeholder: "Message the agents…", "aria-label": "Message" });
+  const input = h("textarea", { class: "composer-input", rows: 1, dir: "auto", placeholder: "Message SYNORA…", "aria-label": "Message" });
   const send = h("button", { class: "send-btn", type: "submit", "aria-label": "Send", html: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 4l-7 7h4.5v9h5v-9H19z"/></svg>' });
   const note = h("small", { class: "composer-note", text: "Runs on a local LLM. A team answer takes several minutes on CPU." });
   const form = h("form", { class: "composer2" },
-    h("div", { class: "composer-box" }, input, h("div", { class: "composer-row2" }, mode, h("span", { style: { flex: 1 } }), send)),
-    note,
-  );
-
-  const newChat = h("button", { class: "btn sm", type: "button", text: "New chat" });
-  container.append(
-    h("div", { class: "chat2" },
-      h("div", { class: "chat2-bar" }, h("span", { class: "muted", text: "Ask agents" }), newChat),
-      empty,
-      thread,
-      status,
-      form,
+    h("div", { class: "chat-col" },
+      h("div", { class: "composer-box" }, input, h("div", { class: "composer-row2" }, mode, h("span", { style: { flex: 1 } }), send)),
+      note,
     ),
   );
 
-  let sessionId = storedSession();
+  const scroller = h("div", { class: "chat-scroll" }, h("div", { class: "chat-col" }, empty, thread, status));
+  const layout = h("div", { class: "chat2" }, scroller, form);
+  container.append(layout);
+
+  let sessionId = params.id || storedSession();
+  if (params.id) storeSession(params.id);
   const agentsById = {};
+
+  const setEmpty = (isEmpty) => {
+    empty.hidden = !isEmpty;
+    layout.classList.toggle("is-empty", isEmpty);
+  };
+  /** Follow new text only while the reader is at the bottom, so reading back is not interrupted. */
+  const follow = (force = false) => {
+    const distance = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
+    if (force || distance < 140) scroller.scrollTop = scroller.scrollHeight;
+  };
 
   function autosize() {
     input.style.height = "auto";
@@ -246,13 +255,6 @@ export async function renderChat(container) {
       e.preventDefault();
       form.requestSubmit();
     }
-  });
-  newChat.addEventListener("click", () => {
-    sessionId = null;
-    storeSession(null);
-    thread.replaceChildren();
-    empty.hidden = false;
-    input.focus();
   });
 
   try {
@@ -285,7 +287,8 @@ export async function renderChat(container) {
       storeSession(null);
     }
   }
-  empty.hidden = thread.childElementCount > 0;
+  setEmpty(thread.childElementCount === 0);
+  follow(true);
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -294,8 +297,9 @@ export async function renderChat(container) {
 
     send.disabled = input.disabled = mode.disabled = true;
     status.textContent = "";
-    empty.hidden = true;
+    setEmpty(false);
     thread.append(h("div", { class: "user-msg", dir: "auto", text }));
+    follow(true);
     input.value = "";
     autosize();
 
@@ -306,11 +310,13 @@ export async function renderChat(container) {
         const s = await api("/sessions", { method: "POST", body: JSON.stringify({}) });
         sessionId = s.id;
         storeSession(sessionId);
+        history.replaceState(null, "", `#/chat/${sessionId}`);
       }
       await streamPost(`/sessions/${sessionId}/stream`, { message: text, agents }, (event, data) => {
         if (event === "user_message_saved") {
           turn = createTurn({ team: data.team, agents: data.agents?.length ? data.agents : agents });
           thread.append(turn.el);
+          window.dispatchEvent(new Event("chats-changed"));
         } else if (!turn) {
           return;
         } else if (event === "agent_start") turn.start(data);
@@ -318,12 +324,13 @@ export async function renderChat(container) {
         else if (event === "content_chunk") turn.content(data);
         else if (event === "agent_done") turn.done(data);
         else if (event === "error") turn.error(`${agentName(data.agent_slug)}: ${data.message}`);
-        turn.el.scrollIntoView({ block: "end" });
+        follow();
       });
     } catch (err) {
       status.textContent = "Request failed: " + err.message;
     }
     turn?.finish();
+    follow();
     send.disabled = input.disabled = mode.disabled = false;
     input.focus();
   });

@@ -17,12 +17,12 @@ export function startRouter(container, onNavigate) {
       if (m) {
         const params = Object.fromEntries(r.keys.map((k, i) => [k, decodeURIComponent(m[i + 1])]));
         container.innerHTML = "";
-        window.scrollTo(0, 0);
+        container.scrollTop = 0;
         await r.render(container, params);
         return;
       }
     }
-    container.innerHTML = `<div class="empty">Page not found. <a href="#/">Back to Ask agents</a></div>`;
+    container.innerHTML = `<div class="empty">Page not found. <a href="#/">Back to the chants</a></div>`;
   }
   window.addEventListener("hashchange", go);
   go();

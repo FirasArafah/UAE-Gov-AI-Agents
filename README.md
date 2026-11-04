@@ -18,7 +18,7 @@ Everything runs locally: no data leaves the machine and no external AI API is us
 
 | Hackathon requirement | How SYNORA meets it |
 |---|---|
-| Knowledge base of national policy, mapped to global practice | 15 documents / 2,077 chunks: UAE PDPL (EN + AR), Decree-Law 29/2021 (EN + AR), Cabinet Resolution 65/2022 (EN + AR), National AI Strategy 2031, AI Charter, AI Ethics Guidelines; ITU-T Y.3172, ITU AI Ready report, OECD AI Principles, UNESCO Recommendation (EN + AR), EU AI Act. Chunked by article, with page numbers, in pgvector. |
+| Knowledge base of national policy, mapped to global practice | 14 files (11 documents) / 1,998 chunks: UAE PDPL (EN + AR), Decree-Law 29/2021 (EN + AR), Cabinet Resolution 65/2022 (EN), National AI Strategy 2031, AI Charter, AI Ethics Guidelines; ITU-T Y.3172, ITU AI Ready report, OECD AI Principles, UNESCO Recommendation (EN + AR), EU AI Act. Chunked by article, with page numbers, in pgvector. |
 | Policy and legal adviser | Every agent answers in Arabic and English from retrieved excerpts only; citations are checked automatically and flagged when an article is not in the sources. |
 | Institutional participants | ICP Representative (system operator), AI Auditor, Privacy Consultant (PDPL), Coordinator — each with its own mandate, temperature and retrieval domain. |
 | Multi-agent coordination | An orchestrator releases each event to its target agents. They assess **independently**; on events flagged *sequential* each agent receives the previous one's assessment; the **Coordinator synthesizes** every multi-agent event (agreements, conflicting mandates, responsible authority, escalation). |
@@ -64,30 +64,42 @@ make seed                              # agents + scenarios
 make seed-kb                           # ingest data/knowledge_base/raw (takes a while)
 ```
 
-Open http://localhost:5173 — it lands on **Ask agents**, the team chat. API docs: http://localhost:8000/docs.
+Open http://localhost:5173 — it lands on **Chat**, the team conversation. API docs: http://localhost:8000/docs.
 
 If port 5432 is taken, set `POSTGRES_PORT` in `.env`.
 
+## Using the UI
+
+The UI has three pages:
+
+- **Chat** (`#/`): ask one agent or the whole team. Each agent's chain of thought streams live
+  and stays visible above the answer, with its sources and any citation warnings.
+- **Agents** (`#/agents`): each agent's mandate and where its retrieval starts.
+- **Knowledge base** (`#/kb`): coverage per document, and the agents' retrieval for any query.
+
 ## Running the scenario
 
-1. **Overview** (`#/overview`) **→ Start simulation** on *The Golden Gate Anomaly*.
-2. **Release event** one at a time. Agents assess, the Coordinator synthesizes, and each
-   answer shows its sources, reasoning trace and any citation warnings.
-3. After a few events, **Build gap report** at the bottom of the simulation.
-4. **Audit log** shows every recorded step and exports it as JSON.
+The scenario, gap report and audit trail run through the API:
+
+```bash
+curl -s localhost:8000/api/scenarios
+curl -s -X POST localhost:8000/api/sessions -H 'Content-Type: application/json' -d '{"scenario_id": "<id>"}'
+curl -s -X POST localhost:8000/api/sessions/<session>/start
+curl -s -X POST localhost:8000/api/sessions/<session>/advance -H 'Content-Type: application/json' -d '{"auto_run": true}'
+curl -s -X POST localhost:8000/api/sessions/<session>/gaps
+curl -s localhost:8000/api/sessions/<session>/audit
+```
+
+Repeat `advance` for each event. Agents assess, and the Coordinator synthesizes.
 
 | # | Event | Agents | Flow |
 |---|---|---|---|
 | 1 | Anomaly reported | Auditor | single |
 | 2 | Model audit request | Privacy → ICP | sequential: ICP answers Privacy's findings |
 | 3 | Proxy variables discovered | Privacy, Auditor | independent + synthesis |
-| 4 | Coordinated response decision | Coordinator | single |
+| 4 | Coordinated response decision | Coordinator | decides on the specialists' earlier assessments |
 | 5 | Contested authority (controversy) | ICP, Privacy, Auditor | independent + synthesis |
 | 6 | Policy gap report | Auditor, Privacy | independent + synthesis |
-
-**Ask agents** questions one or several agents directly; several agents get a Coordinator
-synthesis. **Knowledge base** lists coverage per document and runs the agents' retrieval
-for any query.
 
 ## API
 
@@ -97,6 +109,7 @@ for any query.
 | GET | `/api/agents` | Agent roster |
 | GET | `/api/scenarios` | Published scenarios |
 | GET/POST | `/api/sessions` | List / create sessions |
+| GET | `/api/chats` | Recent free-chat conversations |
 | POST | `/api/sessions/{id}/start` | Start a scenario session |
 | POST | `/api/sessions/{id}/advance` | Release the next event and run the coordination protocol |
 | POST | `/api/sessions/{id}/events/{seq}/run` | Re-run a released event that has no recorded assessments |

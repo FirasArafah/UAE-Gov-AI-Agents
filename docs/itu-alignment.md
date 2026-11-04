@@ -20,7 +20,7 @@ simulated incident.
 | **M** — model | Produces the output | Role agents (`agents/base.py`) on a local LLM; each retrieves from its own legal domain first, then from the whole corpus |
 | **P** — policy | Applies policy to the model output | Citation verification (`agents/citations.py`), the bilingual output contract, Coordinator synthesis and escalation of conflicts to a human |
 | **D** — distributor | Routes output to sinks | API responses, SSE streams, structured assessments and gap records |
-| **SINK** — target of the output | Consumes the output | Simulation UI, audit log, gap report, JSON export |
+| **SINK** — target of the output | Consumes the output | Chat UI, audit log API, gap report API |
 | **MLFO** — ML function orchestrator | Manages and orchestrates pipeline nodes | `agents/orchestrator.py` decides which agents receive each event, whether they work independently or sequentially, and when the Coordinator synthesizes; `scenarios/engine.py` controls event release |
 | **ML sandbox** | Environment to train, test and evaluate effects safely | The scenario simulation: agents act on a staged incident; nothing they decide touches a real system |
 | Data correlation across multiple sources (REQ-ML-COR-001) | Combine heterogeneous sources | Each answer combines domain-scoped and general retrieval over UAE and international documents, in both languages |

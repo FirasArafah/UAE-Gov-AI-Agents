@@ -35,11 +35,9 @@ npm run build
 
 | Route | Screen |
 |---|---|
-| `#/` | Home: agents and scenarios |
-| `#/session/:id` | Simulation view: timeline, assessments, thinking |
-| `#/chat` | Free chat with live SSE streaming |
-| `#/audit/:id` | Audit log with filters and JSON export |
+| `#/`, `#/chat/:id` | Chat: conversation with live streaming and each agent's chain of thought |
 | `#/agents` | Agent roster |
+| `#/kb` | Knowledge base: documents and a retrieval probe |
 
 ## Shared code
 
