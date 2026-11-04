@@ -779,11 +779,12 @@ async def rerun_event(
     db: AsyncSession = Depends(get_db),
     registry: AgentRegistry = Depends(get_registry),
 ):
-    """Run the agents again for a released event that has no recorded assessments.
+    """Complete a released event whose agents did not all answer.
 
-    Assessments are only stored once every agent has answered, so an advance request that
-    was interrupted (timeout, restart) leaves its event released but empty. This recovers it
-    without releasing the next event. Events that already have assessments are immutable.
+    An advance request that was interrupted (timeout, restart, model crash) can leave its event
+    released with some or all assessments missing. This runs only the agents without a recorded
+    assessment, and the Coordinator's synthesis if there is none yet. Recorded assessments are
+    immutable and are reused as they are.
     """
     session = await db.get(SimulationSession, session_id)
     if not session:
@@ -799,21 +800,57 @@ async def rerun_event(
     event = result.scalar_one_or_none()
     if event is None:
         raise HTTPException(status_code=404, detail="event not found")
-    existing = await db.execute(
-        select(func.count())
-        .select_from(AgentAssessment)
-        .where(
-            AgentAssessment.session_id == session_id,
-            AgentAssessment.event_sequence == sequence,
-        )
+    completed, has_synthesis = await _recorded_answers(db, registry, session_id, sequence)
+    targets = event.target_agent_roles or ["coordinator"]
+    missing = [s for s in targets if s not in {a.agent_slug for a in completed}]
+    needs_synthesis = len(targets) > 1 and "coordinator" not in targets and not has_synthesis
+    if not missing and not needs_synthesis:
+        raise HTTPException(status_code=409, detail="every agent has already answered this event")
+    return await _run_event(
+        db, registry, session_id, event, completed=completed, synthesize=not has_synthesis
     )
-    if existing.scalar():
-        raise HTTPException(status_code=409, detail="event already has recorded assessments")
-    return await _run_event(db, registry, session_id, event)
+
+
+async def _recorded_answers(
+    db: AsyncSession, registry: AgentRegistry, session_id: UUID, sequence: int
+) -> tuple[list[AgentResponse], bool]:
+    """Specialist answers already stored for an event, and whether it has a synthesis."""
+    result = await db.execute(
+        select(Message)
+        .where(Message.session_id == session_id, Message.role == MessageRole.ASSISTANT)
+        .order_by(Message.sequence)
+    )
+    slug_by_id = registry.slugs_by_agent_id()
+    answers: list[AgentResponse] = []
+    has_synthesis = False
+    for msg in result.scalars():
+        metadata = msg.message_metadata or {}
+        if metadata.get("event_sequence") != sequence:
+            continue
+        if metadata.get("is_synthesis"):
+            has_synthesis = True
+            continue
+        slug = slug_by_id.get(msg.agent_id)
+        if slug and not msg.content.startswith("(stream interrupted"):
+            agent = await registry.get(slug)
+            answers.append(
+                AgentResponse(
+                    agent_slug=slug,
+                    agent_name=agent.agent.name,
+                    role=str(agent.agent.role),
+                    content=msg.content,
+                )
+            )
+    return answers, has_synthesis
 
 
 async def _run_event(
-    db: AsyncSession, registry: AgentRegistry, session_id: UUID, event: ScenarioEvent
+    db: AsyncSession,
+    registry: AgentRegistry,
+    session_id: UUID,
+    event: ScenarioEvent,
+    completed: list[AgentResponse] | None = None,
+    synthesize: bool = True,
 ) -> dict:
     """Run the coordination protocol for one released event and persist every turn."""
     histories = await _agent_histories(db, session_id, registry)
@@ -822,7 +859,12 @@ async def _run_event(
         earlier = await _earlier_assessments(db, registry, session_id, event.sequence)
     orchestrator = Orchestrator(registry)
     outcomes, synthesis = await orchestrator.run_event(
-        event, session_id=session_id, histories=histories, earlier_assessments=earlier
+        event,
+        session_id=session_id,
+        histories=histories,
+        earlier_assessments=earlier,
+        completed=completed,
+        synthesize=synthesize,
     )
 
     audit = AuditLogger(db)

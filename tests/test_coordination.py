@@ -285,3 +285,25 @@ async def test_synthesis_is_checked_against_the_agents_full_answers():
         support=["... Article (21) of the PDPL requires an impact assessment [2]."],
     )
     assert "failed verification" not in full.content
+
+
+@pytest.mark.asyncio
+async def test_rerun_skips_recorded_agents_but_synthesizes_all_answers():
+    registry = FakeRegistry()
+    recorded = AgentResponse(
+        agent_slug="privacy", agent_name="Privacy", role="privacy", content="privacy view"
+    )
+    outcomes, synthesis = await Orchestrator(registry).run_event(
+        _event(["privacy", "auditor"]), completed=[recorded]
+    )
+    assert [o.slug for o in outcomes] == ["auditor"]
+    assert "privacy" not in registry.prompts
+    assert synthesis.responding_to == ["privacy", "auditor"]
+
+
+@pytest.mark.asyncio
+async def test_rerun_does_not_synthesize_twice():
+    _, synthesis = await Orchestrator(FakeRegistry()).run_event(
+        _event(["privacy", "auditor"]), synthesize=False
+    )
+    assert synthesis is None

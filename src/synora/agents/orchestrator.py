@@ -55,8 +55,15 @@ class Orchestrator:
         session_id: UUID | None = None,
         histories: dict[str, list[dict]] | None = None,
         earlier_assessments: list[AgentResponse] | None = None,
+        completed: list[AgentResponse] | None = None,
+        synthesize: bool = True,
     ) -> tuple[list[AgentOutcome], AgentOutcome | None]:
-        target_slugs = list(event.target_agent_roles or []) or ["coordinator"]
+        """Run one event. ``completed`` are answers already recorded for it (a re-run after an
+        interruption): those agents are skipped and their answers still feed the synthesis."""
+        all_targets = list(event.target_agent_roles or []) or ["coordinator"]
+        completed = completed or []
+        done = {a.agent_slug for a in completed}
+        target_slugs = [s for s in all_targets if s not in done]
         sequential = bool((event.event_metadata or {}).get("sequential"))
         histories = histories or {}
 
@@ -107,9 +114,9 @@ class Orchestrator:
                 outcome.error = str(exc)
             outcomes.append(outcome)
 
-        assessments = [o.response for o in outcomes if o.response]
+        assessments = completed + [o.response for o in outcomes if o.response]
         synthesis: AgentOutcome | None = None
-        if len(assessments) > 1 and "coordinator" not in target_slugs:
+        if synthesize and len(assessments) > 1 and "coordinator" not in all_targets:
             synthesis = AgentOutcome(
                 slug="coordinator", responding_to=[a.agent_slug for a in assessments]
             )
