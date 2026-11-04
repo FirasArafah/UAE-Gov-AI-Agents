@@ -20,6 +20,8 @@ from pathlib import Path
 
 import structlog
 
+from synora.agents.guard import looks_like_injection
+
 logger = structlog.get_logger(__name__)
 
 
@@ -28,6 +30,7 @@ class MessageKind(StrEnum):
     CONVERSATION = "conversation"  # greetings, thanks, acknowledgements
     IDENTITY = "identity"  # who are you, who made you
     OFF_TOPIC = "off_topic"  # outside the agents' remit
+    INJECTION = "injection"  # tries to override or extract the instructions
 
 
 # Arabic punctuation (، ؛ ؟) lies inside the Arabic block, so it is removed separately.
@@ -114,6 +117,8 @@ def classify_by_rules(text: str) -> MessageKind | None:
     norm = normalise(text)
     if not norm:
         return None
+    if looks_like_injection(norm):
+        return MessageKind.INJECTION
     intro = INTRODUCTION_RE.search(norm)
     if (
         intro

@@ -12,6 +12,7 @@ from synora.agents.citations import (
     has_wrong_script,
     repair_citations,
 )
+from synora.agents.guard import neutralise, refusal, security_rules
 from synora.agents.intent import LIGHT_PROMPTS, MessageKind, identity_reply
 from synora.agents.language import NOT_COVERED, detect_language, output_contract
 from synora.agents.llm import LLMClient
@@ -245,7 +246,7 @@ class BaseAgent:
         return format_citation_warning(problems)
 
     def _build_system_prompt(self, references: list[dict], language: str = "en") -> str:
-        base = self.agent.system_prompt + output_contract(language)
+        base = self.agent.system_prompt + output_contract(language) + security_rules(language)
         if references:
             refs_lines = []
             for idx, ref in enumerate(references, start=1):
@@ -253,7 +254,7 @@ class BaseAgent:
                 lang = (ref.get("language") or "").upper()
                 section = ref.get("section", "")
                 page = ref.get("page") or (ref.get("metadata") or {}).get("page")
-                content = ref.get("content", "")
+                content = neutralise(ref.get("content", ""))
                 parts = [f"[{idx}] {title}" + (f" ({lang})" if lang else "")]
                 if section:
                     parts.append(str(section))
@@ -296,14 +297,16 @@ class BaseAgent:
         ]
 
         if history:
-            messages.extend(history[-10:])
+            messages.extend(
+                {**turn, "content": neutralise(turn.get("content", ""))} for turn in history[-10:]
+            )
 
-        user_content = user_message
+        user_content = neutralise(user_message)
         if context:
             ctx_lines = []
             for item in context:
                 title = item.get("title", "")
-                content = item.get("content", "")
+                content = neutralise(item.get("content", ""))
                 ctx_lines.append(f"- {title}: {content}" if title else f"- {content}")
             user_content = "Context:\n" + "\n".join(ctx_lines) + "\n\n" + user_message
 
@@ -407,10 +410,19 @@ class BaseAgent:
         if kind == MessageKind.IDENTITY:
             yield ("content", identity_reply(language))
             return
+        if kind == MessageKind.INJECTION:
+            yield ("content", refusal(language))
+            return
         messages = [
-            {"role": "system", "content": LIGHT_PROMPTS[kind][language]},
-            *(history or [])[-CONVERSATION_HISTORY:],
-            {"role": "user", "content": user_message},
+            {
+                "role": "system",
+                "content": LIGHT_PROMPTS[kind][language] + security_rules(language),
+            },
+            *(
+                {**turn, "content": neutralise(turn.get("content", ""))}
+                for turn in (history or [])[-CONVERSATION_HISTORY:]
+            ),
+            {"role": "user", "content": neutralise(user_message)},
         ]
         async for token in self.llm.chat_stream(
             messages=messages, temperature=0.5, num_predict=CONVERSATION_MAX_TOKENS
