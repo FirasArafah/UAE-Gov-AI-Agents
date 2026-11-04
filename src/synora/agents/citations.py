@@ -118,12 +118,45 @@ def repair_citations(content: str, references: list[dict]) -> str:
     )
 
 
+def merge_references(groups: list[list[dict]]) -> tuple[list[dict], list[dict[int, int]]]:
+    """Combine several agents' excerpt lists into one, with each list's old-to-new numbers."""
+    merged: list[dict] = []
+    positions: dict[tuple, int] = {}
+    mappings: list[dict[int, int]] = []
+    for references in groups:
+        mapping: dict[int, int] = {}
+        for old, ref in enumerate(references, start=1):
+            key = (ref.get("title"), ref.get("section"))
+            if key not in positions:
+                merged.append(ref)
+                positions[key] = len(merged)
+            mapping[old] = positions[key]
+        mappings.append(mapping)
+    return merged, mappings
+
+
+def renumber_citations(text: str, mapping: dict[int, int]) -> str:
+    """Rewrite [n] markers through a mapping, dropping any number it does not hold."""
+
+    def replace(match: re.Match[str]) -> str:
+        cited = (int(n) for n in match.group(1).split(","))
+        numbers = sorted({mapping[n] for n in cited if n in mapping})
+        return f"[{', '.join(str(n) for n in numbers)}]" if numbers else ""
+
+    return BRACKET_CITATION_RE.sub(replace, text)
+
+
 def find_citation_problems(
     content: str,
     references: list[dict],
     extra_sources: list[str] | None = None,
+    check_excerpts: bool = True,
 ) -> list[str]:
-    """Return one message per article or excerpt citation the sources do not support."""
+    """Return one message per article or excerpt citation the sources do not support.
+
+    ``check_excerpts`` also compares each sentence's article with the excerpt it cites. A
+    synthesis has only the titles of its sources, so it cannot make that comparison.
+    """
     sources = _source_texts(references)
     all_sources = "\n".join([*sources, *(extra_sources or [])])
 
@@ -141,7 +174,7 @@ def find_citation_problems(
         )
 
     mismatches: list[str] = []
-    for sentence in SENTENCE_SPLIT_RE.split(content):
+    for sentence in SENTENCE_SPLIT_RE.split(content) if check_excerpts else []:
         excerpts = [
             int(n) for group in BRACKET_CITATION_RE.findall(sentence) for n in group.split(",")
         ]

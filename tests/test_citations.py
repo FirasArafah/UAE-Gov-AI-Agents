@@ -238,7 +238,9 @@ class FakeRetriever:
             hits[0]["chunk_id"] = "scoped-0"  # Same chunk returned by both searches
         return hits
 
-    async def find_articles(self, numbers, domains, arabic=False):
+    async def find_articles(self, numbers, domains, arabic=False, titles=None):
+        if titles:  # The article every answer of this agent must consider
+            return []
         self.named = (numbers, domains, arabic)
         return [{"chunk_id": f"article-{number}"} for number in numbers]
 
@@ -291,7 +293,10 @@ async def test_parts_and_translation_of_one_article_share_a_slot():
     async def search(query, top_k=None, domains=None):
         return chunks
 
-    retriever = SimpleNamespace(search=search)
+    async def find_articles(*args, **kwargs):
+        return []
+
+    retriever = SimpleNamespace(search=search, find_articles=find_articles)
     refs = await _agent("privacy", retriever)._retrieve("Assess this.")
     assert [ref["chunk_id"] for ref in refs] == ["a", "c", "d"]
 

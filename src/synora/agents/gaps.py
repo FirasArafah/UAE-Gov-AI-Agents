@@ -27,8 +27,15 @@ GLOBAL_PRACTICE_QUERIES = (
     "independent oversight body and accountability for public sector AI",
     "data governance and quality of training data for machine learning",
 )
-INTERNATIONAL_DOMAINS = [DocumentDomain.CROSS_DOMAIN.value]
-REFERENCES_PER_QUERY = 2
+# Each theme asks the instruments separately, so the report has several global examples to
+# draw on rather than whichever long document matches best.
+INTERNATIONAL_SOURCES = (
+    ("2024/1689",),  # EU AI Act
+    ("OECD",),
+    ("UNESCO", "اليونسكو"),
+)
+REFERENCES_PER_SOURCE = 1
+REFERENCE_EXCERPT_CHARS = 450
 ASSESSMENT_EXCERPT_CHARS = 700
 MAX_ASSESSMENTS = 10
 SEVERITIES = ("low", "medium", "high", "critical")
@@ -111,15 +118,16 @@ class GapAnalyst:
             return []
         seen: dict[str, dict] = {}
         for query in GLOBAL_PRACTICE_QUERIES:
-            try:
-                hits = await self.retriever.search(
-                    query, top_k=REFERENCES_PER_QUERY, domains=INTERNATIONAL_DOMAINS
-                )
-            except Exception as exc:
-                logger.warning("gaps.retrieval_failed", query=query, error=str(exc))
-                continue
-            for hit in hits:
-                seen.setdefault(hit["chunk_id"], hit)
+            for titles in INTERNATIONAL_SOURCES:
+                try:
+                    hits = await self.retriever.search(
+                        query, top_k=REFERENCES_PER_SOURCE, titles=titles
+                    )
+                except Exception as exc:
+                    logger.warning("gaps.retrieval_failed", query=query, error=str(exc))
+                    continue
+                for hit in hits:
+                    seen.setdefault(hit["chunk_id"], hit)
         return list(seen.values())
 
     async def extract(
@@ -136,7 +144,7 @@ class GapAnalyst:
         reference_lines = [
             f"[{i}] {r.get('title')}"
             + (f" | {r['section']}" if r.get("section") else "")
-            + f"\n{(r.get('content') or '')[:600]}"
+            + f"\n{(r.get('content') or '')[:REFERENCE_EXCERPT_CHARS]}"
             for i, r in enumerate(references, start=1)
         ]
         user = (
