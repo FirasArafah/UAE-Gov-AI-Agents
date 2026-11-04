@@ -1,0 +1,36 @@
+UAE National Cybersecurity Strategy 2019 (summary)
+
+Source: https://u.ae/en/about-the-uae/strategies-initiatives-and-awards/strategies-plans-and-visions/strategies-plans-and-visions-untill-2021/national-cybersecurity-strategy-2019
+
+national-cybersecurity-strategy-2019
+
+The UAE’s National Cybersecurity strategy aims to create a safe and strong cyber infrastructure in the UAE that enables citizens to fulfill their aspirations and empowers businesses to thrive. The updated version of the strategy was launched in 2019 by Telecommunications and Digital Government Regulatory Authority (TDRA), the entity which is responsible for the ICT sector and digital transformation in the country. The strategy is based on 5 pillars and 60 initiatives aiming to mobilise the whole cybersecurity ecosystem in the UAE.
+Pillars and goals of the strategy
+- Implementing a comprehensive legal and regulatory framework that will cover all types of cybercrimes, secure existing and emerging technologies and protect SMEs against most common cyber threats.
+- tapping into the opportunity of AED 1.8 billion cybersecurity market in the UAE and the AED 18 billion cybersecurity market in MENA
+- developing capabilities of more than 40,000 cybersecurity professionals, encouraging professionals and students to pursue a career in cybersecurity, developing necessary cybersecurity capabilities and fostering a vibrant ecosystem of cybersecurity training providers
+- creating a cybersecurity citizen-awareness by enabling citizens to realize the risks related to the cyberspace, influencing citizen mindsets to practice cyber hygiene and encouraging institutions to spread cyber awareness
+- rewarding excellence in cybersecurity through a national awards programme by encouraging organisations to drive cybersecurity programmes, inspiring entrepreneurs to innovate in cybersecurity, supporting cutting-edge research undertaken by academic institutions and motivating students to pursue cybersecurity careers.
+- streamlining cybersecurity incident detection and reporting
+- establishing standardised severity assessment matrix to mobilise the required support
+- building world-class capabilities to respond to all types of cyber incidents.
+- Energy
+- ICT
+- Government
+- Electricity and water
+- Finance and insurance
+- Emergency services
+- Health services
+- Transportation
+- Food and agriculture.
+- Mobilising the whole ecosystem through local and global partnerships to jointly achieve cybersecurity goals and ambitions. This would include:
+- the public sector
+- the private sector
+- academia
+- international consortia.
+TRA will monitor the progress and impact of the National Cybersecurity strategy through multiple governance vehicles to implement the Critical Information Infrastructure Protection Program (CIIP) and the National Incident Response Plan. It will further assess the National Cybersecurity Strategy through more than 20 clearly-defined key performance metrics. Read more about UAE’s National Cybersecurity Strategy on the website of TDRA.
+Useful links:
+- UAE Cyber safety
+- Dubai Cyber Security Strategy
+- Standard Information Security Policy - aeCERT-TDRA
+22 Oct 2026

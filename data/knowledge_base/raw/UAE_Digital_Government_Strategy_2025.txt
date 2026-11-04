@@ -1,0 +1,241 @@
+The UAE Digital Government Strategy 2025
+
+Source: https://u.ae/en/about-the-uae/strategies-initiatives-and-awards/strategies-plans-and-visions/government-services-and-digital-transformation/uae-national-digital-government-strategy
+
+Dimensions of the UAE Digital Government Strategy 2025
+
+The UAE’s National Digital Government Strategy is drafted on eight dimensions. The dimensions were aimed to leverage The OECD Digital Government Policy Framework and were tailored to fit the UAE’s developmental plan in the post pandemic era. The eight dimensions are:
+- Leaving no one behind (Inclusive by default)
+- Resilient
+- Fit for the digital age
+- User-driven
+- Digital by design
+- Data-driven
+- Open by default
+- Proactiveness.
+Below is a brief description of the dimensions.
+Leaving no one behind (Inclusive by default)
+This can be achieved by:
+- Adopting open and inclusive processes, accessibility, transparency and accountability among the main goals of UAE digital government strategies and
+- Ensuring inclusiveness and overcoming any digital divides that might arise with special focus on elders, people with determination, women, children and other vulnerable groups.
+Resilient
+This involves leveraging the emerging technologies to build capabilities in anticipation of disasters and crises to be able to respond to them proactively, and adopting more resilient government operations and core capabilities.
+Fit for the digital age
+This involves promoting cross-sectoral and inter-ministerial co-ordination and collaboration, setting national priorities and engaging relevant stakeholders in pursuing the UAE’s digital agenda.
+User-driven
+This dimension recommends governments to be more user-driven, highlighting the notion of engagement by default. It advises keeping people’ needs and convenience at the centre of shaping processes, services and policies and adopting inclusive mechanisms.
+Digital by design
+This dimension is about establishing clear organisational leadership along with effective co-ordination and enforcement mechanisms to ensure digital by default practices. All policy processes must be embedded with ‘digital’ as a mandatory, by design, transformative element. Furthermore, ongoing experimentation plays a vital role in this dimension by facilitating the creation of controlled and flexible testing environments. These environments allow regulators, the private sector, innovators, and business leaders to collaborate and co-create legislation that aligns with the rapid pace of innovation. Read about the regulatory sandboxes in the UAE .
+Data-driven
+Under this dimension, a digital government governs data as a key strategic asset in generating public value through applying it in the planning, delivering and monitoring of public policies, and adopts rules and ethical principles for their trustworthy and safe reuse.
+Open by default
+Open by default means making government data and policy-making processes (including algorithms) available for the public to engage with.
+Proactiveness
+This dimension is about the ability of governments and civil servants to anticipate people’s needs and respond to them rapidly enough, so that users do not have to engage with the cumbersome process of data and service delivery. By utilizing a seamless Single Sign-On system with the UAE National Digital ID – UAE PASS and adopting a life cycle approach and once only policy , the need for users to apply for services or submit supporting documents is eliminated. Instead, users receive automatic notifications of tailored proactive services. This simplifies service delivery and improves the user experience by removing unnecessary bureaucratic obstacles.
+
+Objectives and priorities
+
+The main objective of the UAE digital strategy is to create a broad cross-sectoral government commitment and buy-in for embedding the digital aspects into overall government strategies. This is crucial to ensure that the UAE Government is digital by design and that all capacities, structures and opportunities are integrated on a national level and aligned with the UAE’s strategic digital government vision. The following are the objectives and priorities of the strategy:
+- providing a world-class digital infrastructure
+- providing a unified digital platform and common digital enablers
+- enable integrated, easy and fast digital services designed based on the needs of customers
+- raising the level of digital capabilities and skills
+- legislation readiness to ensure a smooth and comprehensive digital transformation
+- raising the efficiency of government work.
+
+Digital Government roadmap
+
+Unified Digital Platform
+Shared Digital Enablers
+Digital Infrastructure & Services
+Digital Engagement
+Digital Capacity
+Laws, Policies & Standards
+
+Strategic KPIs
+
+Main indicator
+Sub indicator
+Target by 2025
+Public satisfaction
+Citizen satisfaction towards digital government Services
+90%
+(Very satisfied)
+Businesses satisfaction towards digital government services
+Complete digital transformation
+Percentage of services listed on the unified digital platform
+90%
+Percentage of services digitised (end-to-end)
+100%
+Services that require personal verification offer a digital option
+100%
+Services that require a manual signature offer a digital option
+100%
+Digital capabilities
+Number of workforce in the federal government trained on digital government capabilities and standards
+100%
+Number of federal government workforce that has basic digital knowledge
+100%
+The number of workforce in the federal government trained in modern technologies (such as blockchain, artificial intelligence, bot processing, etc.)
+10%
+Digital adoption
+Percentage of transactions completed digitally end to end
+85%
+
+Maturity model
+
+Leadership
+
+Leaders are the stewards of digital transformation efforts. They must engage, motivate, build commitment, and mobilise resources for the successful implementation of a digital strategy.
+
+Strategy
+
+Strategic plans help to execute the transformation agenda. A digital transformation strategy contains the actions to be taken to pursue the digital transformation goals.
+
+Governance
+
+Good governance must be aligned with strategic goals, as well as legal frameworks.
+
+Legal
+
+The legislation, administrative regulations, guidelines and standards that a department or agency must comply with in transforming digital services.
+
+Technology
+
+Emerging technologies that directly and indirectly contribute to the delivery of programs and services through digital platforms.
+
+Cybersecurity
+
+Cybersecurity is important for digital government. With more services being made available online, there is a need to increase security mechanisms to ensure protections to sensitive and private citizen information.
+
+Specific technologies and new trends
+
+Emergent technologies and new trends bring promising opportunities for governments to transform their digital services and leapfrog in terms of citizen satisfaction.
+
+Ministry/Agency specific
+
+These are items specific to each ministry/authority and they reflect some primary functions as well as the most important information and services provided digitally.
+Each dimension has a set of sub-dimensions that guide enabling actions that each government entity might take to increase their maturity along each dimension. Each sub-dimension has a set of specific items to be used by each UAE government entity to determine their level of maturity for each sub-dimension and dimension.
+The five levels of maturity range from Level 1 representing a very low level of maturity to level 5 representing a very high level of maturity. The assessment responses provide an outline for a roadmap for a successful digital government transformation.
+Maturity Level
+Sub Indicator
+1
+Very low level of maturity
+2
+Low level of maturity
+3
+Average level of maturity
+4
+High level of maturity
+5
+Very high level of maturity
+The objective is 100 per cent - very high level of maturity for all UAE government entities on both federal and local levels by 2025.
+
+Commitment to achieving the Sustainable Development Goals 2030
+
+The National Digital Government Strategy is committed to achieving the United Nations’ Sustainable Development Goals (SDGs) 2030 . While the strategy aims to bridge digital divide , it brings the UAE closer to achieving the SDG of reducing inequality. In addition, it aims to maintain the UAE as a safe, stable and peaceful society. The UAE’s justice system is one of the most stable and developed. It has various laws to maintain justice and safety of the Emiratis and the various communities living there, thereby, aiding in achieving the SDG of peace, justice and strong institutions.
+
+Alignment with the national development strategies
+
+The National Digital Government Strategy is aligned with following national strategies:
+
+‘We the UAE 2031’ vision
+
+Unified Digital Platform Policy
+
+The UAE Strategy for Government Services
+
+National Policy for Quality of Digital Life
+
+Future Foresight Strategy
+
+UAE Centennial 2071
+
+UAE Strategy for Artificial Intelligence
+
+Fourth Industrial Revolution (4IR) Strategy
+
+Digital Customer and Digital Government Service Policy
+
+Gamification
+
+National Strategy for Advanced Innovation
+
+Open Government Data laws, policies, strategies, guidelines
+
+The National Standard For Business Continuity Management System
+
+Digital Participation Strategy
+
+- ‘We the UAE 2031’ vision – it represents a national plan through which the UAE will continue its development path for the next 10 years, with focus on social, economic, investment and development aspects. The plan seeks to enhance the position of the UAE as a global partner and an attractive and influential economic hub. It aims to highlight the successful economic model of the UAE and the opportunities it provides to all global partners
+- Unified Digital Platform Policy – it aims to provide all government services from one unified platform, employing digital government enablers to integrate and connect digital systems of the UAE federal government and raising efficiency in providing digital services
+- The UAE Strategy for Government Services - it aims to provide 90 per cent of the public services through a single digital platform, design 100 per cent proactive digital services, design 100 per cent services in partnership with all sectors of the community and ensure that, by 2023, all government services will be accessible from anywhere and at any time
+- National Policy for Quality of Digital Life – it aims to build the capacities of members of the community and enable them to use the internet in a responsible manner, consolidate positive digital values and behaviours, guide the community to use positive content and protect users from the risks of dealing with suspicious parties
+- Future Foresight Strategy - it aims to make foresighting the future a part of the strategic planning in the government and launch studies and scenarios to forecast the future of all priority sectors and draft plans and policies based on that
+- UAE Centennial 2071 – it is a full-vision plan that extends for 5 decades after 2021 and forms a roadmap for future government work. A future-focused government is one of the four pillars of Centennial 2071.
+- achieve the objectives of UAE Centennial 2071
+- boost government performance at all levels
+- use an integrated smart digital system that can overcome challenges and provide quick efficient solutions
+- make the UAE the first in the field of AI investments in various sectors
+- create new vital market with high economic value.
+- Fourth Industrial Revolution (4IR) Strategy – it aims to make the UAE, a leading global hub and an open lab for the Fourth Industrial Revolution’s applications.
+- enhance the UAE Government’s approach of providing proactive digital services on a priority
+- improve user experience in getting digital government services
+- raise government efficiency in providing services
+- enable integration and connection of digital systems of federal government entities
+- raise trust in digital government services.
+- Gamification – Launched on KidX , a digital platform for children, gamification aims to increase children’s participation in understanding the role of the government and improving them.
+- establish a national platform for innovation, communication and learning
+- encourage the community to take the spirit of initiative
+- try out new models of government for serving society
+- test advanced economic patterns and lay the groundwork to create new sectors
+- achieve scientific breakthroughs that focus on the welfare of people
+- collaborate with leading international institutions and companies specialised in the field of innovation.
+- Enhancing Transparency and Accountability by providing citizens and businesses with access to government data.
+- Encouraging Innovation by making government data available to the public, open data policies in the UAE can encourage innovation by enabling entrepreneurs and developers to create new products and services that benefit society.
+- Promoting Collaboration by providing a common platform for sharing and accessing data.
+- Increasing Efficiency by reducing the time and resources required to collect and analyze data, and by enabling data sharing and reuse across government entities.
+Implementation of the Standard will enable UAE government and private sector entities to:
+- Protect against and reduce the likelihood or impact of disruptions.
+- Prepare for, respond to, and recover from disruptions.
+- Effective implementation across UAE government entities and their private-sector partners will also enhance national stability.
+Digital Participation Strategy - It aims to foster public participation in governance by building a consultative ecosystem where the people are able to share their ideas, thoughts and recommendations with government entities. The entire ecosystem rests on the principles of inclusion, ensuring a deeper involvement of all segments of society equally in charting the UAE’s future. Read more about key objectives and strategic capabilities of the Digital Participation Strategy .
+
+Alignment with local eGovernment development strategies
+
+The National Digital Government Strategy is aligned with the strategies of the local governments. Abu Dhabi Digital Transformation Strategy aims to make the emirate a leading proponent and key driver of its digital future. Abu Dhabi Digital Authority’s top priorities are focused on government services and solutions, data and applied technologies, governance and ecosystem enablement.
+Meanwhile, Smart Dubai 2021 Strategy has six strategic objectives. They are:
+- smart liveable and resilient city - to achieve full ICT enablement of critical infrastructure and resources to boost efficiency, availability, and resilience
+- globally competitive economy powered by disruptive technologies - to leverage ICT innovations as means to digitally transform strategic economic sectors and pioneer new rules of economic development and engagement
+- interconnected society with easily accessible social services - to embrace technology to streamline social, cultural, education, and healthcare experiences in the emirate and facilitate inclusive and effective participation of stakeholders in designing city experiences
+- smooth transport driven by autonomous and shared mobility solutions - to pioneer smart innovative mobility solutions for a seamless and safe transportation experience in the emirate
+- clean environment enabled by cutting-edge ICT innovations - to digitally transform utilities, manufacturing, transportation, and waste treatment sectors to reduce the emirate’s carbon footprint for a cleaner, healthier environment
+- digital, lean connected government - to be a government with providing all eligible public services through digital channels.
+Smart Dubai 2021 Strategy is supported by:
+- Dubai Autonomous Transportation Strategy
+- Dubai 3D Printing Strategy
+- Dubai Data Strategy
+- Dubai Cyber Security Strategy
+- Dubai Blockchain Strategy
+- Dubai Internet of Things Strategy
+- Dubai Paperless Strategy
+- Dubai eCommerce strategy .
+Ajman Digital Masterplan 2017-2022 provides a roadmap for a comprehensive digital transformation of Ajman Government services over five years. The five strategic goals of the plan are to:
+- achieve a 100 per cent digital transformation of government services by the end of 2018
+- achieve a digital transformation of joint government services by the end of 2018
+- adopt 80 per cent of digital services by 2021
+- complete digital transformation of 30 priority government services every 100 days
+- raise financial efficiency of government services by at least 20 per cent by the end of 2021.
+Umm Al Quwain Vision 2021 focuses on providing high-quality living standards for a cohesive society. One of the five main pillars of the Vision is an innovative government. Government of Umm Al Quwain aims to implement comprehensive structural development through programmes and initiatives which support customers’ happiness and satisfaction by offering excellent comprehensive services and accelerating transformation towards eGovernment.
+Once only policy
+Under the ‘Once only’ policy, users or consumers of Abu Dhabi Government’s services will be relieved from submitting supporting documents every time they apply for a service. To benefit from this policy, users will submit their documents only once via the portal of Abu Dhabi Government . This data will be saved and shared with government entities and companies via the Abu Dhabi Connect Platform, which is the only digital platform to provide and share digital information with government entities and companies.
+The ‘Once only’ policy will facilitate transactions by:
+- reducing the number of documents required for each transaction
+- easing procedures of services
+- ensuring seamless use of data in a secure way.
+Once only is the first policy of its kind in the region to enhance government’s digital transformation.
+
+Regulatory sandboxes
+
+Read about the regulatory sandboxes in the UAE.
+21 Oct 2026

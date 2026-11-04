@@ -18,7 +18,7 @@ Everything runs locally: no data leaves the machine and no external AI API is us
 
 | Hackathon requirement | How Mathuq meets it |
 |---|---|
-| Knowledge base of national policy, mapped to global practice | 14 files (11 documents) / 1,998 chunks: UAE PDPL (EN + AR), Decree-Law 29/2021 (EN + AR), Cabinet Resolution 65/2022 (EN), National AI Strategy 2031, AI Charter, AI Ethics Guidelines; ITU-T Y.3172, ITU AI Ready report, OECD AI Principles, UNESCO Recommendation (EN + AR), EU AI Act. Chunked by article, with page numbers, in pgvector. |
+| Knowledge base of national policy, mapped to global practice | 17 files (14 documents) / 2,083 chunks: UAE PDPL (EN + AR), Decree-Law 29/2021 (EN + AR), Cabinet Resolution 65/2022 (EN), National AI Strategy 2031, AI Charter, AI Ethics Guidelines, National Cybersecurity Strategy 2019 (TDRA deck and official summary), Digital Government Strategy 2025; ITU-T Y.3172, ITU AI Ready report, OECD Recommendation on AI (full text), UNESCO Recommendation (EN + AR), EU AI Act. Chunked by article or section, with page numbers, in pgvector. |
 | Policy and legal adviser | Every agent answers in Arabic and English from retrieved excerpts only; citations are checked automatically and flagged when an article is not in the sources. |
 | Institutional participants | ICP Representative (system operator), AI Auditor, Privacy Consultant (PDPL), Coordinator — each with its own mandate, temperature and retrieval domain. |
 | Multi-agent coordination | An orchestrator releases each event to its target agents. They assess **independently**; on events flagged *sequential* each agent receives the previous one's assessment; the **Coordinator synthesizes** every multi-agent event (agreements, conflicting mandates, responsible authority, escalation). |
@@ -192,10 +192,10 @@ data/          knowledge base sources and scenarios
 
 ## Known limitations
 
-- On CPU a full six-event run takes roughly 45–60 minutes.
-- The OECD source currently yields 5 chunks over 2 pages; it appears to be a summary rather
-  than the full Recommendation and should be replaced.
-- The API tests create sessions in the development database.
+- On CPU a full six-event run takes roughly 45–60 minutes; on a 6 GB laptop GPU, a few minutes.
+- The law establishing ICP (Federal Decree-Law No. 14 of 2021) is not in the knowledge base:
+  the UAE legislation portal does not allow automated downloads. Save it from
+  uaelegislation.gov.ae into `data/knowledge_base/raw` and run `make seed-kb`.
 - Sessions are kept as immutable audit records; there is no delete endpoint.
 
 ## License

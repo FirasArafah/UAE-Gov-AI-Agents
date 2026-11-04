@@ -191,7 +191,7 @@ def test_international_files_keep_their_own_metadata():
     assert (unesco_en["language"], unesco_en["country_code"]) == ("en", "INT")
     assert (unesco_ar["language"], unesco_ar["country_code"]) == ("ar", "INT")
     assert infer_metadata(raw / "EU_AI_Act_2024.pdf")["country_code"] == "EU"
-    assert infer_metadata(raw / "OECD_AI_Principles.pdf")["country_code"] == "INT"
+    assert infer_metadata(raw / "OECD_AI_Recommendation_LEGAL_0449.pdf")["country_code"] == "INT"
     uae_ethics = infer_metadata(raw / "UAE_AI_Ethics_Guidelines.pdf")
     assert uae_ethics["title"] == "UAE AI Ethics Guidelines"
 
@@ -212,7 +212,10 @@ def test_default_seed_folder_has_the_knowledge_base_with_known_metadata():
         ("UNESCO_AI_Ethics_Recommendation_AR.pdf", "INT", "ar", "اليونسكو"),
         ("UAE_AI_Ethics_Guidelines.pdf", "AE", "en", "UAE AI Ethics"),
         ("EU_AI_Act_2024.pdf", "EU", "en", "EU Artificial Intelligence Act"),
-        ("OECD_AI_Principles.pdf", "INT", "en", "OECD"),
+        ("OECD_AI_Recommendation_LEGAL_0449.pdf", "INT", "en", "OECD/LEGAL/0449"),
+        ("UAE_National_Cybersecurity_Strategy_2019.pdf", "AE", "en", "Cybersecurity Strategy 2019"),
+        ("UAE_Digital_Government_Strategy_2025.txt", "AE", "en", "Digital Government"),
+        ("UAE_National_AI_Strategy_2031.pdf", "AE", "en", "Artificial Intelligence 2031"),
         ("UAE_Cabinet_Resolution_65_2022_AR.pdf", "AE", "ar", "قرار مجلس الوزراء"),
         ("UAE_Cabinet_Resolution_65_2022.pdf", "AE", "en", "Cabinet Resolution"),
     ],

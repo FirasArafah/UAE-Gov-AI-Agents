@@ -68,10 +68,32 @@ KNOWN_METADATA: dict[str, dict[str, Any]] = {
         "language": "en",
     },
     "oecd": {
-        "title": "What are the OECD Principles on AI? (OECD summary, 2020)",
+        "title": "OECD Recommendation of the Council on Artificial Intelligence (OECD/LEGAL/0449)",
         "domain": DocumentDomain.CROSS_DOMAIN.value,
         "doc_type": DocumentType.GUIDELINE.value,
         "country_code": "INT",
+        "language": "en",
+    },
+    # Before "strategy", which would otherwise give these files the AI Strategy's title.
+    "cybersecurity_strategy_2019_summary": {
+        "title": "UAE National Cybersecurity Strategy 2019 (official summary, u.ae)",
+        "domain": DocumentDomain.TELECOM.value,
+        "doc_type": DocumentType.STRATEGY.value,
+        "country_code": "AE",
+        "language": "en",
+    },
+    "national_cybersecurity_strategy": {
+        "title": "UAE National Cybersecurity Strategy 2019 (TDRA)",
+        "domain": DocumentDomain.TELECOM.value,
+        "doc_type": DocumentType.STRATEGY.value,
+        "country_code": "AE",
+        "language": "en",
+    },
+    "digital_government_strategy": {
+        "title": "UAE Digital Government Strategy 2025",
+        "domain": DocumentDomain.GOVERNMENT_SERVICES.value,
+        "doc_type": DocumentType.STRATEGY.value,
+        "country_code": "AE",
         "language": "en",
     },
     "pdpl": {
