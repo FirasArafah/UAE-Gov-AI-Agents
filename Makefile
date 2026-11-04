@@ -46,7 +46,7 @@ test-all:
 test: test-fast
 
 seed:
-	docker compose exec -T backend python -m synora.cli.seed_agents
+	docker compose exec -T backend python -m synora.cli.seed_agents --force
 	docker compose exec -T backend python -m synora.cli.seed_scenarios --force
 
 seed-kb:
@@ -59,6 +59,6 @@ reset:
 	docker compose up -d backend
 	@echo "Waiting for backend..."
 	@sleep 8
-	docker compose exec -T backend python -m synora.cli.seed_agents
+	docker compose exec -T backend python -m synora.cli.seed_agents --force
 	docker compose exec -T backend python -m synora.cli.seed_scenarios --force
 	docker compose exec -T backend python -m synora.cli.seed_knowledge_base
