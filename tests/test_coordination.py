@@ -377,3 +377,80 @@ async def test_conversation_reply_skips_retrieval():
     agent = BaseAgent(record, FakeLLM("Hello! Ask me about AI governance."), Retriever())
     chunks = [c async for c in agent.stream_conversation("Hello")]
     assert "".join(text for _, text in chunks).strip().startswith("Hello!")
+
+
+@pytest.mark.parametrize(
+    ("message", "kind"),
+    [
+        ("Who are you?", "identity"),
+        ("who made you", "identity"),
+        ("Who built you?", "identity"),
+        ("What is Mathuq?", "identity"),
+        ("من صنعك؟", "identity"),
+        ("من أنت", "identity"),
+        ("Hello", "conversation"),
+        ("Thanks!", "conversation"),
+        ("What does the PDPL say about consent?", "question"),
+        ("Who is responsible for AI bias in visas?", "question"),
+    ],
+)
+def test_rules_route_light_messages_and_subject_questions(message, kind):
+    from synora.agents.intent import classify_by_rules
+
+    assert classify_by_rules(message) == kind
+
+
+def test_rules_leave_unclear_messages_to_the_model():
+    from synora.agents.intent import classify_by_rules
+
+    assert classify_by_rules("What is the capital of France?") is None
+    assert classify_by_rules("Is it fair to reject people for where they live?") is None
+
+
+class RoutingLLM:
+    def __init__(self, verdict):
+        self.verdict = verdict
+        self.calls = 0
+
+    async def chat(self, messages, temperature, num_predict, **kwargs):
+        self.calls += 1
+        assert num_predict <= 5
+        if isinstance(self.verdict, Exception):
+            raise self.verdict
+        return self.verdict
+
+
+@pytest.mark.asyncio
+async def test_model_decides_unclear_messages_and_fails_open():
+    from synora.agents.intent import MessageKind, classify
+
+    verdict = await classify("What is the capital of France?", RoutingLLM("OUT"))
+    assert verdict == MessageKind.OFF_TOPIC
+    assert await classify("Is it fair to reject people by area?", RoutingLLM("IN")) == "question"
+    # A routing failure must never stop a real question from reaching the agents.
+    assert await classify("What is 2 + 2?", RoutingLLM(RuntimeError("down"))) == "question"
+    rules_only = RoutingLLM("OUT")
+    assert await classify("Hello", rules_only) == "conversation" and rules_only.calls == 0
+
+
+@pytest.mark.asyncio
+async def test_identity_answer_comes_from_the_profile_without_the_model():
+    from synora.agents.intent import MessageKind, load_profile
+
+    class NoLLM:
+        async def chat_stream(self, *args, **kwargs):
+            raise AssertionError("identity answers must not call the model")
+            yield ""
+
+    record = SimpleNamespace(role="coordinator", slug="coordinator", name="c", system_prompt="P")
+    agent = BaseAgent(record, NoLLM(), None)
+    profile = load_profile()
+    for language in ("en", "ar"):
+        chunks = [
+            c
+            async for c in agent.stream_conversation(
+                "x", language=language, kind=MessageKind.IDENTITY
+            )
+        ]
+        text = "".join(t for _, t in chunks)
+        assert profile["name"][language] in text and profile["made_by"][language] in text

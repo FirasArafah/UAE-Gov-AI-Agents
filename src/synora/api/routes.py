@@ -9,7 +9,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from synora.agents.base import split_leaked_reasoning
 from synora.agents.gaps import GapAnalyst
-from synora.agents.intent import is_conversational
+from synora.agents.intent import MessageKind, classify
 from synora.agents.language import detect_language
 from synora.agents.orchestrator import AgentOutcome, Orchestrator, assessment_excerpt
 from synora.agents.registry import AgentRegistry
@@ -500,8 +500,10 @@ async def stream_message(
     agent_slugs = list(dict.fromkeys(body.agents or ["coordinator"]))
     # Every agent, the Coordinator's synthesis included, answers in the question's language.
     language = detect_language(body.message)
-    # A greeting or thanks gets one short reply, not four legal assessments.
-    conversation = is_conversational(body.message)
+    # Greetings, questions about the assistant and off-topic questions get one short reply,
+    # not four legal assessments.
+    kind = await classify(body.message, registry.llm)
+    conversation = kind != MessageKind.QUESTION
     if conversation:
         agent_slugs = ["coordinator"]
 
@@ -512,11 +514,11 @@ async def stream_message(
         use_retrieval: bool = True,
         responding_to: list[str] | None = None,
         support: list[str] | None = None,
-        light: bool = False,
+        light: MessageKind | None = None,
     ):
         """Stream one agent's answer as SSE events, then persist and audit it.
 
-        ``light`` answers a conversational message briefly, without retrieval.
+        ``light`` answers a greeting, identity or off-topic message briefly, without retrieval.
         """
         is_synthesis = responding_to is not None
         try:
@@ -542,7 +544,7 @@ async def stream_message(
 
         try:
             stream = (
-                agent.stream_conversation(message, history=history, language=language)
+                agent.stream_conversation(message, history=history, language=language, kind=light)
                 if light
                 else agent.stream_tagged(
                     message,
@@ -666,12 +668,14 @@ async def stream_message(
                 "team": team,
                 "agents": specialists if team else agent_slugs,
                 "conversation": conversation,
+                "kind": str(kind),
             },
         )
 
         answers: list[dict] = []
         for agent_slug in specialists if team else agent_slugs:
-            async for event in run_agent(agent_slug, body.message, answers, light=conversation):
+            light = kind if conversation else None
+            async for event in run_agent(agent_slug, body.message, answers, light=light):
                 yield event
 
         if team and answers:

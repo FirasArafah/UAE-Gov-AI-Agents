@@ -12,7 +12,7 @@ from synora.agents.citations import (
     has_wrong_script,
     repair_citations,
 )
-from synora.agents.intent import CONVERSATION_PROMPT
+from synora.agents.intent import LIGHT_PROMPTS, MessageKind, identity_reply
 from synora.agents.language import NOT_COVERED, detect_language, output_contract
 from synora.agents.llm import LLMClient
 from synora.agents.types import AgentResponse, Retriever
@@ -394,12 +394,20 @@ class BaseAgent:
         user_message: str,
         history: list[dict] | None = None,
         language: str | None = None,
+        kind: MessageKind = MessageKind.CONVERSATION,
     ) -> AsyncIterator[tuple[str, str]]:
-        """A short reply to a greeting or thanks: no retrieval, no legal analysis."""
+        """A short reply without retrieval or legal analysis.
+
+        Greetings and off-topic questions get a brief model reply; questions about the assistant
+        itself get the fixed answer from its profile, without calling the model.
+        """
         self._last_references = []
         language = language or detect_language(user_message)
+        if kind == MessageKind.IDENTITY:
+            yield ("content", identity_reply(language))
+            return
         messages = [
-            {"role": "system", "content": CONVERSATION_PROMPT[language]},
+            {"role": "system", "content": LIGHT_PROMPTS[kind][language]},
             *(history or [])[-CONVERSATION_HISTORY:],
             {"role": "user", "content": user_message},
         ]
