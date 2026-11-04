@@ -221,9 +221,14 @@ class BaseAgent:
         references: list[dict],
         user_message: str,
         use_retrieval: bool,
+        support: list[str] | None = None,
     ) -> str:
-        """Check an answer against its sources; synthesis may also cite the agent outputs."""
-        extra_sources = None if use_retrieval else [user_message]
+        """Check an answer against its sources; synthesis may also cite the agent outputs.
+
+        ``support`` holds the full texts a synthesis was built from, so an article an agent
+        cited counts as supported even if the synthesis prompt only showed an excerpt of it.
+        """
+        extra_sources = None if use_retrieval and not support else [user_message, *(support or [])]
         problems = find_citation_problems(content, references, extra_sources)
         if _was_cut_off(raw, content):
             problems.append(CUT_OFF_PROBLEM)
@@ -314,6 +319,7 @@ class BaseAgent:
         history: list[dict] | None = None,
         use_retrieval: bool = True,
         language: str | None = None,
+        support: list[str] | None = None,
     ) -> AgentResponse:
         references = await self._retrieve(user_message) if use_retrieval else []
         self._last_references = references
@@ -333,7 +339,9 @@ class BaseAgent:
         )
         thinking, content = self._parse_response(raw)
         content = repair_citations(drop_repeated_paragraphs(content), references)
-        warning = self._verification_warning(raw, content, references, user_message, use_retrieval)
+        warning = self._verification_warning(
+            raw, content, references, user_message, use_retrieval, support
+        )
         # Answers routinely mention "sources", so only the footer's own heading means it is there.
         if references and SOURCES_HEADING not in content:
             content = content + _format_sources_footer(references)
@@ -383,6 +391,7 @@ class BaseAgent:
         history: list[dict] | None = None,
         use_retrieval: bool = True,
         language: str | None = None,
+        support: list[str] | None = None,
     ) -> AsyncIterator[tuple[str, str]]:
         """Stream (channel, chunk) pairs where channel is 'thinking' or 'content'."""
         references = await self._retrieve(user_message) if use_retrieval else []
@@ -407,7 +416,9 @@ class BaseAgent:
         if references:
             yield ("content", _format_sources_footer(references))
 
-        warning = self._verification_warning(raw, answer, references, user_message, use_retrieval)
+        warning = self._verification_warning(
+            raw, answer, references, user_message, use_retrieval, support
+        )
         if warning:
             yield ("content", warning)
 

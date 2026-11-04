@@ -75,7 +75,7 @@ class FakeRegistry:
         registry = self
 
         class Agent:
-            async def respond(self, user_message, context=None, history=None, use_retrieval=True):
+            async def respond(self, user_message, context=None, history=None, **kwargs):
                 registry.prompts.setdefault(slug, []).append(
                     user_message + json.dumps(context or [])
                 )
@@ -270,3 +270,18 @@ def test_answers_follow_the_language_of_the_question(question, language):
 def test_malformed_tags_and_template_brackets_are_removed(raw, expected):
     _, content = _agent("privacy")._parse_response(raw)
     assert content == expected
+
+
+@pytest.mark.asyncio
+async def test_synthesis_is_checked_against_the_agents_full_answers():
+    llm = FakeLLM("<response>Article (21) requires an assessment.</response>")
+    agent = _agent("coordinator", llm)
+    excerpt_only = await agent.respond("Summary of the agents' answers.", use_retrieval=False)
+    assert "Article (21) is not in the retrieved sources" in excerpt_only.content
+
+    full = await agent.respond(
+        "Summary of the agents' answers.",
+        use_retrieval=False,
+        support=["... Article (21) of the PDPL requires an impact assessment [2]."],
+    )
+    assert "failed verification" not in full.content

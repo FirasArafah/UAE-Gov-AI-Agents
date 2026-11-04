@@ -156,4 +156,5 @@ class Orchestrator:
             context=None,
             history=history,
             use_retrieval=False,
+            support=[a.content for a in assessments],
         )

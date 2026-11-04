@@ -505,6 +505,7 @@ async def stream_message(
         answers: list[dict],
         use_retrieval: bool = True,
         responding_to: list[str] | None = None,
+        support: list[str] | None = None,
     ):
         """Stream one agent's answer as SSE events, then persist and audit it."""
         is_synthesis = responding_to is not None
@@ -535,6 +536,7 @@ async def stream_message(
                 history=None if is_synthesis else history,
                 use_retrieval=use_retrieval,
                 language=language,
+                support=support,
             ):
                 if channel == "thinking":
                     thinking_acc += chunk
@@ -668,6 +670,7 @@ async def stream_message(
                 [],
                 use_retrieval=False,
                 responding_to=[a["slug"] for a in answers],
+                support=[a["content"] for a in answers],
             ):
                 yield event
 
