@@ -248,7 +248,9 @@ async def test_chat_list_names_conversations_by_their_first_question(client):
 
 @pytest.mark.asyncio
 async def test_chats_can_be_renamed_and_deleted(client):
-    chat_id = (await client.post("/api/sessions", json={})).json()["id"]
+    r = await client.post("/api/sessions", json={})
+    assert r.json()["title"] is None
+    chat_id = r.json()["id"]
     async with AsyncSessionLocal() as db:
         db.add(Message(session_id=chat_id, role=MessageRole.USER, content="first", sequence=1))
         await db.commit()
@@ -258,6 +260,7 @@ async def test_chats_can_be_renamed_and_deleted(client):
     assert r.json()["title"] == "PDPL questions"
     titles = {c["id"]: c["title"] for c in (await client.get("/api/chats")).json()}
     assert titles[chat_id] == "PDPL questions"
+    assert (await client.get(f"/api/sessions/{chat_id}")).json()["title"] == "PDPL questions"
 
     assert (await client.patch(f"/api/chats/{chat_id}", json={"title": "   "})).status_code == 422
 
