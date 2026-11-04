@@ -19,7 +19,7 @@ Everything runs locally: no data leaves the machine and no external AI API is us
 | Hackathon requirement | How Mathuq meets it |
 |---|---|
 | Knowledge base of national policy, mapped to global practice | 17 files (14 documents) / 2,083 chunks: UAE PDPL (EN + AR), Decree-Law 29/2021 (EN + AR), Cabinet Resolution 65/2022 (EN), National AI Strategy 2031, AI Charter, AI Ethics Guidelines, National Cybersecurity Strategy 2019 (TDRA deck and official summary), Digital Government Strategy 2025; ITU-T Y.3172, ITU AI Ready report, OECD Recommendation on AI (full text), UNESCO Recommendation (EN + AR), EU AI Act. Chunked by article or section, with page numbers, in pgvector. |
-| Policy and legal adviser | Every agent answers in Arabic and English from retrieved excerpts only; citations are checked automatically and flagged when an article is not in the sources. |
+| Policy and legal adviser | Every agent answers in the language of the question from retrieved excerpts only; citations are checked automatically and flagged when an article is not in the sources. |
 | Institutional participants | ICP Representative (system operator), AI Auditor, Privacy Consultant (PDPL), Coordinator — each with its own mandate, temperature and retrieval domain. |
 | Multi-agent coordination | An orchestrator releases each event to its target agents. They assess **independently**; on events flagged *sequential* each agent receives the previous one's assessment; the **Coordinator synthesizes** every multi-agent event (agreements, conflicting mandates, responsible authority, escalation). |
 | Progressive, uneven information | Events are released one at a time; unreleased event text is never sent to the UI; each event reaches only its target agents. |
@@ -52,8 +52,8 @@ Everything runs locally: no data leaves the machine and no external AI API is us
 
 Requirements: Docker with Compose, ~10 GB free disk for the models and **at least 10 GB of
 memory for Docker** (the 7B model with an 8k context plus the embedding model use ~7 GB). With
-less memory, set `OLLAMA_NUM_CTX=4096` in `.env`. A GPU is optional; on CPU each agent answer
-takes one to four minutes.
+less memory, set `OLLAMA_NUM_CTX=4096` in `.env`. A GPU is optional. On CPU, speed varies a lot:
+one answer took about 15 minutes on a 4-core laptop (Intel i7-8665U).
 
 ```bash
 cp .env.example .env
@@ -139,7 +139,29 @@ Repeat `advance` for each event; `language` may be `en` or `ar`.
   plus `title`, `section` (article), `page`, `language`, `domain` and `doc_type`
 - `manifest.json`: per-document coverage and the chunking and embedding settings
 
+`InputDocs/Inputs.md` lists every document with its official source, and
+`InputDocs/AI_Use_Cases/` holds ITU-T Y.3172 and a description of this use case.
+
 Add `--with-embeddings` to the command in the Makefile to include the bge-m3 vectors.
+
+## How the knowledge base is built and searched
+
+- **Structure.** Laws are split at their articles and annexes. Other documents are split at their
+  headings or numbered paragraphs ("Paragraph 35", "Objective 8", "Dimension 10"), so a citation
+  names a real part of the source. Chunks end at sentence boundaries, and contents pages and
+  reference lists are left out. Each chunk keeps its PDF page, and each document its official URL.
+- **Search.** Every search combines embeddings (`bge-m3`) with exact words (PostgreSQL full-text
+  search) by rank fusion. Recitals rank below articles, and one long document cannot fill every
+  result.
+- **Named sources.** A question that names a law gets that law's article: "Article 14 of the EU
+  AI Act" does not bring Article (14) of the PDPL. Each source it names is represented, and each
+  agency always reads the article that sets its position (ICP: Decree-Law 29/2021 Article (3);
+  Privacy Consultant: PDPL Article (2)).
+- **Citations.** Wrong excerpt numbers are repaired, also in streamed answers, and unsupported
+  articles are flagged. A team answer has one numbered source list, so its citations are checkable.
+- **Evaluation.** `make eval-kb` runs the test set in `data/kb_eval_questions.json`. It needs no
+  LLM and takes a few minutes. The latest result is in
+  [docs/kb-evaluation.md](docs/kb-evaluation.md).
 
 ## API
 
@@ -171,8 +193,8 @@ make test-all           # includes the full six-event scenario against the LLM (
 ```
 
 - Scenario JSON lives in `data/scenarios/`; `make seed` reloads it with `--force`.
-- `python -m synora.cli.seed_knowledge_base --refresh-metadata` corrects document titles and
-  classification without re-embedding.
+- `make refresh-kb` brings an existing knowledge base up to date (titles, chunk labels, new and
+  removed files) and embeds only the text that changed.
 - The database schema lives in `docker/postgres/init/*.sql`. Docker Compose applies it when the
   database volume is created, and `alembic upgrade head` applies the same files to an empty
   database outside Docker (an existing one is only stamped).
@@ -195,7 +217,10 @@ data/          knowledge base sources and scenarios
 - On CPU a full six-event run takes roughly 45–60 minutes; on a 6 GB laptop GPU, a few minutes.
 - The law establishing ICP (Federal Decree-Law No. 14 of 2021) is not in the knowledge base:
   the UAE legislation portal does not allow automated downloads. Save it from
-  uaelegislation.gov.ae into `data/knowledge_base/raw` and run `make seed-kb`.
+  uaelegislation.gov.ae into `data/knowledge_base/raw` and run `make refresh-kb`.
+- The Arabic edition of Cabinet Resolution 65/2022 is not ingested, because its PDF text extracts
+  as broken words. The English edition is.
+- The Arabic UNESCO PDF extracts with a recurring error in one letter pair. It stays readable.
 - Sessions are kept as immutable audit records; there is no delete endpoint.
 
 ## License
