@@ -5,7 +5,10 @@ import { applyLanguage, language, setLanguage, t } from "./js/i18n.js";
 import { refreshRoute, route, startRouter } from "./js/router.js";
 import { forgetChat, presetMode, renderChat } from "./pages/chat.js";
 import { renderRoster } from "./pages/roster.js";
+import { renderAudit } from "./pages/audit.js";
 import { renderKnowledgeBase } from "./pages/kb.js";
+import { renderScenarios } from "./pages/scenarios.js";
+import { renderSimulation } from "./pages/simulation.js";
 
 applyLanguage();
 
@@ -50,7 +53,8 @@ function markActiveRecent() {
 
 function markActiveNav(path) {
   const section = "/" + (path.split("/")[1] || "");
-  const current = section === "/chat" || section === "/new" ? "/" : section;
+  const aliases = { "/chat": "/", "/new": "/", "/simulation": "/simulations", "/audit": "/simulations" };
+  const current = aliases[section] ?? section;
   for (const a of document.querySelectorAll("#nav a")) {
     a.classList.toggle("active", a.dataset.nav === current);
     if (a.dataset.nav === current) a.setAttribute("aria-current", "page");
@@ -113,6 +117,16 @@ route("/ask/:agent", (_, { agent }) => {
   history.replaceState(null, "", "/#/");
   window.dispatchEvent(new HashChangeEvent("hashchange"));
 });
+route("/simulations", asPage(renderScenarios));
+route("/simulation/:id", asPage(renderSimulation));
+route("/audit/:id", asPage(renderAudit));
+// Addresses used by earlier versions of the interface.
+const redirect = (to) => (_, params) => {
+  history.replaceState(null, "", `/#${to(params)}`);
+  window.dispatchEvent(new HashChangeEvent("hashchange"));
+};
+for (const old of ["/overview", "/scenarios", "/sessions"]) route(old, redirect(() => "/simulations"));
+route("/session/:id", redirect(({ id }) => `/simulation/${id}`));
 route("/agents", asPage(renderRoster));
 route("/kb", asPage(renderKnowledgeBase));
 startRouter(document.getElementById("app"), markActiveNav);
