@@ -91,6 +91,7 @@ services:
       - ./tests:/app/tests:ro
       - ./alembic.ini:/app/alembic.ini:ro
       - ./alembic:/app/alembic
+      - ./docker/postgres/init:/app/docker/postgres/init:ro
     command: uvicorn synora.main:app --host 0.0.0.0 --port 8000
     networks: [synora]
 

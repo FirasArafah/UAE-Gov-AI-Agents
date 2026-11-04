@@ -1,5 +1,4 @@
 import os
-import re
 
 import pytest
 
@@ -10,7 +9,6 @@ from synora.db.session import AsyncSessionLocal
 from synora.main import app
 from synora.models.enums import MessageRole
 from synora.models.simulation import Message
-
 
 # ============================================================================
 # Unit tests — _parse_response (fast, no LLM)
@@ -251,7 +249,7 @@ async def test_chat_list_names_conversations_by_their_first_question(client):
 # ============================================================================
 
 requires_llm = pytest.mark.skipif(
-    not os.getenv("RUN_SLOW"),
+    os.getenv("RUN_SLOW", "0").strip().lower() in ("", "0", "false", "no"),
     reason="Set RUN_SLOW=1 to run LLM-backed tests (slow)",
 )
 
