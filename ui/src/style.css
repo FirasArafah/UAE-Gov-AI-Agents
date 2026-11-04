@@ -104,7 +104,7 @@ p { margin: 0; }
 a { color: var(--accent); }
 button { font: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-[dir="rtl"], .ar { font-family: var(--font-ar); }
+[dir="rtl"], .ar, html[lang="ar"] body { font-family: var(--font-ar); }
 .skip { position: absolute; left: -999px; }
 .skip:focus { left: 12px; top: 12px; z-index: 10; background: var(--panel); padding: 8px 12px; }
 .muted { color: var(--muted); }
@@ -162,6 +162,14 @@ button { font: inherit; }
   border: none; background: transparent; color: var(--text-2); cursor: pointer;
 }
 .icon-btn:hover { background: var(--bg-sunken); }
+.side-actions { display: inline-flex; align-items: center; gap: 4px; }
+.lang-btn {
+  height: 32px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line);
+  background: transparent; color: var(--text-2); cursor: pointer; font-size: 0.8rem; font-weight: 600;
+}
+.lang-btn:hover { background: var(--bg-sunken); color: var(--text); }
+html[lang="en"] .lang-btn { font-family: var(--font-ar); }
+.empty-page { display: flex; flex-direction: column; align-items: center; gap: 14px; padding-top: 18vh; text-align: center; color: var(--muted); }
 
 main { min-width: 0; height: 100%; overflow-y: auto; }
 .page { max-width: 1120px; margin: 0 auto; padding: 36px 32px 56px; }

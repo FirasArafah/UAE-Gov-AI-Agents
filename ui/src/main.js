@@ -1,10 +1,22 @@
 import "./style.css";
 import { api } from "./js/api.js";
 import { h } from "./js/render.js";
-import { route, startRouter } from "./js/router.js";
+import { applyLanguage, language, setLanguage, t } from "./js/i18n.js";
+import { refreshRoute, route, startRouter } from "./js/router.js";
 import { renderChat, forgetChat } from "./pages/chat.js";
 import { renderRoster } from "./pages/roster.js";
 import { renderKnowledgeBase } from "./pages/kb.js";
+
+applyLanguage();
+
+document.getElementById("lang-toggle").addEventListener("click", () => {
+  setLanguage(language() === "ar" ? "en" : "ar");
+});
+window.addEventListener("language-changed", () => {
+  refreshRoute();
+  loadRecents();
+  checkHealth();
+});
 
 document.getElementById("theme-toggle").addEventListener("click", () => {
   const root = document.documentElement;
@@ -43,10 +55,10 @@ async function loadRecents() {
     list.replaceChildren(
       ...chats.map((c) => h("a", { href: `#/chat/${c.id}`, dir: "auto", title: c.title, text: c.title })),
     );
-    if (!chats.length) list.replaceChildren(h("small", { class: "muted", text: "No chats yet" }));
+    if (!chats.length) list.replaceChildren(h("small", { class: "muted", text: t("recents.empty") }));
     markActiveRecent();
   } catch {
-    list.replaceChildren(h("small", { class: "muted", text: "Could not load chats" }));
+    list.replaceChildren(h("small", { class: "muted", text: t("recents.error") }));
   }
 }
 window.addEventListener("chats-changed", loadRecents);
@@ -59,12 +71,12 @@ async function checkHealth() {
     const h = await api("/health");
     const ok = h.status === "ok";
     el.className = "health " + (ok ? "ok" : "degraded");
-    label.textContent = ok ? "Local LLM online" : "Degraded";
-    el.title = `Database: ${h.db} · LLM: ${h.ollama} · Agents: ${(h.agents || []).length}`;
+    label.textContent = t(ok ? "health.ok" : "health.degraded");
+    el.title = t("health.title", { db: h.db, llm: h.ollama, agents: (h.agents || []).length });
   } catch {
     el.className = "health down";
-    label.textContent = "Backend offline";
-    el.title = "The API did not respond";
+    label.textContent = t("health.down");
+    el.title = t("health.down");
   }
 }
 checkHealth();

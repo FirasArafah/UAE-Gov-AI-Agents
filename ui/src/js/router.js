@@ -1,4 +1,19 @@
+import { t } from "./i18n.js";
+
 const routes = [];
+
+function notFound() {
+  const box = document.createElement("div");
+  box.className = "page empty-page";
+  const text = document.createElement("p");
+  text.textContent = t("page.notFound");
+  const link = document.createElement("a");
+  link.className = "btn";
+  link.href = "#/";
+  link.textContent = t("page.back");
+  box.append(text, link);
+  return box;
+}
 
 export function route(pattern, render) {
   const keys = [];
@@ -7,6 +22,11 @@ export function route(pattern, render) {
   );
   routes.push({ regex, keys, render });
 }
+
+let rerender = () => {};
+
+/** Render the current page again, e.g. after the interface language changed. */
+export const refreshRoute = () => rerender();
 
 export function startRouter(container, onNavigate) {
   async function go() {
@@ -22,8 +42,9 @@ export function startRouter(container, onNavigate) {
         return;
       }
     }
-    container.innerHTML = `<div class="empty">Page not found. <a href="#/">Back to the chants</a></div>`;
+    container.replaceChildren(notFound());
   }
+  rerender = go;
   window.addEventListener("hashchange", go);
   go();
 }
