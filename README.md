@@ -207,6 +207,15 @@ data/          knowledge base sources and scenarios
   uaelegislation.gov.ae into `data/knowledge_base/raw` and run `make seed-kb`.
 - Sessions are kept as immutable audit records; there is no delete endpoint.
 
+## Team
+
+Mathuq was developed by the **SYNORA team** for the ITU AI for Good Lab Hackathon in the United
+Arab Emirates:
+
+- **Firas Arafah**
+- **Motaz Abu Amara**
+- **Maria Dawaghreh**
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
