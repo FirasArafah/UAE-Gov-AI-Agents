@@ -66,9 +66,6 @@ async function loadRecents() {
     list.replaceChildren(...chats.map(recentItem));
     if (!chats.length) list.replaceChildren(h("small", { class: "muted", text: t("recents.empty") }));
     markActiveRecent();
-    // A renamed chat keeps its name in the title bar too.
-    const open = chats.find((c) => location.pathname === `/chat/${c.id}`);
-    if (open) setPageTitle(open.title);
   } catch {
     list.replaceChildren(h("small", { class: "muted", text: t("recents.error") }));
   }
@@ -157,7 +154,8 @@ function startRename(item, link, chat) {
     const title = input.value.trim();
     if (save && title && title !== chat.title) {
       try {
-        await api(`/chats/${chat.id}`, { method: "PATCH", body: JSON.stringify({ title }) });
+        const renamed = await api(`/chats/${chat.id}`, { method: "PATCH", body: JSON.stringify({ title }) });
+        window.dispatchEvent(new CustomEvent("chat-renamed", { detail: { id: chat.id, title: renamed.title } }));
       } catch (err) {
         alert(t("recents.failed", { error: err.message }));
       }

@@ -430,9 +430,15 @@ export async function renderChat(container, params = {}) {
   }
 
   // Restore the conversation of this browser tab.
+  // A name given in the sidebar wins over the first question.
+  let savedTitle = null;
   if (sessionId) {
     try {
-      const messages = await api(`/sessions/${sessionId}/messages`);
+      const [session, messages] = await Promise.all([
+        api(`/sessions/${sessionId}`),
+        api(`/sessions/${sessionId}/messages`),
+      ]);
+      savedTitle = session.title;
       let group = null;
       const flush = () => {
         if (group?.length) thread.append(restoreTurn(group, agentsById));
@@ -454,9 +460,16 @@ export async function renderChat(container, params = {}) {
     }
   }
   setEmpty(thread.childElementCount === 0);
-  // A chat is named after its first question, as in the Recent list.
-  const firstQuestion = () => thread.querySelector(".user-row .user-msg")?.textContent;
-  setPageTitle(firstQuestion() || t("nav.newChat"));
+  // A chat is named after its first question, as in the Recent list, unless it was renamed.
+  const chatTitle = () => savedTitle || thread.querySelector(".user-row .user-msg")?.textContent;
+  setPageTitle(chatTitle() || t("nav.newChat"));
+  const onRename = (e) => {
+    if (!layout.isConnected) return window.removeEventListener("chat-renamed", onRename);
+    if (e.detail.id !== sessionId) return;
+    savedTitle = e.detail.title;
+    setPageTitle(chatTitle());
+  };
+  window.addEventListener("chat-renamed", onRename);
   follow(true);
 
   const SEND_ICON = send.innerHTML;
@@ -555,7 +568,7 @@ export async function renderChat(container, params = {}) {
     setEmpty(false);
     const row = userRow(text);
     thread.append(row);
-    setPageTitle(firstQuestion());
+    setPageTitle(chatTitle());
     follow(true);
 
     const agents = mode.value === "team" ? TEAM : [mode.value];
