@@ -112,6 +112,7 @@ class ScenarioEngine:
             "current_sequence": session.current_sequence,
             "total_events": len(events),
             "scenario_title": scenario.title,
+            "scenario_title_ar": (scenario.scenario_metadata or {}).get("title_ar"),
             "events": [
                 {
                     "sequence": e.sequence,
@@ -121,6 +122,10 @@ class ScenarioEngine:
                     # Event text is only disclosed once released: participants must not
                     # read ahead of the information they would have at that moment.
                     "content": e.content if e.sequence <= session.current_sequence else None,
+                    "title_ar": (e.event_metadata or {}).get("title_ar"),
+                    "content_ar": (e.event_metadata or {}).get("content_ar")
+                    if e.sequence <= session.current_sequence
+                    else None,
                     "sequential": bool((e.event_metadata or {}).get("sequential")),
                     "scenario_type": (e.event_metadata or {}).get("scenario_type"),
                 }

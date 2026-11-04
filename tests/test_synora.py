@@ -148,7 +148,9 @@ async def test_unreleased_event_cannot_be_rerun_or_read_ahead(client):
     assert r.status_code == 409
 
     r = await client.get(f"/api/sessions/{session['id']}/timeline")
-    assert all(e["content"] is None for e in r.json()["events"])
+    events = r.json()["events"]
+    assert all(e["content"] is None and e["content_ar"] is None for e in events)
+    assert all(e["title_ar"] for e in events)
 
 
 @pytest.mark.asyncio

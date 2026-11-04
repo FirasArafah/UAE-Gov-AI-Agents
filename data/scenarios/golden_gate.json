@@ -9,7 +9,9 @@
     "itu_y3172_pipeline": "ML application -> ML governance",
     "itu_factors": ["data", "standards", "sandbox"],
     "itu_dimensions": ["AI & Policies", "AI for Inclusion", "Human Interface"],
-    "includes_controversy": true
+    "includes_controversy": true,
+    "title_ar": "حادثة البوابة الذهبية",
+    "description_ar": "حادثة مُعدّة يبدأ فيها نظام الفرز بالذكاء الاصطناعي الخاص بالتأشيرات والإقامة الذهبية برفض طلبات جنسية معيّنة بنسبة غير متناسبة. تُكشف الأحداث تدريجياً مع تقدّم التحقيق."
   },
   "events": [
     {
@@ -19,6 +21,8 @@
       "content": "The ICP operations team reports that the AI visa screening system has shown a 23% rejection rate for applicants from Country X over the past 30 days, compared to a 9% baseline. The system uses a gradient-boosted classifier trained on historical approval data. ICP asks for a preliminary assessment before any public statement.",
       "target_agent_roles": ["auditor"],
       "metadata": {
+        "title_ar": "الدقيقة 0: الإبلاغ عن خلل",
+        "content_ar": "أبلغ فريق العمليات في الهيئة الاتحادية للهوية والجنسية أن نظام فرز التأشيرات بالذكاء الاصطناعي سجّل نسبة رفض بلغت 23% لمتقدمي الدولة (س) خلال الثلاثين يوماً الماضية، مقارنة بخط أساس يبلغ 9%. يعتمد النظام على مصنِّف معزَّز بالتدرّج دُرّب على بيانات الموافقات السابقة. وتطلب الهيئة تقييماً أولياً قبل أي تصريح علني.",
         "affected_population": "Country X applicants",
         "baseline_rejection": "9%",
         "current_rejection": "23%",
@@ -32,6 +36,8 @@
       "content": "The AI Auditor's initial statistical review confirms the gap is statistically significant (p<0.01). The Auditor requests access to the model's feature importance and training data documentation. ICP initially refuses, stating the data is confidential, but agrees to share aggregated feature weights. The Privacy Consultant assesses first; the ICP Representative then responds to the Privacy Consultant's specific findings.",
       "target_agent_roles": ["privacy", "icp"],
       "metadata": {
+        "title_ar": "بعد 30 دقيقة: طلب تدقيق النموذج",
+        "content_ar": "أكدت المراجعة الإحصائية الأولية لمدقق الذكاء الاصطناعي أن الفجوة ذات دلالة إحصائية (p<0.01). وطلب المدقق الاطلاع على أهمية خصائص النموذج ووثائق بيانات التدريب. رفضت الهيئة في البداية بحجة سرية البيانات، ثم وافقت على مشاركة أوزان الخصائص المجمّعة. يقيّم مستشار الخصوصية أولاً، ثم يرد ممثل الهيئة على نتائجه تحديداً.",
         "statistical_significance": "p<0.01",
         "requested_artifacts": ["feature_importance", "training_data_docs"],
         "sequential": true
@@ -44,6 +50,8 @@
       "content": "The Privacy Consultant flags that the model uses 'postal_code' and 'mobile_prefix' as input features. Both are correlated with nationality in the UAE context (expatriate neighborhoods and telecom provider prefixes). This raises potential indirect discrimination. Assess it against the fair processing control in UAE PDPL Article (5) and the right to object to automated decisions in Article (18), and determine whether the scope exclusions for governmental entities in Article (2) apply to ICP.",
       "target_agent_roles": ["privacy", "auditor"],
       "metadata": {
+        "title_ar": "بعد ساعة: اكتشاف متغيرات بديلة",
+        "content_ar": "نبّه مستشار الخصوصية إلى أن النموذج يستخدم «الرمز البريدي» و«بادئة رقم الهاتف المتحرك» مدخلاتٍ، وكلاهما يرتبط بالجنسية في السياق الإماراتي (أحياء الوافدين وبادئات مزوّدي الاتصالات). ويثير ذلك احتمال تمييز غير مباشر. قيّموه في ضوء ضابط المعالجة العادلة في المادة (5) من قانون حماية البيانات الشخصية وحق الاعتراض على القرارات الآلية في المادة (18)، وحدّدوا ما إذا كانت استثناءات الجهات الحكومية في المادة (2) تنطبق على الهيئة.",
         "proxy_variables": ["postal_code", "mobile_prefix"],
         "pdpl_articles": ["Art. 2", "Art. 5", "Art. 18"]
       }
@@ -55,6 +63,8 @@
       "content": "The Coordinator must synthesize all findings. Options: (a) pause the AI system entirely, (b) apply a fairness-aware re-ranker on top of the model, (c) accept the bias as 'acceptable' given national security concerns. Each option has different implications for ICP operations, PDPL compliance, and public trust.",
       "target_agent_roles": ["coordinator"],
       "metadata": {
+        "title_ar": "بعد ساعتين: قرار الاستجابة المنسّقة",
+        "content_ar": "على المنسّق أن يجمع النتائج كلها. الخيارات: (أ) إيقاف النظام كلياً، (ب) إضافة أداة إعادة ترتيب مراعية للعدالة فوق النموذج، (ج) قبول التحيّز باعتباره «مقبولاً» لاعتبارات الأمن الوطني. ولكل خيار آثار مختلفة على عمليات الهيئة والامتثال لقانون حماية البيانات وثقة الجمهور.",
         "options": ["pause_system", "fairness_reranker", "accept_bias"]
       }
     },
@@ -65,6 +75,8 @@
       "content": "The Coordinator recommended option (b), a fairness-aware re-ranker. ICP objects: it states that visa and residency screening is a sovereign immigration function, that the model's risk features serve national-security vetting, and that PDPL Article (2) excludes governmental entities from its scope, so neither the Privacy Consultant nor the AI Auditor has authority to order changes. ICP declines to deploy the re-ranker and keeps the system running. The Privacy Consultant maintains that rejecting applicants through nationality proxies conflicts with the non-discrimination principles of the UAE AI Charter. None of the available sources names a body empowered to suspend a government AI system. Under its own mandate, each agent must state who has legal authority to pause or modify the system, what the sources say, and where they are silent.",
       "target_agent_roles": ["icp", "privacy", "auditor"],
       "metadata": {
+        "title_ar": "بعد 3 ساعات: نزاع على الصلاحية",
+        "content_ar": "أوصى المنسّق بالخيار (ب). اعترضت الهيئة: فرز التأشيرات والإقامة وظيفة سيادية، وخصائص المخاطر في النموذج تخدم التدقيق الأمني، والمادة (2) من قانون حماية البيانات تستثني الجهات الحكومية، فلا صلاحية لمستشار الخصوصية ولا لمدقق الذكاء الاصطناعي بفرض تغييرات. رفضت الهيئة تطبيق أداة إعادة الترتيب وأبقت النظام يعمل. ويتمسك مستشار الخصوصية بأن رفض المتقدمين عبر متغيرات بديلة للجنسية يتعارض مع مبادئ عدم التمييز في ميثاق الإمارات للذكاء الاصطناعي. ولا يحدّد أي من المصادر المتاحة جهة مخوّلة بإيقاف نظام ذكاء اصطناعي حكومي. على كل وكيل، ضمن اختصاصه، أن يبيّن من يملك الصلاحية القانونية لإيقاف النظام أو تعديله، وما تقوله المصادر، وأين تسكت.",
         "scenario_type": "controversy",
         "conflict": "national_security_vs_non_discrimination",
         "expected_gaps": [
@@ -81,6 +93,8 @@
       "content": "Final assessment stage: identify gaps between UAE AI Strategy 2031, the UAE AI Charter, the UAE AI Ethics Guidelines, PDPL (including its scope exclusions for governmental entities in Article (2)), and current operational practice. Map them to the international references available: ITU-T Y.3172, the ITU AI Ready framework, the EU AI Act, the OECD AI Principles and the UNESCO Recommendation on the Ethics of AI. Produce actionable recommendations.",
       "target_agent_roles": ["auditor", "privacy"],
       "metadata": {
+        "title_ar": "بعد 4 ساعات: تقرير الفجوات التنظيمية",
+        "content_ar": "مرحلة التقييم النهائي: حدّدوا الفجوات بين استراتيجية الإمارات للذكاء الاصطناعي 2031، وميثاق الذكاء الاصطناعي، وإرشادات أخلاقيات الذكاء الاصطناعي، وقانون حماية البيانات الشخصية (بما في ذلك استثناءات الجهات الحكومية في المادة (2))، والممارسة التشغيلية الحالية. واربطوها بالمراجع الدولية المتاحة: التوصية ITU-T Y.3172، وإطار جاهزية الذكاء الاصطناعي من الاتحاد الدولي للاتصالات، وقانون الذكاء الاصطناعي الأوروبي، ومبادئ منظمة التعاون الاقتصادي والتنمية، وتوصية اليونسكو بشأن أخلاقيات الذكاء الاصطناعي. وقدّموا توصيات قابلة للتنفيذ.",
         "global_references": [
           "ITU-T Y.3172",
           "ITU AI Ready Report 2.0",
