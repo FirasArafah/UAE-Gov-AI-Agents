@@ -407,6 +407,7 @@ def test_numbered_sections_name_chunks_but_contents_lines_do_not():
         (["وفقاً للمادة (4) 的 من القانون [1]."], "وفقاً للمادة (4) من القانون [1]."),
         (["Plain ", "text.", "\n\n", "  - nested", " item"], "Plain text.\n\n  - nested item"),
         (["Привет ", "world"], "world"),
+        (["نموذج� الفيزا"], "نموذج الفيزا"),
     ],
 )
 def test_foreign_script_is_removed_from_streamed_answers(tokens, expected):

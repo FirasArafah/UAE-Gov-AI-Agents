@@ -20,6 +20,7 @@ FOREIGN_SCRIPT_RE = re.compile(
     "一-鿿"
     "가-힯"
     "豈-﫿"
+    "�"  # the replacement character left by a broken multi-byte token
     "]+"
 )
 
