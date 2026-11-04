@@ -502,7 +502,7 @@ export async function renderChat(container, params = {}) {
       const editor = h("div", { class: "user-edit" },
         area,
         h("div", { class: "edit-buttons" },
-          h("button", { class: "btn sm", type: "button", text: t("chat.cancel"), onclick: () => editor.replaceWith(bubble, actions) }),
+          h("button", { class: "btn sm", type: "button", text: t("chat.cancel"), onclick: () => cancel() }),
           h("button", { class: "btn sm primary", type: "button", text: t("chat.save"), onclick: () => save(area.value.trim()) }),
         ),
       );
@@ -511,11 +511,22 @@ export async function renderChat(container, params = {}) {
           e.preventDefault();
           save(area.value.trim());
         } else if (e.key === "Escape") {
-          editor.replaceWith(bubble, actions);
+          cancel();
         }
       });
+      const grow = () => {
+        area.style.height = "auto";
+        area.style.height = `${area.scrollHeight}px`;
+      };
+      area.addEventListener("input", grow);
+      function cancel() {
+        row.classList.remove("editing");
+        editor.replaceWith(bubble, actions);
+      }
+      row.classList.add("editing");
       bubble.replaceWith(editor);
       actions.remove();
+      requestAnimationFrame(grow);
       area.focus();
       area.setSelectionRange(area.value.length, area.value.length);
     }

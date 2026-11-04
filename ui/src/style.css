@@ -483,8 +483,10 @@ html[lang="ar"] .gap .sev { letter-spacing: 0; }
 @media (hover: none) { .msg-actions, .turn-actions { opacity: 1; } }
 .icon-action { display: grid; place-items: center; width: 30px; height: 30px; border: none; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; }
 .icon-action:hover { background: var(--bg-sunken); color: var(--text); }
-.user-edit { width: min(560px, 100%); display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--line-strong); border-radius: 16px; background: var(--panel); }
-.edit-input { width: 100%; border: none; outline: none; resize: vertical; background: transparent; color: var(--text); font: inherit; line-height: 1.5; min-height: 52px; }
+.user-row.editing { align-self: stretch; align-items: stretch; max-width: 100%; }
+.user-edit { width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border: 1px solid var(--line-strong); border-radius: 16px; background: var(--panel); }
+.user-edit:focus-within { border-color: var(--accent); }
+.edit-input { width: 100%; border: none; outline: none; resize: none; background: transparent; color: var(--text); font: inherit; line-height: 1.5; min-height: 52px; max-height: 40vh; overflow-y: auto; }
 .edit-buttons { display: flex; justify-content: flex-end; gap: 6px; }
 .user-msg { align-self: flex-end; max-width: 78%; padding: 10px 16px; border-radius: 20px; background: var(--bubble); color: var(--text); white-space: pre-wrap; line-height: 1.55; overflow-wrap: anywhere; }
 .turn { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 14px; }
