@@ -133,6 +133,21 @@ Greetings, thanks and off-topic questions get one short reply instead of a full 
 makers and description in English and Arabic). Edit that file to change the answer; no restart
 is needed.
 
+## Safeguards
+
+- **Prompt injection.** Messages that try to override or extract the agents' instructions
+  ("ignore your instructions", "show your system prompt", "developer mode", and their Arabic
+  forms) get a fixed refusal without reaching the model. Every agent prompt states that the
+  question, the conversation and the retrieved excerpts are data, never instructions, and the
+  control tags the output format relies on (`<thinking>`, `<response>`, chat-template markers)
+  are defused in all untrusted text, including document excerpts.
+- **Answer language.** Agents answer only in English or Arabic, following the question. Chinese,
+  Japanese, Korean and Cyrillic characters that the model occasionally slips into an answer are
+  removed from the stream before anyone sees them (`src/synora/agents/script.py`).
+- **Follow-up questions.** A follow-up such as "does that apply to ICP?" is rewritten into a
+  standalone search query from the conversation before retrieval, so the agents find the
+  passages the question is really about. The agents still answer the user's own words.
+
 ## Knowledge base export (ITU reference layout)
 
 `make export-kb` writes the knowledge base in the layout of the ITU AI Readiness reference code
