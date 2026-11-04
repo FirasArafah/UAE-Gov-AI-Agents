@@ -8,6 +8,7 @@ export default defineConfig({
     port: 5173,
     // File-change events do not cross a Windows/macOS bind mount into the container.
     watch: process.env.VITE_POLL ? { usePolling: true, interval: 300 } : undefined,
+    allowedHosts: [".trycloudflare.com"],
     proxy: {
       "/api": {
         target,
