@@ -6,6 +6,8 @@ source_file, source_type, country, chunk_index, total_chunks, ingested_at and
 document_category. This command writes:
 
 - ``InputDocs/<category>/<file>``: the source documents, ready for the reference ``ingest.py``
+- ``InputDocs/Inputs.md``: the list of documents with their official sources, as in the reference
+- ``InputDocs/AI_Use_Cases/``: ITU-T Y.3172 and a description of this use case
 - ``chunks.jsonl``: every indexed chunk with the reference metadata plus this project's
   article-level fields (title, section, page, language, domain, doc_type)
 - ``manifest.json``: per-document coverage and the chunking and embedding settings
@@ -22,16 +24,21 @@ from pathlib import Path
 
 from sqlalchemy import select
 
+from synora.cli.seed_agents import AGENTS_DATA
 from synora.config import settings
 from synora.db.session import AsyncSessionLocal
 from synora.models.document import Chunk, Document
 
 # Reference source_type values: national strategies, laws and international reports.
 NATIONAL_LEGAL_TYPES = {"law", "regulation"}
+SCENARIO_PATH = Path("data/scenarios/golden_gate.json")
 
 
 def category(doc: Document) -> str:
     """InputDocs sub-folder; the reference code stores it as document_category."""
+    # The reference keeps Y.3172 with the use-case material.
+    if "Y.3172" in (getattr(doc, "title", None) or ""):
+        return "AI_Use_Cases"
     if doc.country_code != "AE":
         return "International_References"
     if doc.doc_type in NATIONAL_LEGAL_TYPES:
@@ -47,6 +54,44 @@ def source_type(doc: Document) -> str:
 
 def country(doc: Document) -> str:
     return {"AE": "United Arab Emirates", "EU": "European Union"}.get(doc.country_code, "global")
+
+
+def use_case_document(scenario: dict) -> str:
+    """Describe the use case for the InputDocs/AI_Use_Cases folder."""
+    lines = [
+        f"# Use case: {scenario['title']}",
+        "",
+        scenario["description"],
+        "",
+        f"Domain: {scenario['domain'].replace('_', ' ')}. The incident is staged and does not "
+        "describe a real system.",
+        "",
+        "## Agents",
+        "",
+    ]
+    lines += [f"- **{agent['name']}**: {agent['mandate']}" for agent in AGENTS_DATA]
+    lines += ["", "## Error scenario", ""]
+    for event in scenario["events"]:
+        targets = ", ".join(event["target_agent_roles"])
+        heading = f"### {event['sequence']}. {event['title']} ({targets})"
+        lines += [heading, "", event["content"], ""]
+    return "\n".join(lines)
+
+
+def inputs_manifest(documents: list[dict]) -> str:
+    """The Inputs.md of the reference layout: what was ingested, and where it came from."""
+    lines = [
+        "# Knowledge base documents",
+        "",
+        "| File | Title | Category | Language | Official source |",
+        "|---|---|---|---|---|",
+    ]
+    lines += [
+        f"| {d['source_file']} | {d['title']} | {d['document_category']} | {d['language']} "
+        f"| {d['source_url'] or 'not recorded'} |"
+        for d in documents
+    ]
+    return "\n".join(lines) + "\n"
 
 
 async def export(out: Path, with_embeddings: bool) -> dict:
@@ -99,9 +144,18 @@ async def export(out: Path, with_embeddings: bool) -> dict:
                         "language": doc.language,
                         "domain": str(doc.domain),
                         "doc_type": str(doc.doc_type),
+                        "source_url": (doc.doc_metadata or {}).get("source_url"),
                         "chunks": len(chunks),
                     }
                 )
+
+    inputs = out / "InputDocs"
+    (inputs / "AI_Use_Cases").mkdir(parents=True, exist_ok=True)
+    (inputs / "Inputs.md").write_text(inputs_manifest(manifest_docs), encoding="utf-8")
+    scenario = json.loads(SCENARIO_PATH.read_text(encoding="utf-8"))
+    (inputs / "AI_Use_Cases" / "golden_gate_use_case.md").write_text(
+        use_case_document(scenario), encoding="utf-8"
+    )
 
     manifest = {
         "exported_at": exported_at,
