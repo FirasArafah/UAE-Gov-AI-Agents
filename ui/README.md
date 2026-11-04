@@ -1,4 +1,4 @@
-# SYNORA UI
+# Mathuq UI
 
 Vanilla HTML/CSS/JS + Vite. No framework.
 

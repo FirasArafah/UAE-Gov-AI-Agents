@@ -19,7 +19,7 @@ class Settings(BaseSettings):
 
     # --- App ---
     app_env: Literal["development", "staging", "production"] = "development"
-    app_name: str = "SYNORA"
+    app_name: str = "Mathuq"
     app_version: str = "0.1.0"
     log_level: str = "INFO"
 

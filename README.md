@@ -1,8 +1,8 @@
-# SYNORA
+# Mathuq · موثوق
 
 **Multi-agent AI governance simulation — ITU AI for Good Lab Hackathon 2026 (UAE)**
 
-SYNORA puts AI agents with different institutional mandates into a staged incident and
+Mathuq puts AI agents with different institutional mandates into a staged incident and
 watches how they reason, disagree and coordinate under real legislation. The reference
 scenario, *The Golden Gate Anomaly*, is an AI visa-screening system that starts rejecting
 applicants of one nationality at almost three times the baseline rate. Events are
@@ -16,7 +16,7 @@ Everything runs locally: no data leaves the machine and no external AI API is us
 
 ## What it does
 
-| Hackathon requirement | How SYNORA meets it |
+| Hackathon requirement | How Mathuq meets it |
 |---|---|
 | Knowledge base of national policy, mapped to global practice | 14 files (11 documents) / 1,998 chunks: UAE PDPL (EN + AR), Decree-Law 29/2021 (EN + AR), Cabinet Resolution 65/2022 (EN), National AI Strategy 2031, AI Charter, AI Ethics Guidelines; ITU-T Y.3172, ITU AI Ready report, OECD AI Principles, UNESCO Recommendation (EN + AR), EU AI Act. Chunked by article, with page numbers, in pgvector. |
 | Policy and legal adviser | Every agent answers in Arabic and English from retrieved excerpts only; citations are checked automatically and flagged when an article is not in the sources. |

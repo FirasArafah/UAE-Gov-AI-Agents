@@ -1,6 +1,6 @@
 # Alignment with ITU standards
 
-This document maps SYNORA's components to **ITU-T Y.3172** (*Architectural framework for
+This document maps Mathuq's components to **ITU-T Y.3172** (*Architectural framework for
 machine learning in future networks including IMT-2020*, 06/2019) and to the perspectives of
 the **ITU AI Readiness Framework** listed in the hackathon brief.
 
@@ -8,11 +8,11 @@ the **ITU AI Readiness Framework** listed in the hackathon brief.
 
 Y.3172 describes a machine learning pipeline as a chain of logical nodes, managed by a
 machine learning function orchestrator (MLFO), with an ML sandbox in which models are trained,
-tested and evaluated without affecting the live network. SYNORA applies the same structure to
+tested and evaluated without affecting the live network. Mathuq applies the same structure to
 a governance setting: the "network" is the set of public institutions, and the sandbox is the
 simulated incident.
 
-| Y.3172 element | Definition (summarised) | SYNORA component |
+| Y.3172 element | Definition (summarised) | Mathuq component |
 |---|---|---|
 | **SRC** — source | Node that produces the data | National and international documents in `data/knowledge_base/raw/`; scenario events in `data/scenarios/` |
 | **C** — collector | Collects data from sources | `rag/ingest.py` reads PDF, HTML and text, with OCR sidecars and page spans; failed jobs are recorded in `ingestion_jobs` |
@@ -27,7 +27,7 @@ simulated incident.
 
 ## ITU AI Readiness Framework perspectives
 
-| Perspective | SYNORA |
+| Perspective | Mathuq |
 |---|---|
 | Open data and open-source management | MIT-licensed code; the corpus is public legislation and international instruments; local open-weight models (`qwen2.5`, `bge-m3`) |
 | Generative AI content ecosystem | Generated answers are grounded only in retrieved excerpts, cited inline, checked automatically, and flagged when unsupported |
