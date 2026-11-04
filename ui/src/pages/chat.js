@@ -2,7 +2,7 @@ import { api } from "../js/api.js";
 import { AGENTS, agentColor, agentName } from "../js/agents.js";
 import { addStrings, duration, language, t } from "../js/i18n.js";
 import { h, renderAnswer } from "../js/render.js";
-import { streamPost } from "../js/sse.js";
+import { ChatSocket } from "../js/chatSocket.js";
 
 const TEAM = ["icp", "auditor", "privacy", "coordinator"];
 
@@ -30,6 +30,8 @@ addStrings({
     "chat.placeholder": "Message Mathuq…",
     "chat.message": "Message",
     "chat.send": "Send",
+    "chat.stop": "Stop answering",
+    "chat.stopped": "Stopped.",
     "chat.team": "Mathuq team",
     "chat.flow": "{names} → Coordinator",
     "chat.status.team": "The team is thinking",
@@ -61,6 +63,8 @@ addStrings({
     "chat.placeholder": "اكتب رسالتك إلى موثوق…",
     "chat.message": "الرسالة",
     "chat.send": "إرسال",
+    "chat.stop": "إيقاف الإجابة",
+    "chat.stopped": "تم الإيقاف.",
     "chat.team": "فريق موثوق",
     "chat.flow": "{names} ← المنسّق",
     "chat.status.team": "الفريق يفكّر",
@@ -225,6 +229,14 @@ function createTurn({ team, agents, conversation = false }) {
       if (data.thinking) s.text.textContent = data.thinking;
       if (!s.text.textContent.trim()) s.text.replaceWith(h("div", { class: "step-empty", text: t("chat.step.noReasoning") }));
       const text = data.content || s.content;
+      if (data.stopped || text === "(stopped)") {
+        // Stopped by the user: keep whatever was written, marked as stopped.
+        s.node.dataset.state = "done";
+        s.meta.textContent = t("chat.stopped");
+        const partial = text && text !== "(stopped)" ? renderAnswer(text, []) : null;
+        answer.replaceChildren(...[partial, h("p", { class: "muted stopped-note", text: t("chat.stopped") })].filter(Boolean));
+        return;
+      }
       if (data.interrupted || /^\(stream interrupted/.test(text)) {
         s.node.dataset.state = "failed";
         s.meta.textContent = t("chat.step.failed");
@@ -303,7 +315,13 @@ function restoreTurn(assistantMsgs, agentsById) {
   return turn.el;
 }
 
+// One open chat socket at a time: leaving or re-rendering the chat closes the previous one.
+let activeSocket = null;
+
 export async function renderChat(container, params = {}) {
+  activeSocket?.close();
+  activeSocket = null;
+  let socket = null;
   const thread = h("div", { class: "thread", "aria-live": "polite" });
   const empty = h("div", { class: "chat-empty" },
     h("h1", { text: t("chat.title") }),
@@ -389,12 +407,28 @@ export async function renderChat(container, params = {}) {
   setEmpty(thread.childElementCount === 0);
   follow(true);
 
+  const SEND_ICON = send.innerHTML;
+  const STOP_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor"/></svg>';
+  let busy = false;
+  function setBusy(value) {
+    busy = value;
+    input.disabled = mode.disabled = value;
+    send.innerHTML = value ? STOP_ICON : SEND_ICON;
+    send.setAttribute("aria-label", t(value ? "chat.stop" : "chat.send"));
+    send.title = t(value ? "chat.stop" : "chat.send");
+    send.classList.toggle("stop", value);
+  }
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (busy) {
+      socket?.stop();
+      return;
+    }
     const text = input.value.trim();
-    if (!text || send.disabled) return;
+    if (!text) return;
 
-    send.disabled = input.disabled = mode.disabled = true;
+    setBusy(true);
     status.textContent = "";
     setEmpty(false);
     thread.append(h("div", { class: "user-msg", dir: "auto", text }));
@@ -411,7 +445,11 @@ export async function renderChat(container, params = {}) {
         storeSession(sessionId);
         history.replaceState(null, "", `#/chat/${sessionId}`);
       }
-      await streamPost(`/sessions/${sessionId}/stream`, { message: text, agents }, (event, data) => {
+      if (!socket || socket.sessionId !== sessionId) {
+        socket?.close();
+        socket = activeSocket = new ChatSocket(sessionId);
+      }
+      await socket.ask(text, agents, (event, data) => {
         if (event === "user_message_saved") {
           turn = createTurn({
             team: data.team,
@@ -434,7 +472,7 @@ export async function renderChat(container, params = {}) {
     }
     turn?.finish();
     follow();
-    send.disabled = input.disabled = mode.disabled = false;
+    setBusy(false);
     input.focus();
   });
 

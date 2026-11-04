@@ -532,6 +532,8 @@ html[lang="ar"] .gap .sev { letter-spacing: 0; }
 .mode-select { border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; background: transparent; color: var(--text-2); font: inherit; font-size: 0.8rem; cursor: pointer; max-width: 100%; }
 .send-btn { flex: none; width: 34px; height: 34px; border-radius: 50%; border: none; display: grid; place-items: center; background: var(--text); color: var(--bg); cursor: pointer; }
 .send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.send-btn.stop { background: var(--danger); color: #fff; }
+.stopped-note { font-size: 0.84rem; }
 
 @media (prefers-reduced-motion: reduce) {
   .skeleton, .think-spinner, .step-dot, .prose.streaming::after { animation: none !important; }

@@ -12,6 +12,7 @@ export default defineConfig({
       "/api": {
         target,
         changeOrigin: true,
+        ws: true, // the chat's WebSocket under /api/ws
       },
     },
   },
