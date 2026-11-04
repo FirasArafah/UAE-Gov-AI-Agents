@@ -78,12 +78,15 @@
       "sequence": 6,
       "release_after_seconds": 0,
       "title": "T+4hr: Policy gap report",
-      "content": "Final assessment stage: identify gaps between UAE AI Strategy 2031, the UAE AI Charter, the UAE AI Ethics Guidelines, PDPL (including its scope exclusions for governmental entities in Article (2)), and current operational practice. Map them to the international references available: ITU-T Y.3172 and the ITU AI Ready framework. Produce actionable recommendations.",
+      "content": "Final assessment stage: identify gaps between UAE AI Strategy 2031, the UAE AI Charter, the UAE AI Ethics Guidelines, PDPL (including its scope exclusions for governmental entities in Article (2)), and current operational practice. Map them to the international references available: ITU-T Y.3172, the ITU AI Ready framework, the EU AI Act, the OECD AI Principles and the UNESCO Recommendation on the Ethics of AI. Produce actionable recommendations.",
       "target_agent_roles": ["auditor", "privacy"],
       "metadata": {
         "global_references": [
           "ITU-T Y.3172",
-          "ITU AI Ready Report 2.0"
+          "ITU AI Ready Report 2.0",
+          "EU AI Act",
+          "OECD AI Principles",
+          "UNESCO Recommendation"
         ]
       }
     }

@@ -4,6 +4,12 @@ import re
 import pytest
 
 from synora.agents.base import BaseAgent
+from synora.agents.registry import AgentRegistry
+from synora.api.routes import get_registry
+from synora.db.session import AsyncSessionLocal
+from synora.main import app
+from synora.models.enums import MessageRole
+from synora.models.simulation import Message
 
 
 # ============================================================================
@@ -181,6 +187,63 @@ async def test_advance_adhoc_returns_completed(client):
     body = r.json()
     assert body["status"] == "completed"
     assert body["event"] is None
+
+
+class RecordingLLM:
+    def __init__(self) -> None:
+        self.calls: list[list[dict]] = []
+
+    async def chat(self, messages, temperature, **kwargs):
+        self.calls.append(messages)
+        return "<response>English version:\nFinding from an agent.</response>"
+
+
+@pytest.mark.asyncio
+async def test_coordinator_decision_event_receives_the_specialist_assessments(client):
+    llm = RecordingLLM()
+    registry = AgentRegistry(llm=llm)
+    await registry.load()
+    app.dependency_overrides[get_registry] = lambda: registry
+    try:
+        r = await client.get("/api/scenarios")
+        golden = next(s for s in r.json() if s["slug"] == "golden-gate-anomaly")
+        r = await client.post("/api/sessions", json={"scenario_id": golden["id"]})
+        session_id = r.json()["id"]
+        await client.post(f"/api/sessions/{session_id}/start")
+        for _ in range(4):
+            r = await client.post(f"/api/sessions/{session_id}/advance", json={"auto_run": True})
+            assert r.status_code == 200
+    finally:
+        app.dependency_overrides.pop(get_registry, None)
+
+    decision_prompt = llm.calls[-1][-1]["content"]
+    assert "Coordinated response" in decision_prompt
+    assert decision_prompt.count("Finding from an agent") == 5
+    assert r.json()["assessments"][0]["responding_to"] == ["auditor", "privacy", "icp"]
+
+
+@pytest.mark.asyncio
+async def test_chat_list_names_conversations_by_their_first_question(client):
+    r = await client.post("/api/sessions", json={})
+    with_question = r.json()["id"]
+    r = await client.post("/api/sessions", json={})
+    without_question = r.json()["id"]
+    async with AsyncSessionLocal() as db:
+        db.add(
+            Message(
+                session_id=with_question,
+                role=MessageRole.USER,
+                content="Which authority can pause the system?",
+                sequence=1,
+            )
+        )
+        await db.commit()
+
+    r = await client.get("/api/chats")
+    assert r.status_code == 200
+    titles = {chat["id"]: chat["title"] for chat in r.json()}
+    assert titles[with_question] == "Which authority can pause the system?"
+    assert without_question not in titles
 
 
 # ============================================================================

@@ -23,5 +23,11 @@ class SessionSummary(SessionRead):
     message_count: int
 
 
+class ChatSummary(BaseModel):
+    id: UUID
+    title: str
+    created_at: datetime
+
+
 class SessionCreateRequest(BaseModel):
     scenario_id: UUID | None = None

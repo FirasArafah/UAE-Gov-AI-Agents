@@ -54,6 +54,7 @@ class Orchestrator:
         event: ScenarioEvent,
         session_id: UUID | None = None,
         histories: dict[str, list[dict]] | None = None,
+        earlier_assessments: list[AgentResponse] | None = None,
     ) -> tuple[list[AgentOutcome], AgentOutcome | None]:
         target_slugs = list(event.target_agent_roles or []) or ["coordinator"]
         sequential = bool((event.event_metadata or {}).get("sequential"))
@@ -83,12 +84,21 @@ class Orchestrator:
                             }
                         )
             try:
-                agent = await self.registry.get(slug)
-                outcome.response = await agent.respond(
-                    user_message=event.content,
-                    context=context,
-                    history=histories.get(slug),
-                )
+                if slug == "coordinator" and earlier_assessments:
+                    # A Coordinator event decides on what the specialists found in earlier events.
+                    outcome.responding_to = list(
+                        dict.fromkeys(a.agent_slug for a in earlier_assessments)
+                    )
+                    outcome.response = await self._synthesize(
+                        event, earlier_assessments, histories.get(slug)
+                    )
+                else:
+                    agent = await self.registry.get(slug)
+                    outcome.response = await agent.respond(
+                        user_message=event.content,
+                        context=context,
+                        history=histories.get(slug),
+                    )
             except KeyError:
                 logger.warning("orchestrator.agent_missing", slug=slug)
                 outcome.error = "agent not found"

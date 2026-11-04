@@ -10,6 +10,7 @@ from synora.agents.base import split_leaked_reasoning
 from synora.agents.gaps import GapAnalyst
 from synora.agents.orchestrator import AgentOutcome, Orchestrator, assessment_excerpt
 from synora.agents.registry import AgentRegistry
+from synora.agents.types import AgentResponse
 from synora.api.sse import sse_event
 from synora.audit.logger import AuditLogger
 from synora.db.session import get_db
@@ -26,7 +27,7 @@ from synora.schemas.chat import StreamMessageRequest
 from synora.schemas.document import DocumentRead, DocumentSummary, SearchHit
 from synora.schemas.message import MessageRead
 from synora.schemas.scenario import AdvanceRequest, ScenarioRead
-from synora.schemas.session import SessionCreateRequest, SessionRead, SessionSummary
+from synora.schemas.session import ChatSummary, SessionCreateRequest, SessionRead, SessionSummary
 
 logger = structlog.get_logger(__name__)
 
@@ -105,6 +106,38 @@ async def _agent_histories(
             ]
         )
     return {slug: turns[-2 * HISTORY_TURNS :] for slug, turns in histories.items()}
+
+
+async def _earlier_assessments(
+    db: AsyncSession, registry: AgentRegistry, session_id: UUID, before_sequence: int
+) -> list[AgentResponse]:
+    """Specialist assessments from earlier events, for the Coordinator to decide on."""
+    result = await db.execute(
+        select(Message)
+        .where(Message.session_id == session_id, Message.role == MessageRole.ASSISTANT)
+        .order_by(Message.sequence)
+    )
+    slug_by_id = registry.slugs_by_agent_id()
+    assessments: list[AgentResponse] = []
+    for msg in result.scalars():
+        slug = slug_by_id.get(msg.agent_id)
+        metadata = msg.message_metadata or {}
+        if (
+            slug
+            and slug != "coordinator"
+            and metadata.get("source") == "scenario_advance"
+            and (metadata.get("event_sequence") or 0) < before_sequence
+        ):
+            agent = await registry.get(slug)
+            assessments.append(
+                AgentResponse(
+                    agent_slug=slug,
+                    agent_name=agent.agent.name,
+                    role=str(agent.agent.role),
+                    content=msg.content,
+                )
+            )
+    return assessments
 
 
 def _reference_summaries(references: list[dict]) -> list[dict]:
@@ -331,6 +364,29 @@ async def list_sessions(limit: int = 20, db: AsyncSession = Depends(get_db)):
             message_count=count,
         )
         for session, slug, title, count in result.all()
+    ]
+
+
+@router.get("/chats", response_model=list[ChatSummary])
+async def list_chats(limit: int = 30, db: AsyncSession = Depends(get_db)):
+    """Recent free-chat conversations that have a question, newest first."""
+    first_question = (
+        select(Message.content)
+        .where(Message.session_id == SimulationSession.id, Message.role == MessageRole.USER)
+        .order_by(Message.sequence)
+        .limit(1)
+        .scalar_subquery()
+    )
+    result = await db.execute(
+        select(SimulationSession.id, SimulationSession.created_at, first_question)
+        .join(Scenario, Scenario.id == SimulationSession.scenario_id)
+        .where(Scenario.slug == ADHOC_SCENARIO_SLUG, first_question.is_not(None))
+        .order_by(SimulationSession.created_at.desc())
+        .limit(min(max(limit, 1), 100))
+    )
+    return [
+        ChatSummary(id=chat_id, title=title[:80], created_at=created_at)
+        for chat_id, created_at, title in result.all()
     ]
 
 
@@ -754,9 +810,12 @@ async def _run_event(
 ) -> dict:
     """Run the coordination protocol for one released event and persist every turn."""
     histories = await _agent_histories(db, session_id, registry)
+    earlier = None
+    if "coordinator" in (event.target_agent_roles or []):
+        earlier = await _earlier_assessments(db, registry, session_id, event.sequence)
     orchestrator = Orchestrator(registry)
     outcomes, synthesis = await orchestrator.run_event(
-        event, session_id=session_id, histories=histories
+        event, session_id=session_id, histories=histories, earlier_assessments=earlier
     )
 
     audit = AuditLogger(db)

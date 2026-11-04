@@ -118,6 +118,22 @@ async def test_sequential_event_passes_prior_assessment_on():
 
 
 @pytest.mark.asyncio
+async def test_coordinator_event_decides_on_earlier_assessments():
+    registry = FakeRegistry()
+    earlier = [
+        AgentResponse(agent_slug=s, agent_name=s.title(), role=s, content=f"{s} earlier view")
+        for s in ("privacy", "auditor", "privacy")
+    ]
+    outcomes, synthesis = await Orchestrator(registry).run_event(
+        _event(["coordinator"]), earlier_assessments=earlier
+    )
+    assert synthesis is None
+    assert outcomes[0].responding_to == ["privacy", "auditor"]
+    prompt = registry.prompts["coordinator"][0]
+    assert "privacy earlier view" in prompt and "auditor earlier view" in prompt
+
+
+@pytest.mark.asyncio
 async def test_coordinator_event_is_not_synthesized_again():
     _, synthesis = await Orchestrator(FakeRegistry()).run_event(_event(["auditor", "coordinator"]))
     assert synthesis is None
