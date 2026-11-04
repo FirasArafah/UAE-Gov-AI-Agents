@@ -377,3 +377,16 @@ async def test_both_generation_paths_discourage_loops():
     assert len(llm._client.options) == 2
     for options in llm._client.options:
         assert options["repeat_penalty"] == REPEAT_OPTIONS["repeat_penalty"]
+
+
+def test_numbered_sections_name_chunks_but_contents_lines_do_not():
+    def body(topic):
+        return " ".join(f"Sentence {i} about {topic} explains the rule." for i in range(6))
+
+    contents = "Contents\n3.1.2 Guidelines 32\n3.2.2 Guidelines 35\n"
+    text = contents + "\n".join(
+        [f"1.{i} Topic {name}\n{body(name)}" for i, name in enumerate("ABCD", start=1)]
+    )
+    labels = [label for label, _, _ in _small_ingestor()._split_into_sections(text)]
+    assert any(label.startswith("1.2 Topic B") for label in labels)
+    assert not any(label.endswith("32") or label.endswith("35") for label in labels)

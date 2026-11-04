@@ -38,6 +38,12 @@ ARABIC_ARTICLE_WORD = "\u0627\u0644\u0645\u0627\u062f\u0629"
 # A short title-like line on its own between blank lines ("Algorithmic Bias", "Human Oversight").
 # Used to name chunks of documents that have no numbered articles.
 TOPIC_HEADING_RE = re.compile(r"(?:^|(?<=\n\n))([A-Z][A-Za-z,&'()/ -]{2,60}[A-Za-z)])(?=\n\n)")
+# A numbered section heading on its own line ("3.1.2 Guidelines"). Only dotted numbers count:
+# a bare number at the start of a line is usually a page or list fragment in extracted PDFs.
+# A line ending in a number is a table-of-contents entry ("3.5.2 Guidelines 32").
+NUMBERED_HEADING_RE = re.compile(
+    r"(?m)^[ \t]*(\d+(?:\.\d+){1,3}\.?[ \t]+[A-Z][^\n]{1,69}[^\d\s.])[ \t]*$"
+)
 MIN_TOPIC_HEADINGS = 3
 # A heading this close to the start of a chunk names that chunk rather than the one before.
 HEADING_LOOKAHEAD = 80
@@ -129,11 +135,14 @@ class Ingestor:
         Falls back to chunk_<n> when the text has too few headings to be trusted.
         """
         chunks = self._split_with_pages(text, 0, page_spans)
-        headings = [
-            (m.start(1), m.group(1).strip())
-            for m in TOPIC_HEADING_RE.finditer(text)
-            if len(m.group(1).split()) <= 6
-        ]
+        headings = sorted(
+            [
+                (m.start(1), m.group(1).strip())
+                for m in TOPIC_HEADING_RE.finditer(text)
+                if len(m.group(1).split()) <= 6
+            ]
+            + [(m.start(1), m.group(1).strip()) for m in NUMBERED_HEADING_RE.finditer(text)]
+        )
         if default_section or len(headings) < MIN_TOPIC_HEADINGS:
             return [
                 (default_section or f"chunk_{idx}", c_text, page_num)
