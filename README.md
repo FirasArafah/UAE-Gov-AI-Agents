@@ -212,9 +212,9 @@ data/          knowledge base sources and scenarios
 Mathuq was developed by the **SYNORA team** for the ITU AI for Good Lab Hackathon in the United
 Arab Emirates:
 
-- **Firas Arafah**
-- **Motaz Abu Amara**
-- **Maria Dawaghreh**
+- **Firas Arafah** · فراس عرفة
+- **Motaz Abu Amara** · معتز ابو عمارة
+- **Maria Dawaghreh** · ماريا دواغرة
 
 ## License
 

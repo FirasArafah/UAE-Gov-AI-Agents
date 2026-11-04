@@ -156,8 +156,8 @@ DEFAULT_PROFILE = {
     "made_by": {
         "en": "the SYNORA team (Firas Arafah, Motaz Abu Amara and Maria Dawaghreh) for the ITU "
         "AI for Good Lab Hackathon in the United Arab Emirates",
-        "ar": "فريق SYNORA (Firas Arafah وMotaz Abu Amara وMaria Dawaghreh) ضمن هاكاثون مختبر "
-        "الذكاء الاصطناعي من أجل الخير التابع للاتحاد الدولي للاتصالات في دولة الإمارات",
+        "ar": "فريق SYNORA (فراس عرفة ومعتز ابو عمارة وماريا دواغرة) ضمن هاكاثون مختبر الذكاء "
+        "الاصطناعي من أجل الخير التابع للاتحاد الدولي للاتصالات في دولة الإمارات",
     },
     "about": {
         "en": "an assistant for AI governance in government services. A team of agents (the "

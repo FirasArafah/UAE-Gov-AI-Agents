@@ -460,5 +460,9 @@ async def test_identity_answer_comes_from_the_profile_without_the_model():
         ]
         text = "".join(t for _, t in chunks)
         assert profile["name"][language] in text and profile["made_by"][language] in text
-        for member in ("Firas Arafah", "Motaz Abu Amara", "Maria Dawaghreh"):
+        members = {
+            "en": ("Firas Arafah", "Motaz Abu Amara", "Maria Dawaghreh"),
+            "ar": ("فراس عرفة", "معتز ابو عمارة", "ماريا دواغرة"),
+        }
+        for member in members[language]:
             assert member in text
