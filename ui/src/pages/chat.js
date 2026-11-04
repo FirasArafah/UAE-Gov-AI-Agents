@@ -52,6 +52,7 @@ addStrings({
     "chat.noAnswer": "No answer was produced.",
     "chat.teamSources": "Sources consulted by the team",
     "chat.requestFailed": "The request failed: {error}",
+    "chat.audit": "Audit trail",
   },
   ar: {
     "chat.title": "ما الذي تريد من الوكلاء دراسته؟",
@@ -83,6 +84,7 @@ addStrings({
     "chat.noAnswer": "لم تُنتَج إجابة.",
     "chat.teamSources": "المصادر التي اعتمد عليها الفريق",
     "chat.requestFailed": "فشل الطلب: {error}",
+    "chat.audit": "سجل التدقيق",
   },
 });
 
@@ -139,7 +141,7 @@ const logo = () => [
  * One assistant turn. Specialists' reasoning and assessments go into a collapsible
  * "Thinking" panel; the final answer (Coordinator synthesis in team mode) is shown below it.
  */
-function createTurn({ team, agents, conversation = false }) {
+function createTurn({ team, agents, conversation = false, sessionId = null }) {
   const started = Date.now();
   const statusText = h("span", { text: t(team ? "chat.status.team" : "chat.status.single") });
   const timer = h("span", { class: "think-time", text: "" });
@@ -236,7 +238,8 @@ function createTurn({ team, agents, conversation = false }) {
       if (isFinal) {
         s.meta.textContent = team ? t("chat.step.final") : t("chat.step.answered", { n: refs.length });
         answer.replaceChildren(
-          renderAnswer(text, team ? dedupe(references) : refs, {
+          // Newer team answers list the sources their numbers point to; older ones list all.
+          renderAnswer(text, team && !refs.length ? dedupe(references) : refs, {
             sourcesLabel: team ? t("chat.teamSources") : t("answer.sources"),
           }),
         );
@@ -262,6 +265,7 @@ function createTurn({ team, agents, conversation = false }) {
       timer.textContent = team ? t("chat.agentCount", { n: count }) : "";
       think.classList.add("finished");
       if (!answer.childElementCount) answer.append(h("p", { class: "muted", text: t("chat.noAnswer") }));
+      if (sessionId) answer.append(h("a", { class: "audit-link", href: `#/audit/${sessionId}`, text: t("chat.audit") }));
     },
   };
 }
@@ -277,14 +281,14 @@ function dedupe(references) {
 }
 
 /** Rebuild a finished turn from stored messages (after navigating away and back). */
-function restoreTurn(assistantMsgs, agentsById) {
+function restoreTurn(assistantMsgs, agentsById, sessionId) {
   const view = (m) => ({ slug: agentsById[m.agent_id]?.slug, meta: m.message_metadata || {}, m });
   const items = assistantMsgs.map(view);
   // The final answer is the Coordinator's synthesis, or the last answer in older chats.
   const final = items.find((i) => i.meta.is_synthesis) || items[items.length - 1];
   const conversation = items.every((i) => i.meta.source === "chat_conversation");
   const team = items.length > 1;
-  const turn = createTurn({ team, agents: items.map((i) => i.slug), conversation });
+  const turn = createTurn({ team, agents: items.map((i) => i.slug), conversation, sessionId });
   const ordered = [...items.filter((i) => i !== final), final];
   for (const i of ordered) {
     const isSynth = i === final;
@@ -368,7 +372,7 @@ export async function renderChat(container, params = {}) {
       const messages = await api(`/sessions/${sessionId}/messages`);
       let group = null;
       const flush = () => {
-        if (group?.length) thread.append(restoreTurn(group, agentsById));
+        if (group?.length) thread.append(restoreTurn(group, agentsById, sessionId));
         group = null;
       };
       for (const m of messages) {
@@ -417,6 +421,7 @@ export async function renderChat(container, params = {}) {
             team: data.team,
             agents: data.agents?.length ? data.agents : agents,
             conversation: data.conversation,
+            sessionId,
           });
           thread.append(turn.el);
           window.dispatchEvent(new Event("chats-changed"));

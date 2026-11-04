@@ -322,7 +322,8 @@ export async function renderSimulation(container, { id }) {
       disabled: mode === "building" || busy || !assessed,
       onclick: buildGaps,
     });
-    gapSection.replaceChildren(
+    // replaceChildren would print a null as the word "null", so the empty parts are dropped.
+    gapSection.replaceChildren(...[
       h("header", { class: "gap-head" },
         h("div", {}, h("h2", { text: t("gaps.title") }), h("p", { class: "muted", text: t("gaps.subtitle") })),
         button,
@@ -335,7 +336,7 @@ export async function renderSimulation(container, { id }) {
           : assessed
             ? null
             : h("p", { class: "muted", text: t("gaps.needsAssessments") }),
-    );
+    ].filter(Boolean));
   }
 
   async function buildGaps() {
