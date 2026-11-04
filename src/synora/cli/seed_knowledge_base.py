@@ -155,11 +155,45 @@ KNOWN_METADATA: dict[str, dict[str, Any]] = {
 }
 
 
+# Official page of each document, shown with its citations so a reader can check the source.
+SOURCE_URLS: dict[str, str] = {
+    "unesco_ai_ethics_recommendation_ar": "https://unesdoc.unesco.org/ark:/48223/pf0000381137",
+    "cabinet_resolution_65_2022_ar": "https://uaelegislation.gov.ae/ar/legislations/1601",
+    "pdpl_45_2021_ar": "https://uaelegislation.gov.ae/ar/legislations/1972",
+    "29_2021_ar": "https://uaelegislation.gov.ae/ar/legislations/1528",
+    "unesco": "https://unesdoc.unesco.org/ark:/48223/pf0000381137",
+    "eu_ai_act": "https://eur-lex.europa.eu/eli/reg/2024/1689/oj",
+    "oecd": "https://legalinstruments.oecd.org/en/instruments/OECD-LEGAL-0449",
+    "cybersecurity_strategy_2019_summary": (
+        "https://u.ae/en/about-the-uae/strategies-initiatives-and-awards/strategies-plans-and-visions/strategies-plans-and-visions-untill-2021/national-cybersecurity-strategy-2019"
+    ),
+    "digital_government_strategy": (
+        "https://u.ae/en/about-the-uae/strategies-initiatives-and-awards/strategies-plans-and-visions/government-services-and-digital-transformation/uae-national-digital-government-strategy"
+    ),
+    "pdpl": "https://uaelegislation.gov.ae/en/legislations/1972",
+    "strategy": "https://ai.gov.ae/strategy/",
+    "charter": (
+        "https://uaelegislation.gov.ae/en/policy/details/the-uae-charter-for-the-development-and-use-of-artificial-intelligence"
+    ),
+    "ai ready framework": (
+        "https://www.itu.int/dms_pub/itu-t/opb/ai4g/T-AI4G-AI4GOOD-2025-6-PDF-E.pdf"
+    ),
+    "3172": "https://www.itu.int/rec/T-REC-Y.3172/en",
+    "ethics": "https://ai.gov.ae/wp-content/uploads/2023/03/MOCAI-AI-Ethics-EN-1.pdf",
+    "65_2022": "https://uaelegislation.gov.ae/en/legislations/1601",
+    "29_2021": "https://uaelegislation.gov.ae/en/legislations/1528",
+}
+
 def infer_metadata(file_path: Path) -> dict[str, Any]:
     name_lower = file_path.stem.lower()
     for key, meta in KNOWN_METADATA.items():
         if key in name_lower:
-            return {**meta, "source_uri": str(file_path)}
+            source_url = SOURCE_URLS.get(key)
+            return {
+                **meta,
+                "source_uri": str(file_path),
+                "doc_metadata": {"source_url": source_url} if source_url else {},
+            }
 
     return {
         "title": file_path.stem.replace("_", " ").replace("-", " ").title(),
@@ -183,26 +217,43 @@ def find_seed_files(raw_dir: Path) -> list[Path]:
     )
 
 
-async def refresh_metadata(raw_dir: Path) -> None:
-    """Correct title, language and classification of documents already ingested.
+async def refresh_knowledge_base(raw_dir: Path) -> None:
+    """Bring an existing knowledge base in line with the files and the current chunking.
 
-    Matches stored documents to files in ``raw_dir`` by file name, so mislabelled rows are
-    fixed in place without re-extracting or re-embedding anything.
+    Corrects titles and classification, relabels chunks, drops documents whose file is gone or
+    skipped, and ingests new files. Only text that changed is embedded again, so this is much
+    faster than rebuilding the database.
     """
-    files = {p.name: p for p in raw_dir.iterdir() if p.is_file()}
+    files = {p.name: p for p in find_seed_files(raw_dir)}
+    ingestor = Ingestor()
     async with AsyncSessionLocal() as session:
         documents = (await session.execute(select(Document))).scalars().all()
+        stored = {}
         for doc in documents:
-            path = files.get(Path(doc.source_uri or "").name)
+            name = Path(doc.source_uri or "").name
+            path = files.get(name)
             if path is None:
-                logger.warning("seed_kb.refresh.no_file", title=doc.title, source=doc.source_uri)
+                logger.warning("seed_kb.refresh.removed", title=doc.title, source=doc.source_uri)
+                await session.delete(doc)
                 continue
             meta = infer_metadata(path)
             for field in ("title", "country_code", "language", "domain", "doc_type"):
                 setattr(doc, field, meta[field])
+            doc.doc_metadata = meta["doc_metadata"]
             doc.source_uri = str(path)
-            logger.info("seed_kb.refresh.updated", file=path.name, title=meta["title"])
+            stored[name] = doc.id
         await session.commit()
+
+    for name, path in sorted(files.items()):
+        try:
+            if name in stored:
+                result = await ingestor.resync_document(stored[name], path)
+                logger.info("seed_kb.refresh.updated", file=name, **result)
+            else:
+                logger.info("seed_kb.ingesting_file", file=name)
+                await ingestor.ingest_file(path, metadata=infer_metadata(path))
+        except Exception as e:
+            logger.error("seed_kb.refresh_failed", file=name, error=str(e))
 
 
 async def seed_knowledge_base(raw_dir: Path) -> None:
@@ -240,13 +291,13 @@ def main() -> None:
         help="Path to raw knowledge base documents directory.",
     )
     parser.add_argument(
-        "--refresh-metadata",
+        "--refresh",
         action="store_true",
-        help="Only correct metadata of documents already ingested (no re-embedding).",
+        help="Update an existing knowledge base, embedding only the text that changed.",
     )
     args = parser.parse_args()
-    if args.refresh_metadata:
-        asyncio.run(refresh_metadata(Path(args.path)))
+    if args.refresh:
+        asyncio.run(refresh_knowledge_base(Path(args.path)))
     else:
         asyncio.run(seed_knowledge_base(Path(args.path)))
 

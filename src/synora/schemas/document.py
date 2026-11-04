@@ -25,6 +25,7 @@ class DocumentSummary(DocumentRead):
     chunk_count: int
     page_count: int | None
     section_count: int
+    source_url: str | None = None
 
 
 class ChunkRead(BaseModel):
@@ -46,3 +47,4 @@ class SearchHit(BaseModel):
     language: str | None
     score: float
     content: str
+    source_url: str | None = None

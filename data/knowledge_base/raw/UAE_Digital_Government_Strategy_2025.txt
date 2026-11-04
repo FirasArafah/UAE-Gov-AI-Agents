@@ -14,23 +14,39 @@ The UAE’s National Digital Government Strategy is drafted on eight dimensions.
 - Open by default
 - Proactiveness.
 Below is a brief description of the dimensions.
+
 Leaving no one behind (Inclusive by default)
+
 This can be achieved by:
 - Adopting open and inclusive processes, accessibility, transparency and accountability among the main goals of UAE digital government strategies and
 - Ensuring inclusiveness and overcoming any digital divides that might arise with special focus on elders, people with determination, women, children and other vulnerable groups.
+
 Resilient
+
 This involves leveraging the emerging technologies to build capabilities in anticipation of disasters and crises to be able to respond to them proactively, and adopting more resilient government operations and core capabilities.
+
 Fit for the digital age
+
 This involves promoting cross-sectoral and inter-ministerial co-ordination and collaboration, setting national priorities and engaging relevant stakeholders in pursuing the UAE’s digital agenda.
+
 User-driven
+
 This dimension recommends governments to be more user-driven, highlighting the notion of engagement by default. It advises keeping people’ needs and convenience at the centre of shaping processes, services and policies and adopting inclusive mechanisms.
+
 Digital by design
+
 This dimension is about establishing clear organisational leadership along with effective co-ordination and enforcement mechanisms to ensure digital by default practices. All policy processes must be embedded with ‘digital’ as a mandatory, by design, transformative element. Furthermore, ongoing experimentation plays a vital role in this dimension by facilitating the creation of controlled and flexible testing environments. These environments allow regulators, the private sector, innovators, and business leaders to collaborate and co-create legislation that aligns with the rapid pace of innovation. Read about the regulatory sandboxes in the UAE .
+
 Data-driven
+
 Under this dimension, a digital government governs data as a key strategic asset in generating public value through applying it in the planning, delivering and monitoring of public policies, and adopts rules and ethical principles for their trustworthy and safe reuse.
+
 Open by default
+
 Open by default means making government data and policy-making processes (including algorithms) available for the public to engage with.
+
 Proactiveness
+
 This dimension is about the ability of governments and civil servants to anticipate people’s needs and respond to them rapidly enough, so that users do not have to engage with the cumbersome process of data and service delivery. By utilizing a seamless Single Sign-On system with the UAE National Digital ID – UAE PASS and adopting a life cycle approach and once only policy , the need for users to apply for services or submit supporting documents is eliminated. Instead, users receive automatic notifications of tailored proactive services. This simplifies service delivery and improves the user experience by removing unnecessary bureaucratic obstacles.
 
 Objectives and priorities
