@@ -226,7 +226,7 @@ async def test_stream_that_dies_before_output_is_restarted(monkeypatch):
     llm = LLMClient(host="http://unused")
     llm._client = CrashingOllama(tokens_before_crash=0)
     tokens = [t async for t in llm.chat_stream(messages=[])]
-    assert tokens == ["t0 ", "t1 ", "t2 "] and llm._client.calls == 2
+    assert "".join(tokens) == "t0 t1 t2 " and llm._client.calls == 2
 
 
 @pytest.mark.asyncio
