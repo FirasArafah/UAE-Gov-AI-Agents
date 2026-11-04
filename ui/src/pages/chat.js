@@ -4,6 +4,7 @@ import { addStrings, duration, language, t } from "../js/i18n.js";
 import { h, renderAnswer } from "../js/render.js";
 import { ChatSocket } from "../js/chatSocket.js";
 import { setAddress } from "../js/router.js";
+import { setPageTitle } from "../js/shell.js";
 
 const TEAM = ["icp", "auditor", "privacy", "coordinator"];
 
@@ -461,6 +462,9 @@ export async function renderChat(container, params = {}) {
     }
   }
   setEmpty(thread.childElementCount === 0);
+  // A chat is named after its first question, as in the Recent list.
+  const firstQuestion = () => thread.querySelector(".user-row .user-msg")?.textContent;
+  setPageTitle(firstQuestion() || t("nav.newChat"));
   follow(true);
 
   const SEND_ICON = send.innerHTML;
@@ -548,6 +552,7 @@ export async function renderChat(container, params = {}) {
     setEmpty(false);
     const row = userRow(text);
     thread.append(row);
+    setPageTitle(firstQuestion());
     follow(true);
 
     const agents = mode.value === "team" ? TEAM : [mode.value];

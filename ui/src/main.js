@@ -3,6 +3,7 @@ import { api } from "./js/api.js";
 import { h } from "./js/render.js";
 import { applyLanguage, language, setLanguage, t } from "./js/i18n.js";
 import { navigate, refreshRoute, route, startRouter } from "./js/router.js";
+import { closeDrawer, setPageTitle } from "./js/shell.js";
 import { forgetChat, presetMode, renderChat } from "./pages/chat.js";
 import { renderRoster } from "./pages/roster.js";
 import { renderAudit } from "./pages/audit.js";
@@ -50,6 +51,10 @@ function markActiveNav(path) {
     else a.removeAttribute("aria-current");
   }
   markActiveRecent();
+  closeDrawer();
+  // Pages with their own title (a chat, a simulation run) replace this once they have loaded.
+  const titles = { "/": "nav.newChat", "/simulations": "nav.simulations", "/agents": "nav.agents", "/kb": "nav.kb", "/audit": "audit.title" };
+  setPageTitle(titles[section] ? t(titles[section]) : "");
 }
 
 async function loadRecents() {

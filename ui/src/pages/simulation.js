@@ -2,6 +2,7 @@ import { api } from "../js/api.js";
 import { agentColor, agentInitials, agentName, agentRole } from "../js/agents.js";
 import { addStrings, duration, language, num, t } from "../js/i18n.js";
 import { h, renderAnswer, textDir } from "../js/render.js";
+import { setPageTitle } from "../js/shell.js";
 import { statusLabel } from "./scenarios.js";
 
 addStrings({
@@ -235,6 +236,7 @@ export async function renderSimulation(container, { id }) {
   function drawSide() {
     const tl = state.timeline;
     title.textContent = (ar() && tl.scenario_title_ar) || tl.scenario_title || tl.scenario_slug;
+    setPageTitle(title.textContent);
     title.dir = textDir(title.textContent);
     pill.dataset.status = tl.status;
     pill.textContent = statusLabel(tl.status);

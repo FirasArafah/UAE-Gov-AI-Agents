@@ -173,7 +173,14 @@ button { font: inherit; }
 html[lang="en"] .lang-btn { font-family: var(--font-ar); }
 .empty-page { display: flex; flex-direction: column; align-items: center; gap: 14px; padding-top: 18vh; text-align: center; color: var(--muted); }
 
-main { min-width: 0; height: 100%; overflow-y: auto; }
+.main-col { min-width: 0; display: flex; flex-direction: column; height: 100dvh; }
+main { flex: 1; min-height: 0; overflow-y: auto; }
+
+/* Title bar above every page: the chat's title or the page name */
+.topbar { flex: none; display: flex; align-items: center; gap: 8px; height: 52px; padding: 0 16px; border-bottom: 1px solid var(--line); background: var(--bg); }
+.topbar-title { flex: 1; min-width: 0; margin: 0; font-size: 0.95rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.menu-btn, .topbar-new { display: none; color: var(--text-2); }
+.backdrop { position: fixed; inset: 0; z-index: 20; background: rgb(0 0 0 / 0.45); }
 .page { max-width: 1120px; margin: 0 auto; padding: 36px 32px 56px; }
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
 .page-head p { color: var(--muted); margin-top: 6px; max-width: 70ch; }
@@ -547,6 +554,7 @@ html[lang="ar"] .gap .sev { letter-spacing: 0; }
 .stopped-note { font-size: 0.84rem; }
 
 @media (prefers-reduced-motion: reduce) {
+  .sidebar { transition: none; }
   .skeleton, .think-spinner, .step-dot, .prose.streaming::after { animation: none !important; }
 }
 
@@ -554,16 +562,18 @@ html[lang="ar"] .gap .sev { letter-spacing: 0; }
    Phone: the sidebar becomes a top bar
    ========================================================================== */
 @media (max-width: 768px) {
-  .shell { display: flex; flex-direction: column; }
-  .sidebar { flex: none; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 12px; border-inline-end: none; border-bottom: 1px solid var(--line); }
-  .brand { padding: 4px; }
-  .brand span, .health span, .recents { display: none; }
-  .new-chat { order: 2; padding: 6px 8px; margin-inline-start: auto; }
-  .new-chat span { display: none; }
-  .side-foot { order: 3; padding: 0; border-top: none; gap: 2px; }
-  #nav { order: 4; flex: 0 0 100%; flex-direction: row; margin-top: 2px; overflow-x: auto; }
-  #nav a { padding: 5px 10px; white-space: nowrap; font-size: 0.85rem; }
-  main { flex: 1; min-height: 0; height: auto; }
+  /* The sidebar becomes a drawer that slides in from the start edge. */
+  .shell { display: block; }
+  .sidebar {
+    position: fixed; inset-block: 0; inset-inline-start: 0; z-index: 30; width: min(300px, 86vw);
+    transform: translateX(-100%); transition: transform 0.22s ease; box-shadow: 0 0 40px rgb(0 0 0 / 0.25);
+  }
+  html[dir="rtl"] .sidebar { transform: translateX(100%); }
+  body.drawer-open .sidebar { transform: none; }
+  body.drawer-open { overflow: hidden; }
+  .menu-btn, .topbar-new { display: grid; }
+  .topbar { padding: 0 8px; }
+  .topbar-title { text-align: center; }
   .page { padding: 20px 16px 40px; }
   .chat-col { padding: 0 16px; }
   .chat-empty h1 { font-size: 1.4rem; }
