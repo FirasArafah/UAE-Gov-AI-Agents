@@ -346,7 +346,6 @@ table.data td.mono { white-space: nowrap; }
 .mode-select { border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; background: transparent; color: var(--text-2); font: inherit; font-size: 0.8rem; cursor: pointer; max-width: 100%; }
 .send-btn { flex: none; width: 34px; height: 34px; border-radius: 50%; border: none; display: grid; place-items: center; background: var(--text); color: var(--bg); cursor: pointer; }
 .send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-.composer-note { display: block; margin-top: 8px; text-align: center; color: var(--muted); font-size: 0.74rem; }
 
 @media (prefers-reduced-motion: reduce) {
   .skeleton, .think-spinner, .step-dot, .prose.streaming::after { animation: none !important; }

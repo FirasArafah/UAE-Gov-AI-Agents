@@ -9,6 +9,17 @@ import { renderKnowledgeBase } from "./pages/kb.js";
 
 applyLanguage();
 
+// Every address has the form /#/<page>: a bare "/", "/#", "#chat" or another path is rewritten.
+function canonicalUrl() {
+  const page = location.hash.replace(/^#\/?/, "");
+  const target = `/#/${page}`;
+  if (location.pathname !== "/" || !location.hash.startsWith("#/")) {
+    history.replaceState(null, "", target);
+  }
+}
+canonicalUrl();
+window.addEventListener("hashchange", canonicalUrl);
+
 document.getElementById("lang-toggle").addEventListener("click", () => {
   setLanguage(language() === "ar" ? "en" : "ar");
 });

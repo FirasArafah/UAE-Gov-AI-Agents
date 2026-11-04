@@ -24,7 +24,6 @@ const SUGGESTIONS = {
 addStrings({
   en: {
     "chat.title": "What should the agents look into?",
-    "chat.intro": "Three specialist agents assess your question independently, each from the law it is responsible for. The Coordinator then writes one answer.",
     "chat.mode": "Who answers",
     "chat.mode.team": "Team · 4 agents",
     "chat.mode.only": "{name} only",
@@ -56,7 +55,6 @@ addStrings({
   },
   ar: {
     "chat.title": "ما الذي تريد من الوكلاء دراسته؟",
-    "chat.intro": "يقيّم ثلاثة وكلاء متخصصين سؤالك كلٌّ على حدة استناداً إلى التشريع الذي يختص به، ثم يكتب المنسّق إجابة واحدة.",
     "chat.mode": "من يجيب",
     "chat.mode.team": "الفريق · 4 وكلاء",
     "chat.mode.only": "{name} فقط",
@@ -281,7 +279,6 @@ export async function renderChat(container, params = {}) {
   const thread = h("div", { class: "thread", "aria-live": "polite" });
   const empty = h("div", { class: "chat-empty" },
     h("h1", { text: t("chat.title") }),
-    h("p", { text: t("chat.intro") }),
     h("div", { class: "starter-grid" },
       SUGGESTIONS[language()].map((text) => h("button", { class: "starter", type: "button", dir: "auto", text, onclick: () => { input.value = text; autosize(); input.focus(); } })),
     ),
@@ -293,11 +290,9 @@ export async function renderChat(container, params = {}) {
   );
   const input = h("textarea", { class: "composer-input", rows: 1, dir: "auto", placeholder: t("chat.placeholder"), "aria-label": t("chat.message") });
   const send = h("button", { class: "send-btn", type: "submit", "aria-label": t("chat.send"), html: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 4l-7 7h4.5v9h5v-9H19z"/></svg>' });
-  const note = h("small", { class: "composer-note", text: "Runs on a local LLM. A team answer takes several minutes on CPU." });
   const form = h("form", { class: "composer2" },
     h("div", { class: "chat-col" },
       h("div", { class: "composer-box" }, input, h("div", { class: "composer-row2" }, mode, h("span", { style: { flex: 1 } }), send)),
-      note,
     ),
   );
 
