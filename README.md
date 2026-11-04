@@ -80,27 +80,41 @@ least 10 GB of memory (`memory=10GB` in `%USERPROFILE%\.wslconfig`, then `wsl --
 
 ## Using the UI
 
-The UI has three pages:
+The interface is available in **English and Arabic** (button at the bottom of the sidebar) and in
+light and dark themes; both choices are remembered by the browser. Every address has the form
+`http://localhost:5173/#/<page>`.
 
-- **Chat** (`#/`): ask one agent or the whole team. Each agent's chain of thought streams live
-  and stays visible above the answer, with its sources and any citation warnings.
-- **Agents** (`#/agents`): each agent's mandate and where its retrieval starts.
-- **Knowledge base** (`#/kb`): coverage per document, and the agents' retrieval for any query.
+- **Chat** (`#/`): ask the whole team or one agent. Agents answer in the language of the
+  question. In team mode the ICP Representative, AI Auditor and Privacy Consultant assess the
+  question independently and the Coordinator writes the final answer; each agent's chain of
+  thought streams live in the collapsible panel above it, with its sources and any citation
+  warnings. Past conversations are listed under *Recent*.
+- **Simulations** (`#/simulations`): start a scenario and reopen previous runs.
+- **Simulation** (`#/simulation/<id>`): release events one at a time, read each agency's
+  assessment with its reasoning and sources, the Coordinator's synthesis, and build the policy
+  gap report. An event interrupted part-way can be completed from the page.
+- **Audit log** (`#/audit/<id>`): every retrieval, reasoning trace, decision, hand-off and gap
+  report of a run, filterable and exportable as JSON.
+- **Agents** (`#/agents`): each agency's role, mandate and primary sources, and how a team
+  answer is made.
+- **Knowledge base** (`#/kb`): search the passages the agents retrieve from, and browse the
+  national and international documents.
 
 ## Running the scenario
 
-The scenario, gap report and audit trail run through the API:
+Open **Simulations**, start *The Golden Gate Anomaly* and release the events in order. The same
+flow is available through the API:
 
 ```bash
 curl -s localhost:8000/api/scenarios
 curl -s -X POST localhost:8000/api/sessions -H 'Content-Type: application/json' -d '{"scenario_id": "<id>"}'
 curl -s -X POST localhost:8000/api/sessions/<session>/start
-curl -s -X POST localhost:8000/api/sessions/<session>/advance -H 'Content-Type: application/json' -d '{"auto_run": true}'
-curl -s -X POST localhost:8000/api/sessions/<session>/gaps
+curl -s -X POST localhost:8000/api/sessions/<session>/advance -H 'Content-Type: application/json' -d '{"auto_run": true, "language": "en"}'
+curl -s -X POST "localhost:8000/api/sessions/<session>/gaps?language=en"
 curl -s localhost:8000/api/sessions/<session>/audit
 ```
 
-Repeat `advance` for each event. Agents assess, and the Coordinator synthesizes.
+Repeat `advance` for each event; `language` may be `en` or `ar`.
 
 | # | Event | Agents | Flow |
 |---|---|---|---|
