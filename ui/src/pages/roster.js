@@ -105,7 +105,7 @@ export async function renderRoster(container) {
               h("p", { class: "muted", text: t(`agents.sources.${a.slug}`) }),
             )
           : null,
-        h("div", { class: "card-actions" }, h("a", { class: "btn sm", href: `#/ask/${a.slug}`, text: t("agents.ask") })),
+        h("div", { class: "card-actions" }, h("a", { class: "btn sm", href: `/ask/${a.slug}`, text: t("agents.ask") })),
       ),
     );
   }

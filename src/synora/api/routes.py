@@ -1,8 +1,12 @@
+import asyncio
+import contextlib
+from collections.abc import AsyncIterator, Callable
 from typing import Literal
 from uuid import UUID
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
+from pydantic import ValidationError
 from sqlalchemy import Integer, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
@@ -10,14 +14,15 @@ from sse_starlette.sse import EventSourceResponse
 from synora.agents.base import split_leaked_reasoning
 from synora.agents.citations import merge_references, renumber_citations
 from synora.agents.gaps import GapAnalyst
-from synora.agents.intent import is_conversational
+from synora.agents.intent import MessageKind, classify
 from synora.agents.language import detect_language
 from synora.agents.orchestrator import AgentOutcome, Orchestrator, assessment_excerpt
+from synora.agents.query import standalone_query
 from synora.agents.registry import AgentRegistry
 from synora.agents.types import AgentResponse
 from synora.api.sse import sse_event
 from synora.audit.logger import AuditLogger
-from synora.db.session import get_db
+from synora.db.session import AsyncSessionLocal, get_db
 from synora.models.agent import Agent
 from synora.models.audit import AuditLog, PolicyGap
 from synora.models.document import Chunk, Document, DocumentDomain
@@ -31,7 +36,13 @@ from synora.schemas.chat import StreamMessageRequest
 from synora.schemas.document import DocumentRead, DocumentSummary, SearchHit
 from synora.schemas.message import MessageRead
 from synora.schemas.scenario import AdvanceRequest, ScenarioRead
-from synora.schemas.session import ChatSummary, SessionCreateRequest, SessionRead, SessionSummary
+from synora.schemas.session import (
+    ChatRenameRequest,
+    ChatSummary,
+    SessionCreateRequest,
+    SessionRead,
+    SessionSummary,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -385,8 +396,13 @@ async def list_chats(limit: int = 30, db: AsyncSession = Depends(get_db)):
         .limit(1)
         .scalar_subquery()
     )
+    custom_title = SimulationSession.session_metadata["title"].astext
     result = await db.execute(
-        select(SimulationSession.id, SimulationSession.created_at, first_question)
+        select(
+            SimulationSession.id,
+            SimulationSession.created_at,
+            func.coalesce(custom_title, first_question),
+        )
         .join(Scenario, Scenario.id == SimulationSession.scenario_id)
         .where(Scenario.slug == ADHOC_SCENARIO_SLUG, first_question.is_not(None))
         .order_by(SimulationSession.created_at.desc())
@@ -396,6 +412,38 @@ async def list_chats(limit: int = 30, db: AsyncSession = Depends(get_db)):
         ChatSummary(id=chat_id, title=title[:80], created_at=created_at)
         for chat_id, created_at, title in result.all()
     ]
+
+
+async def _free_chat(db: AsyncSession, session_id: UUID) -> SimulationSession:
+    """The free-chat session, or 404; scenario runs are immutable audit records."""
+    session = await db.get(SimulationSession, session_id)
+    if session is not None:
+        scenario = await db.get(Scenario, session.scenario_id)
+        if scenario is not None and scenario.slug == ADHOC_SCENARIO_SLUG:
+            return session
+    raise HTTPException(status_code=404, detail="chat not found")
+
+
+@router.patch("/chats/{session_id}", response_model=ChatSummary)
+async def rename_chat(
+    session_id: UUID, body: ChatRenameRequest, db: AsyncSession = Depends(get_db)
+):
+    """Give a conversation its own name instead of its first question."""
+    session = await _free_chat(db, session_id)
+    title = " ".join(body.title.split())
+    if not title:
+        raise HTTPException(status_code=422, detail="title must not be blank")
+    session.session_metadata = {**(session.session_metadata or {}), "title": title}
+    await db.commit()
+    return ChatSummary(id=session.id, title=title, created_at=session.created_at)
+
+
+@router.delete("/chats/{session_id}", status_code=204)
+async def delete_chat(session_id: UUID, db: AsyncSession = Depends(get_db)) -> None:
+    """Delete a conversation with its messages and audit entries."""
+    session = await _free_chat(db, session_id)
+    await db.delete(session)
+    await db.commit()
 
 
 @router.post("/sessions", response_model=SessionRead, status_code=201)
@@ -438,6 +486,33 @@ async def list_messages(session_id: UUID, db: AsyncSession = Depends(get_db)):
     return result.scalars().all()
 
 
+@router.delete("/sessions/{session_id}/messages/{message_id}/onward")
+async def delete_messages_from(
+    session_id: UUID, message_id: UUID, db: AsyncSession = Depends(get_db)
+) -> dict:
+    """Remove a chat message and everything after it, before an edited message is resent.
+
+    Only free chats can be rewritten; scenario runs are immutable records. Audit entries are
+    kept and simply lose their link to the removed messages.
+    """
+    session = await db.get(SimulationSession, session_id)
+    message = await db.get(Message, message_id)
+    if not session or not message or message.session_id != session_id:
+        raise HTTPException(status_code=404, detail="message not found")
+    scenario = await db.get(Scenario, session.scenario_id)
+    if scenario is None or scenario.slug != ADHOC_SCENARIO_SLUG:
+        raise HTTPException(status_code=409, detail="only free chats can be edited")
+    if message.role != MessageRole.USER:
+        raise HTTPException(status_code=409, detail="only your own messages can be edited")
+    result = await db.execute(
+        delete(Message).where(
+            Message.session_id == session_id, Message.sequence >= message.sequence
+        )
+    )
+    await db.commit()
+    return {"deleted": result.rowcount}
+
+
 @router.get("/sessions/{session_id}/audit", response_model=list[AuditLogRead])
 async def list_audit(session_id: UUID, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
@@ -453,42 +528,70 @@ async def list_audit(session_id: UUID, db: AsyncSession = Depends(get_db)):
 # ============================================================================
 
 
-CHAT_HISTORY_MESSAGES = 6
+# A team turn stores the question plus up to four answers; history keeps whole turns
+# (question and final answer) so earlier questions are not pushed out by one team reply.
+CHAT_HISTORY_TURNS = 4
+CHAT_HISTORY_SCAN = 60
+
+
+def _excerpt(text: str) -> str:
+    text = text.split("\n\n---\n", 1)[0].strip()
+    if len(text) > HISTORY_EXCERPT_CHARS:
+        text = text[:HISTORY_EXCERPT_CHARS].rstrip() + " ..."
+    return text
 
 
 async def _chat_history(
     db: AsyncSession, session_id: UUID, registry: AgentRegistry
 ) -> list[dict]:
-    """Recent turns of a free chat, so follow-up questions keep their meaning."""
+    """The last turns of a free chat, so follow-up questions keep their meaning.
+
+    Each turn is the question and its final answer: the Coordinator's synthesis when the
+    team answered, otherwise every agent's answer in one message.
+    """
     result = await db.execute(
         select(Message)
         .where(Message.session_id == session_id)
         .order_by(Message.sequence.desc())
-        .limit(CHAT_HISTORY_MESSAGES)
+        .limit(CHAT_HISTORY_SCAN)
     )
     names = {a.agent.id: a.agent.name for _, a in registry.items()}
-    history = []
+    turns: list[tuple[Message, list[Message]]] = []
     for msg in reversed(result.scalars().all()):
-        content = msg.content.split("\n\n---\n", 1)[0]
-        if len(content) > HISTORY_EXCERPT_CHARS:
-            content = content[:HISTORY_EXCERPT_CHARS].rstrip() + " ..."
-        if msg.role == MessageRole.ASSISTANT:
-            content = f"[{names.get(msg.agent_id, 'Agent')}] {content}"
-        history.append({"role": str(msg.role), "content": content})
+        if msg.role == MessageRole.USER:
+            turns.append((msg, []))
+        elif msg.role == MessageRole.ASSISTANT and turns:
+            turns[-1][1].append(msg)
+
+    history: list[dict] = []
+    for question, answers in turns[-CHAT_HISTORY_TURNS:]:
+        history.append({"role": "user", "content": _excerpt(question.content)})
+        synthesis = [m for m in answers if (m.message_metadata or {}).get("is_synthesis")]
+        kept = synthesis[-1:] or answers
+        if kept:
+            history.append(
+                {
+                    "role": "assistant",
+                    "content": "\n\n".join(
+                        f"[{names.get(m.agent_id, 'Agent')}] {_excerpt(m.content)}" for m in kept
+                    ),
+                }
+            )
     return history
 
 
-@router.post("/sessions/{session_id}/stream")
-async def stream_message(
+async def chat_events(
+    db: AsyncSession,
+    registry: AgentRegistry,
     session_id: UUID,
     body: StreamMessageRequest,
-    db: AsyncSession = Depends(get_db),
-    registry: AgentRegistry = Depends(get_registry),
-):
-    session = await db.get(SimulationSession, session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="session not found")
+    should_stop: Callable[[], bool] = lambda: False,
+) -> AsyncIterator[tuple[str, dict]]:
+    """Answer one chat message as (event, data) pairs, for SSE and the WebSocket alike.
 
+    ``should_stop`` is checked after every token: once it is true the current answer is cut
+    short, kept as an interrupted message, and no further agent or synthesis runs.
+    """
     history = await _chat_history(db, session_id, registry)
 
     seq = await _next_sequence(db, session_id)
@@ -505,10 +608,17 @@ async def stream_message(
     agent_slugs = list(dict.fromkeys(body.agents or ["coordinator"]))
     # Every agent, the Coordinator's synthesis included, answers in the question's language.
     language = detect_language(body.message)
-    # A greeting or thanks gets one short reply, not four legal assessments.
-    conversation = is_conversational(body.message)
+    # Greetings, questions about the assistant and off-topic questions get one short reply,
+    # not four legal assessments.
+    previous = next((t["content"] for t in reversed(history) if t["role"] == "user"), None)
+    kind = await classify(body.message, registry.llm, previous=previous)
+    conversation = kind != MessageKind.QUESTION
     if conversation:
         agent_slugs = ["coordinator"]
+    # A follow-up ("and for ICP?") is searched with the topic it refers to.
+    search_query = body.message
+    if not conversation:
+        search_query = await standalone_query(body.message, history, registry.llm)
 
     async def run_agent(
         agent_slug: str,
@@ -518,20 +628,20 @@ async def stream_message(
         responding_to: list[str] | None = None,
         support: list[str] | None = None,
         sources: list[dict] | None = None,
-        light: bool = False,
+        light: MessageKind | None = None,
     ):
         """Stream one agent's answer as SSE events, then persist and audit it.
 
-        ``light`` answers a conversational message briefly, without retrieval.
+        ``light`` answers a greeting, identity or off-topic message briefly, without retrieval.
         """
         is_synthesis = responding_to is not None
         try:
             agent = await registry.get(agent_slug)
         except KeyError:
-            yield sse_event("error", {"agent_slug": agent_slug, "message": "agent not found"})
+            yield ("error", {"agent_slug": agent_slug, "message": "agent not found"})
             return
 
-        yield sse_event(
+        yield (
             "agent_start",
             {
                 "agent_slug": agent_slug,
@@ -545,10 +655,11 @@ async def stream_message(
         thinking_acc = ""
         content_acc = ""
         stream_error: str | None = None
+        stopped = False
 
         try:
             stream = (
-                agent.stream_conversation(message, history=history, language=language)
+                agent.stream_conversation(message, history=history, language=language, kind=light)
                 if light
                 else agent.stream_tagged(
                     message,
@@ -557,23 +668,28 @@ async def stream_message(
                     language=language,
                     support=support,
                     sources=sources,
+                    query=None if is_synthesis else search_query,
                 )
             )
             async for channel, chunk in stream:
+                if should_stop():
+                    stopped = True
+                    await stream.aclose()
+                    break
                 if channel == "thinking":
                     thinking_acc += chunk
-                    yield sse_event("thinking_chunk", {"agent_slug": agent_slug, "content": chunk})
+                    yield ("thinking_chunk", {"agent_slug": agent_slug, "content": chunk})
                 elif channel == "final_thinking":
                     thinking_acc = chunk
                 elif channel == "final":
                     content_acc = chunk
                 else:
                     content_acc += chunk
-                    yield sse_event("content_chunk", {"agent_slug": agent_slug, "content": chunk})
+                    yield ("content_chunk", {"agent_slug": agent_slug, "content": chunk})
         except Exception as exc:
             stream_error = str(exc)
             logger.error("stream.llm_failed", agent=agent_slug, error=stream_error)
-            yield sse_event("error", {"agent_slug": agent_slug, "message": stream_error})
+            yield ("error", {"agent_slug": agent_slug, "message": stream_error})
 
         references = agent.last_references or []
         leaked, content_acc = split_leaked_reasoning(content_acc)
@@ -581,7 +697,11 @@ async def stream_message(
             thinking_acc = f"{thinking_acc}\n{leaked}".strip()
         try:
             final_content = content_acc or (
-                f"(stream interrupted: {stream_error})" if stream_error else "(no content)"
+                f"(stream interrupted: {stream_error})"
+                if stream_error
+                else "(stopped)"
+                if stopped
+                else "(no content)"
             )
             asst_msg = Message(
                 session_id=session_id,
@@ -608,7 +728,7 @@ async def stream_message(
                 await audit.log_retrieval(
                     session_id=session_id,
                     agent_id=agent.agent.id,
-                    query=message,
+                    query=search_query,
                     references=references,
                 )
             if responding_to:
@@ -636,7 +756,7 @@ async def stream_message(
                 )
             await db.commit()
 
-            if content_acc and not stream_error:
+            if content_acc and not stream_error and not stopped:
                 answers.append(
                     {
                         "slug": agent_slug,
@@ -645,7 +765,7 @@ async def stream_message(
                         "references": references,
                     }
                 )
-            yield sse_event(
+            yield (
                 "agent_done",
                 {
                     "agent_slug": agent_slug,
@@ -654,14 +774,15 @@ async def stream_message(
                     "thinking": thinking_acc,
                     "references": _reference_summaries(references),
                     "references_count": len(references),
-                    "interrupted": stream_error is not None,
+                    "interrupted": stream_error is not None or stopped,
+                    "stopped": stopped,
                     "is_synthesis": is_synthesis,
                 },
             )
         except Exception as persist_exc:
             logger.error("stream.persist_failed", agent=agent_slug, error=str(persist_exc))
             await db.rollback()
-            yield sse_event(
+            yield (
                 "error", {"agent_slug": agent_slug, "message": f"persist failed: {persist_exc}"}
             )
 
@@ -674,7 +795,7 @@ async def stream_message(
     team = len(specialists) > 1 or (len(specialists) == 1 and "coordinator" in agent_slugs)
 
     async def event_generator():
-        yield sse_event(
+        yield (
             "user_message_saved",
             {
                 "message_id": str(user_msg.id),
@@ -682,15 +803,19 @@ async def stream_message(
                 "team": team,
                 "agents": specialists if team else agent_slugs,
                 "conversation": conversation,
+                "kind": str(kind),
             },
         )
 
         answers: list[dict] = []
         for agent_slug in specialists if team else agent_slugs:
-            async for event in run_agent(agent_slug, body.message, answers, light=conversation):
+            light = kind if conversation else None
+            async for event in run_agent(agent_slug, body.message, answers, light=light):
                 yield event
+            if should_stop():
+                break
 
-        if team and answers:
+        if team and answers and not should_stop():
             parts = [f"Question: {body.message}\n", "Independent agent answers:"]
             # Each agent numbered its own excerpts; one list makes each number mean one source.
             team_sources, mappings = merge_references([a["references"] for a in answers])
@@ -713,9 +838,82 @@ async def stream_message(
             ):
                 yield event
 
-        yield sse_event("done", {})
+        yield ("done", {"stopped": should_stop()})
 
-    return EventSourceResponse(event_generator())
+    async for event in event_generator():
+        yield event
+
+
+@router.post("/sessions/{session_id}/stream")
+async def stream_message(
+    session_id: UUID,
+    body: StreamMessageRequest,
+    db: AsyncSession = Depends(get_db),
+    registry: AgentRegistry = Depends(get_registry),
+):
+    """Answer a chat message as server-sent events (one-way; see the WebSocket for Stop)."""
+    session = await db.get(SimulationSession, session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="session not found")
+
+    async def events():
+        async for name, data in chat_events(db, registry, session_id, body):
+            yield sse_event(name, data)
+
+    return EventSourceResponse(events())
+
+
+@router.websocket("/ws/sessions/{session_id}/chat")
+async def chat_socket(websocket: WebSocket, session_id: UUID):
+    """Two-way chat channel.
+
+    The client sends {"type": "ask", "message": ..., "agents": [...]} and receives the same
+    events as the SSE endpoint as {"event": ..., "data": ...}. While an answer is streaming it
+    may send {"type": "stop"}: the answer is cut short and the model stops generating.
+    """
+    await websocket.accept()
+    registry: AgentRegistry = websocket.app.state.registry
+    async with AsyncSessionLocal() as db:
+        if await db.get(SimulationSession, session_id) is None:
+            await websocket.send_json({"event": "error", "data": {"message": "session not found"}})
+            await websocket.close(code=4404)
+            return
+
+    try:
+        while True:
+            request = await websocket.receive_json()
+            if request.get("type") != "ask":
+                continue
+            try:
+                body = StreamMessageRequest(
+                    message=request.get("message", ""), agents=request.get("agents") or []
+                )
+            except ValidationError as exc:
+                await websocket.send_json({"event": "error", "data": {"message": str(exc)}})
+                continue
+
+            stop = asyncio.Event()
+
+            async def listen_for_stop(stop: asyncio.Event = stop) -> None:
+                while True:
+                    message = await websocket.receive_json()
+                    if message.get("type") == "stop":
+                        stop.set()
+                        return
+
+            listener = asyncio.create_task(listen_for_stop())
+            try:
+                async with AsyncSessionLocal() as db:
+                    async for name, data in chat_events(
+                        db, registry, session_id, body, should_stop=stop.is_set
+                    ):
+                        await websocket.send_json({"event": name, "data": data})
+            finally:
+                listener.cancel()
+                with contextlib.suppress(asyncio.CancelledError, WebSocketDisconnect):
+                    await listener
+    except WebSocketDisconnect:
+        logger.info("chat_socket.closed", session=str(session_id))
 
 
 # ============================================================================

@@ -84,7 +84,7 @@ export async function renderAudit(container, { id }) {
 
   container.append(
     // Both a simulation and a chat link here, so "back" returns to whichever it was.
-    h("a", { class: "back-link", href: `#/simulation/${id}`, text: t("audit.back"), onclick: (e) => { e.preventDefault(); history.back(); } }),
+    h("a", { class: "back-link", href: `/simulation/${id}`, text: t("audit.back"), onclick: (e) => { e.preventDefault(); e.stopPropagation(); history.back(); } }),
     h("header", { class: "page-head" }, h("div", {}, h("h1", { text: t("audit.title") })), exportBtn),
     stats,
     h("div", { class: "toolbar audit-toolbar" }, actionTabs, agentFilter, search),

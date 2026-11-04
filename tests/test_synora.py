@@ -246,6 +246,38 @@ async def test_chat_list_names_conversations_by_their_first_question(client):
     assert without_question not in titles
 
 
+@pytest.mark.asyncio
+async def test_chats_can_be_renamed_and_deleted(client):
+    r = await client.post("/api/sessions", json={})
+    assert r.json()["title"] is None
+    chat_id = r.json()["id"]
+    async with AsyncSessionLocal() as db:
+        db.add(Message(session_id=chat_id, role=MessageRole.USER, content="first", sequence=1))
+        await db.commit()
+
+    r = await client.patch(f"/api/chats/{chat_id}", json={"title": "  PDPL   questions "})
+    assert r.status_code == 200
+    assert r.json()["title"] == "PDPL questions"
+    titles = {c["id"]: c["title"] for c in (await client.get("/api/chats")).json()}
+    assert titles[chat_id] == "PDPL questions"
+    assert (await client.get(f"/api/sessions/{chat_id}")).json()["title"] == "PDPL questions"
+
+    assert (await client.patch(f"/api/chats/{chat_id}", json={"title": "   "})).status_code == 422
+
+    r = await client.delete(f"/api/chats/{chat_id}")
+    assert r.status_code == 204
+    assert chat_id not in {c["id"] for c in (await client.get("/api/chats")).json()}
+    assert (await client.get(f"/api/sessions/{chat_id}")).status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_scenario_runs_cannot_be_deleted_as_chats(client):
+    golden = (await client.get("/api/scenarios")).json()[0]
+    run_id = (await client.post("/api/sessions", json={"scenario_id": golden["id"]})).json()["id"]
+    assert (await client.delete(f"/api/chats/{run_id}")).status_code == 404
+    assert (await client.get(f"/api/sessions/{run_id}")).status_code == 200
+
+
 # ============================================================================
 # LLM-backed tests — slow (skip unless RUN_SLOW=1)
 # ============================================================================
@@ -335,3 +367,133 @@ async def test_full_scenario_flow(client):
         if e["action"] == "decision" and e["reasoning"]:
             assert "<thinking>" not in e["reasoning"]
             assert "<response>" not in e["reasoning"]
+
+
+def test_chat_socket_rejects_unknown_sessions():
+    from starlette.testclient import TestClient
+
+    with TestClient(app) as test_client:
+        socket_path = "/api/ws/sessions/00000000-0000-0000-0000-000000000000/chat"
+        with test_client.websocket_connect(socket_path) as ws:
+            assert ws.receive_json() == {
+                "event": "error", "data": {"message": "session not found"}
+            }
+
+
+@pytest.mark.asyncio
+async def test_stop_cuts_an_answer_short_and_keeps_it(client):
+    from types import SimpleNamespace
+    from uuid import UUID
+
+    from synora.api.routes import chat_events
+    from synora.schemas.chat import StreamMessageRequest
+
+    session_id = (await client.post("/api/sessions", json={})).json()["id"]
+    privacy = next(a for a in (await client.get("/api/agents")).json() if a["slug"] == "privacy")
+    tokens_sent = 0
+
+    async def stream_tagged(message, **kwargs):
+        nonlocal tokens_sent
+        for i in range(100):
+            tokens_sent += 1
+            yield ("content", f"token{i} ")
+
+    agent = SimpleNamespace(
+        agent=SimpleNamespace(id=UUID(privacy["id"]), name="Privacy", role="privacy"),
+        stream_tagged=stream_tagged,
+        last_references=[],
+    )
+
+    async def get(slug):
+        return agent
+
+    registry = SimpleNamespace(get=get, items=lambda: [], llm=None)
+    body = StreamMessageRequest(message="What does the PDPL say?", agents=["privacy"])
+    async with AsyncSessionLocal() as db:
+        events = [
+            e async for e in chat_events(
+                db, registry, UUID(session_id), body, should_stop=lambda: tokens_sent >= 3
+            )
+        ]
+    done = next(data for name, data in events if name == "agent_done")
+    assert done["stopped"] and done["interrupted"]
+    assert tokens_sent < 10
+    assert events[-1] == ("done", {"stopped": True})
+
+
+@pytest.mark.asyncio
+async def test_editing_removes_a_chat_message_and_what_follows(client):
+    from uuid import UUID
+
+    session_id = (await client.post("/api/sessions", json={})).json()["id"]
+    async with AsyncSessionLocal() as db:
+        for seq, (role, text) in enumerate(
+            [(MessageRole.USER, "first"), (MessageRole.ASSISTANT, "a1"),
+             (MessageRole.USER, "second"), (MessageRole.ASSISTANT, "a2")], start=1
+        ):
+            db.add(Message(session_id=UUID(session_id), role=role, content=text, sequence=seq))
+        await db.commit()
+    messages = (await client.get(f"/api/sessions/{session_id}/messages")).json()
+    second = next(m for m in messages if m["content"] == "second")
+    answer = next(m for m in messages if m["content"] == "a1")
+
+    r = await client.delete(f"/api/sessions/{session_id}/messages/{answer['id']}/onward")
+    assert r.status_code == 409
+
+    r = await client.delete(f"/api/sessions/{session_id}/messages/{second['id']}/onward")
+    assert r.json() == {"deleted": 2}
+    left = [m["content"] for m in (await client.get(f"/api/sessions/{session_id}/messages")).json()]
+    assert left == ["first", "a1"]
+
+
+@pytest.mark.asyncio
+async def test_scenario_runs_cannot_be_edited(client):
+    golden = next(s for s in (await client.get("/api/scenarios")).json())
+    from uuid import UUID
+
+    r = await client.post("/api/sessions", json={"scenario_id": golden["id"]})
+    session_id = r.json()["id"]
+
+    async with AsyncSessionLocal() as db:
+        msg = Message(session_id=UUID(session_id), role=MessageRole.USER, content="x", sequence=1)
+        db.add(msg)
+        await db.commit()
+        msg_id = msg.id
+    r = await client.delete(f"/api/sessions/{session_id}/messages/{msg_id}/onward")
+    assert r.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_chat_history_keeps_whole_turns_with_the_final_answer(client):
+    from uuid import UUID
+
+    from synora.api.routes import _chat_history
+
+    chat_id = UUID((await client.post("/api/sessions", json={})).json()["id"])
+    rows = []
+    for turn in range(1, 6):
+        rows.append((MessageRole.USER, f"question {turn}", {}))
+        for agent in ("icp", "auditor", "privacy"):
+            rows.append((MessageRole.ASSISTANT, f"{agent} on {turn}", {"is_synthesis": False}))
+        rows.append((MessageRole.ASSISTANT, f"final {turn}", {"is_synthesis": True}))
+    async with AsyncSessionLocal() as db:
+        for seq, (role, content, meta) in enumerate(rows, start=1):
+            db.add(
+                Message(
+                    session_id=chat_id, role=role, content=content, sequence=seq,
+                    message_metadata=meta,
+                )
+            )
+        await db.commit()
+
+    class NoAgents:
+        def items(self):
+            return []
+
+    async with AsyncSessionLocal() as db:
+        history = await _chat_history(db, chat_id, NoAgents())
+
+    assert [m["role"] for m in history] == ["user", "assistant"] * 4
+    assert history[0]["content"] == "question 2"
+    assert history[1]["content"] == "[Agent] final 2"
+    assert history[-1]["content"] == "[Agent] final 5"

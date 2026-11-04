@@ -2,7 +2,10 @@ import { api } from "../js/api.js";
 import { AGENTS, agentColor, agentName } from "../js/agents.js";
 import { addStrings, duration, language, t } from "../js/i18n.js";
 import { h, renderAnswer } from "../js/render.js";
-import { streamPost } from "../js/sse.js";
+import { createAgentPicker } from "../js/agentPicker.js";
+import { ChatSocket } from "../js/chatSocket.js";
+import { setAddress } from "../js/router.js";
+import { setPageTitle } from "../js/shell.js";
 
 const TEAM = ["icp", "auditor", "privacy", "coordinator"];
 
@@ -24,12 +27,17 @@ const SUGGESTIONS = {
 addStrings({
   en: {
     "chat.title": "What should the agents look into?",
-    "chat.mode": "Who answers",
-    "chat.mode.team": "Team · 4 agents",
-    "chat.mode.only": "{name} only",
     "chat.placeholder": "Message Mathuq…",
     "chat.message": "Message",
     "chat.send": "Send",
+    "chat.stop": "Stop answering",
+    "chat.copy": "Copy",
+    "chat.copied": "Copied",
+    "chat.edit": "Edit",
+    "chat.save": "Send",
+    "chat.cancel": "Cancel",
+    "chat.editFailed": "The message could not be edited: {error}",
+    "chat.stopped": "Stopped.",
     "chat.team": "Mathuq team",
     "chat.flow": "{names} → Coordinator",
     "chat.status.team": "The team is thinking",
@@ -56,12 +64,17 @@ addStrings({
   },
   ar: {
     "chat.title": "ما الذي تريد من الوكلاء دراسته؟",
-    "chat.mode": "من يجيب",
-    "chat.mode.team": "الفريق · 4 وكلاء",
-    "chat.mode.only": "{name} فقط",
     "chat.placeholder": "اكتب رسالتك إلى موثوق…",
     "chat.message": "الرسالة",
     "chat.send": "إرسال",
+    "chat.stop": "إيقاف الإجابة",
+    "chat.copy": "نسخ",
+    "chat.copied": "تم النسخ",
+    "chat.edit": "تعديل",
+    "chat.save": "إرسال",
+    "chat.cancel": "إلغاء",
+    "chat.editFailed": "تعذّر تعديل الرسالة: {error}",
+    "chat.stopped": "تم الإيقاف.",
     "chat.team": "فريق موثوق",
     "chat.flow": "{names} ← المنسّق",
     "chat.status.team": "الفريق يفكّر",
@@ -132,6 +145,40 @@ function takePresetMode() {
   }
 }
 
+
+const COPY_ICON = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H10V7h9v14z"/></svg>';
+const CHECK_ICON = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>';
+const EDIT_ICON = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zM20.7 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    // Older browsers and non-secure origins: copy through a temporary text area.
+    const area = h("textarea", { style: { position: "fixed", opacity: "0" } });
+    area.value = text;
+    document.body.append(area);
+    area.select();
+    document.execCommand("copy");
+    area.remove();
+  }
+}
+
+/** An icon button that copies text() and briefly shows a check mark. */
+function copyButton(text) {
+  const button = h("button", { class: "icon-action", type: "button", title: t("chat.copy"), "aria-label": t("chat.copy"), html: COPY_ICON });
+  button.addEventListener("click", async () => {
+    await copyText(text());
+    button.innerHTML = CHECK_ICON;
+    button.title = t("chat.copied");
+    setTimeout(() => {
+      button.innerHTML = COPY_ICON;
+      button.title = t("chat.copy");
+    }, 1500);
+  });
+  return button;
+}
+
 const logo = () => [
   h("img", { class: "logo logo-on-light", src: "/logo-black.svg", alt: "", width: 28, height: 28 }),
   h("img", { class: "logo logo-on-dark", src: "/logo-white.svg", alt: "", width: 28, height: 28 }),
@@ -169,6 +216,13 @@ function createTurn({ team, agents, conversation = false, sessionId = null }) {
     if (!el.isConnected) return clearInterval(tick);
     timer.textContent = duration(Date.now() - started);
   }, 1000);
+
+  // Copy the answer as it reads on screen: the prose of the final answer, without sources.
+  function addCopy() {
+    const prose = answer.querySelector(".answer .prose");
+    if (!prose || el.querySelector(".turn-actions")) return;
+    answer.after(h("div", { class: "turn-actions" }, copyButton(() => prose.innerText.trim())));
+  }
 
   const bySlug = {};
   let finalText = "";
@@ -227,6 +281,14 @@ function createTurn({ team, agents, conversation = false, sessionId = null }) {
       if (data.thinking) s.text.textContent = data.thinking;
       if (!s.text.textContent.trim()) s.text.replaceWith(h("div", { class: "step-empty", text: t("chat.step.noReasoning") }));
       const text = data.content || s.content;
+      if (data.stopped || text === "(stopped)") {
+        // Stopped by the user: keep whatever was written, marked as stopped.
+        s.node.dataset.state = "done";
+        s.meta.textContent = t("chat.stopped");
+        const partial = text && text !== "(stopped)" ? renderAnswer(text, []) : null;
+        answer.replaceChildren(...[partial, h("p", { class: "muted stopped-note", text: t("chat.stopped") })].filter(Boolean));
+        return;
+      }
       if (data.interrupted || /^\(stream interrupted/.test(text)) {
         s.node.dataset.state = "failed";
         s.meta.textContent = t("chat.step.failed");
@@ -259,13 +321,15 @@ function createTurn({ team, agents, conversation = false, sessionId = null }) {
       const count = Object.keys(bySlug).length;
       if (conversation) {
         if (!answer.childElementCount) answer.append(h("p", { class: "muted", text: t("chat.noAnswer") }));
+        addCopy();
         return;
       }
       statusText.textContent = t("chat.cotTime", { time: duration(Date.now() - started) });
       timer.textContent = team ? t("chat.agentCount", { n: count }) : "";
       think.classList.add("finished");
       if (!answer.childElementCount) answer.append(h("p", { class: "muted", text: t("chat.noAnswer") }));
-      if (sessionId) answer.append(h("a", { class: "audit-link", href: `#/audit/${sessionId}`, text: t("chat.audit") }));
+      addCopy();
+      if (sessionId) answer.append(h("a", { class: "audit-link", href: `/audit/${sessionId}`, text: t("chat.audit") }));
     },
   };
 }
@@ -307,7 +371,13 @@ function restoreTurn(assistantMsgs, agentsById, sessionId) {
   return turn.el;
 }
 
+// One open chat socket at a time: leaving or re-rendering the chat closes the previous one.
+let activeSocket = null;
+
 export async function renderChat(container, params = {}) {
+  activeSocket?.close();
+  activeSocket = null;
+  let socket = null;
   const thread = h("div", { class: "thread", "aria-live": "polite" });
   const empty = h("div", { class: "chat-empty" },
     h("h1", { text: t("chat.title") }),
@@ -316,17 +386,14 @@ export async function renderChat(container, params = {}) {
     ),
   );
   const status = h("p", { class: "error", role: "alert" });
-  const mode = h("select", { class: "mode-select", "aria-label": t("chat.mode") },
-    h("option", { value: "team", text: t("chat.mode.team") }),
-    Object.keys(AGENTS).map((slug) => h("option", { value: slug, text: t("chat.mode.only", { name: agentName(slug) }) })),
-  );
+  const mode = createAgentPicker("team");
   const preset = takePresetMode();
   if (preset && (preset === "team" || AGENTS[preset])) mode.value = preset;
   const input = h("textarea", { class: "composer-input", rows: 1, dir: "auto", placeholder: t("chat.placeholder"), "aria-label": t("chat.message") });
   const send = h("button", { class: "send-btn", type: "submit", "aria-label": t("chat.send"), html: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 4l-7 7h4.5v9h5v-9H19z"/></svg>' });
   const form = h("form", { class: "composer2" },
     h("div", { class: "chat-col" },
-      h("div", { class: "composer-box" }, input, h("div", { class: "composer-row2" }, mode, h("span", { style: { flex: 1 } }), send)),
+      h("div", { class: "composer-box" }, input, h("div", { class: "composer-row2" }, mode.el, h("span", { style: { flex: 1 } }), send)),
     ),
   );
 
@@ -367,9 +434,15 @@ export async function renderChat(container, params = {}) {
   }
 
   // Restore the conversation of this browser tab.
+  // A name given in the sidebar wins over the first question.
+  let savedTitle = null;
   if (sessionId) {
     try {
-      const messages = await api(`/sessions/${sessionId}/messages`);
+      const [session, messages] = await Promise.all([
+        api(`/sessions/${sessionId}`),
+        api(`/sessions/${sessionId}/messages`),
+      ]);
+      savedTitle = session.title;
       let group = null;
       const flush = () => {
         if (group?.length) thread.append(restoreTurn(group, agentsById, sessionId));
@@ -378,7 +451,7 @@ export async function renderChat(container, params = {}) {
       for (const m of messages) {
         if (m.role === "user") {
           flush();
-          thread.append(h("div", { class: "user-msg", dir: "auto", text: m.content }));
+          thread.append(userRow(m.content, m.id));
           group = [];
         } else if (m.role === "assistant" && group) {
           group.push(m);
@@ -391,20 +464,116 @@ export async function renderChat(container, params = {}) {
     }
   }
   setEmpty(thread.childElementCount === 0);
+  // A chat is named after its first question, as in the Recent list, unless it was renamed.
+  const chatTitle = () => savedTitle || thread.querySelector(".user-row .user-msg")?.textContent;
+  setPageTitle(chatTitle() || t("nav.newChat"));
+  const onRename = (e) => {
+    if (!layout.isConnected) return window.removeEventListener("chat-renamed", onRename);
+    if (e.detail.id !== sessionId) return;
+    savedTitle = e.detail.title;
+    setPageTitle(chatTitle());
+  };
+  window.addEventListener("chat-renamed", onRename);
   follow(true);
+
+  const SEND_ICON = send.innerHTML;
+  const STOP_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor"/></svg>';
+  let busy = false;
+  function setBusy(value) {
+    busy = value;
+    input.disabled = mode.disabled = value;
+    send.innerHTML = value ? STOP_ICON : SEND_ICON;
+    send.setAttribute("aria-label", t(value ? "chat.stop" : "chat.send"));
+    send.title = t(value ? "chat.stop" : "chat.send");
+    send.classList.toggle("stop", value);
+  }
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (busy) {
+      socket?.stop();
+      return;
+    }
     const text = input.value.trim();
-    if (!text || send.disabled) return;
+    if (!text) return;
 
-    send.disabled = input.disabled = mode.disabled = true;
-    status.textContent = "";
-    setEmpty(false);
-    thread.append(h("div", { class: "user-msg", dir: "auto", text }));
-    follow(true);
     input.value = "";
     autosize();
+    await sendMessage(text);
+  });
+
+  /** A sent message with copy and edit actions; editing resends it in place. */
+  function userRow(text, messageId) {
+    const bubble = h("div", { class: "user-msg", dir: "auto", text });
+    const actions = h("div", { class: "msg-actions" },
+      copyButton(() => text),
+      h("button", { class: "icon-action", type: "button", title: t("chat.edit"), "aria-label": t("chat.edit"), html: EDIT_ICON, onclick: () => startEdit() }),
+    );
+    const row = h("div", { class: "user-row" }, bubble, actions);
+    if (messageId) row.dataset.messageId = messageId;
+
+    function startEdit() {
+      if (busy) return;
+      const area = h("textarea", { class: "edit-input", dir: "auto", rows: 2, "aria-label": t("chat.edit") });
+      area.value = text;
+      const editor = h("div", { class: "user-edit" },
+        area,
+        h("div", { class: "edit-buttons" },
+          h("button", { class: "btn sm", type: "button", text: t("chat.cancel"), onclick: () => cancel() }),
+          h("button", { class: "btn sm primary", type: "button", text: t("chat.save"), onclick: () => save(area.value.trim()) }),
+        ),
+      );
+      area.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          save(area.value.trim());
+        } else if (e.key === "Escape") {
+          cancel();
+        }
+      });
+      const grow = () => {
+        area.style.height = "auto";
+        area.style.height = `${area.scrollHeight}px`;
+      };
+      area.addEventListener("input", grow);
+      function cancel() {
+        row.classList.remove("editing");
+        editor.replaceWith(bubble, actions);
+      }
+      row.classList.add("editing");
+      bubble.replaceWith(editor);
+      actions.remove();
+      requestAnimationFrame(grow);
+      area.focus();
+      area.setSelectionRange(area.value.length, area.value.length);
+    }
+
+    async function save(newText) {
+      if (!newText || busy) return;
+      try {
+        if (row.dataset.messageId && sessionId) {
+          await api(`/sessions/${sessionId}/messages/${row.dataset.messageId}/onward`, { method: "DELETE" });
+        }
+      } catch (err) {
+        status.textContent = t("chat.editFailed", { error: err.message });
+        return;
+      }
+      // Everything from this message on is replaced by the new question and its answer.
+      while (row.nextSibling) row.nextSibling.remove();
+      row.remove();
+      await sendMessage(newText);
+    }
+    return row;
+  }
+
+  async function sendMessage(text) {
+    setBusy(true);
+    status.textContent = "";
+    setEmpty(false);
+    const row = userRow(text);
+    thread.append(row);
+    setPageTitle(chatTitle());
+    follow(true);
 
     const agents = mode.value === "team" ? TEAM : [mode.value];
     let turn = null;
@@ -413,10 +582,15 @@ export async function renderChat(container, params = {}) {
         const s = await api("/sessions", { method: "POST", body: JSON.stringify({}) });
         sessionId = s.id;
         storeSession(sessionId);
-        history.replaceState(null, "", `#/chat/${sessionId}`);
+        setAddress(`/chat/${sessionId}`);
       }
-      await streamPost(`/sessions/${sessionId}/stream`, { message: text, agents }, (event, data) => {
+      if (!socket || socket.sessionId !== sessionId) {
+        socket?.close();
+        socket = activeSocket = new ChatSocket(sessionId);
+      }
+      await socket.ask(text, agents, (event, data) => {
         if (event === "user_message_saved") {
+          row.dataset.messageId = data.message_id;
           turn = createTurn({
             team: data.team,
             agents: data.agents?.length ? data.agents : agents,
@@ -439,9 +613,9 @@ export async function renderChat(container, params = {}) {
     }
     turn?.finish();
     follow();
-    send.disabled = input.disabled = mode.disabled = false;
+    setBusy(false);
     input.focus();
-  });
+  }
 
   input.focus();
 }

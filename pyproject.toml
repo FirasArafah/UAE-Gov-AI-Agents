@@ -5,7 +5,11 @@ description = "Multi-agent AI system for detecting algorithmic bias in governmen
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
 license = { text = "MIT" }
-authors = [{ name = "Team SYNORA" }]
+authors = [
+    { name = "Firas Arafah" },
+    { name = "Motaz Abu Amara" },
+    { name = "Maria Dawaghreh" },
+]
 
 dependencies = [
     "fastapi>=0.115.0",

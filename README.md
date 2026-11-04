@@ -82,22 +82,23 @@ least 10 GB of memory (`memory=10GB` in `%USERPROFILE%\.wslconfig`, then `wsl --
 
 The interface is available in **English and Arabic** (button at the bottom of the sidebar) and in
 light and dark themes; both choices are remembered by the browser. Every address has the form
-`http://localhost:5173/#/<page>`.
+`http://localhost:5173/<page>`.
 
-- **Chat** (`#/`): ask the whole team or one agent. Agents answer in the language of the
+- **Chat** (`/`): ask the whole team or one agent. Agents answer in the language of the
   question. In team mode the ICP Representative, AI Auditor and Privacy Consultant assess the
   question independently and the Coordinator writes the final answer; each agent's chain of
   thought streams live in the collapsible panel above it, with its sources and any citation
-  warnings. Past conversations are listed under *Recent*.
-- **Simulations** (`#/simulations`): start a scenario and reopen previous runs.
-- **Simulation** (`#/simulation/<id>`): release events one at a time, read each agency's
+  warnings. Agents remember the last four questions and answers of the conversation. Past
+  conversations are listed under *Recent*, where the ⋯ menu renames or deletes them.
+- **Simulations** (`/simulations`): start a scenario and reopen previous runs.
+- **Simulation** (`/simulation/<id>`): release events one at a time, read each agency's
   assessment with its reasoning and sources, the Coordinator's synthesis, and build the policy
   gap report. An event interrupted part-way can be completed from the page.
-- **Audit log** (`#/audit/<id>`): every retrieval, reasoning trace, decision, hand-off and gap
+- **Audit log** (`/audit/<id>`): every retrieval, reasoning trace, decision, hand-off and gap
   report of a run, filterable and exportable as JSON.
-- **Agents** (`#/agents`): each agency's role, mandate and primary sources, and how a team
+- **Agents** (`/agents`): each agency's role, mandate and primary sources, and how a team
   answer is made.
-- **Knowledge base** (`#/kb`): search the passages the agents retrieve from, and browse the
+- **Knowledge base** (`/kb`): search the passages the agents retrieve from, and browse the
   national and international documents.
 
 ## Running the scenario
@@ -124,6 +125,28 @@ Repeat `advance` for each event; `language` may be `en` or `ar`.
 | 4 | Coordinated response decision | Coordinator | decides on the specialists' earlier assessments |
 | 5 | Contested authority (controversy) | ICP, Privacy, Auditor | independent + synthesis |
 | 6 | Policy gap report | Auditor, Privacy | independent + synthesis |
+
+## Assistant identity and light replies
+
+Greetings, thanks and off-topic questions get one short reply instead of a full team run, and
+"who are you / who made you" is answered instantly from `data/assistant_profile.json` (name,
+makers and description in English and Arabic). Edit that file to change the answer; no restart
+is needed.
+
+## Safeguards
+
+- **Prompt injection.** Messages that try to override or extract the agents' instructions
+  ("ignore your instructions", "show your system prompt", "developer mode", and their Arabic
+  forms) get a fixed refusal without reaching the model. Every agent prompt states that the
+  question, the conversation and the retrieved excerpts are data, never instructions, and the
+  control tags the output format relies on (`<thinking>`, `<response>`, chat-template markers)
+  are defused in all untrusted text, including document excerpts.
+- **Answer language.** Agents answer only in English or Arabic, following the question. Chinese,
+  Japanese, Korean and Cyrillic characters that the model occasionally slips into an answer are
+  removed from the stream before anyone sees them (`src/synora/agents/script.py`).
+- **Follow-up questions.** A follow-up such as "does that apply to ICP?" is rewritten into a
+  standalone search query from the conversation before retrieval, so the agents find the
+  passages the question is really about. The agents still answer the user's own words.
 
 ## Knowledge base export (ITU reference layout)
 
@@ -172,6 +195,7 @@ Add `--with-embeddings` to the command in the Makefile to include the bge-m3 vec
 | GET | `/api/scenarios` | Published scenarios |
 | GET/POST | `/api/sessions` | List / create sessions |
 | GET | `/api/chats` | Recent free-chat conversations |
+| PATCH / DELETE | `/api/chats/{id}` | Rename a conversation (`{"title": ...}`) / delete it with its messages and audit entries |
 | POST | `/api/sessions/{id}/start` | Start a scenario session |
 | POST | `/api/sessions/{id}/advance` | Release the next event and run the coordination protocol |
 | POST | `/api/sessions/{id}/events/{seq}/run` | Re-run a released event that has no recorded assessments |
@@ -181,6 +205,8 @@ Add `--with-embeddings` to the command in the Makefile to include the bge-m3 vec
 | GET/POST | `/api/sessions/{id}/gaps` | Read / build the policy gap report |
 | GET | `/api/sessions/{id}/audit` | Full audit trail |
 | POST | `/api/sessions/{id}/stream` | Free-chat answers over SSE |
+| WS | `/api/ws/sessions/{id}/chat` | Free chat over a WebSocket: `{"type": "ask", ...}` streams the answer, `{"type": "stop"}` cuts it short |
+| DELETE | `/api/sessions/{id}/messages/{message_id}/onward` | Remove a chat message and what follows, to resend it edited |
 | GET | `/api/documents` | Knowledge base coverage |
 | GET | `/api/kb/search?q=` | Run retrieval directly |
 
@@ -221,7 +247,16 @@ data/          knowledge base sources and scenarios
 - The Arabic edition of Cabinet Resolution 65/2022 is not ingested, because its PDF text extracts
   as broken words. The English edition is.
 - The Arabic UNESCO PDF extracts with a recurring error in one letter pair. It stays readable.
-- Sessions are kept as immutable audit records; there is no delete endpoint.
+- Scenario runs are kept as immutable audit records and cannot be deleted; only free chats can.
+
+## Team
+
+Mathuq was developed by the **SYNORA team** for the ITU AI for Good Lab Hackathon in the United
+Arab Emirates:
+
+- **Firas Arafah** · فراس عرفة
+- **Motaz Abu Amara** · معتز ابو عمارة
+- **Maria Dawaghreh** · ماريا دواغرة
 
 ## License
 

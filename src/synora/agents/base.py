@@ -12,8 +12,9 @@ from synora.agents.citations import (
     has_wrong_script,
     repair_citations,
 )
+from synora.agents.guard import neutralise, refusal, security_rules
 from synora.agents.instruments import article_references, named_instruments
-from synora.agents.intent import CONVERSATION_PROMPT
+from synora.agents.intent import LIGHT_PROMPTS, MessageKind, identity_reply
 from synora.agents.language import NOT_COVERED, detect_language, output_contract
 from synora.agents.llm import LLMClient
 from synora.agents.types import AgentResponse, Retriever
@@ -27,9 +28,10 @@ THINKING_PATTERN = re.compile(r"<thinking>(.*?)</thinking>", re.DOTALL)
 RESPONSE_PATTERN = re.compile(r"<response>(.*?)</response>", re.DOTALL)
 
 # Orphan tag cleanup (when model produces only one of the pair)
-# Conversational replies (greetings, thanks) are short and need little history.
+# Conversational replies (greetings, thanks, "what did I ask?") are short; four turns of
+# history let them recall the conversation.
 CONVERSATION_MAX_TOKENS = 160
-CONVERSATION_HISTORY = 4
+CONVERSATION_HISTORY = 8
 
 # Tag remnants, including malformed ones the model sometimes writes ("=response>", "<response").
 TAG_REMNANT_RE = re.compile(r"[<=]\s*/?\s*(?:thinking|response)\s*>?", re.IGNORECASE)
@@ -324,7 +326,7 @@ class BaseAgent:
         return format_citation_warning(problems)
 
     def _build_system_prompt(self, references: list[dict], language: str = "en") -> str:
-        base = self.agent.system_prompt + output_contract(language)
+        base = self.agent.system_prompt + output_contract(language) + security_rules(language)
         if references:
             refs_lines = []
             for idx, ref in enumerate(references, start=1):
@@ -332,7 +334,7 @@ class BaseAgent:
                 lang = (ref.get("language") or "").upper()
                 section = ref.get("section", "")
                 page = ref.get("page") or (ref.get("metadata") or {}).get("page")
-                content = ref.get("content", "")
+                content = neutralise(ref.get("content", ""))
                 parts = [f"[{idx}] {title}" + (f" ({lang})" if lang else "")]
                 if section:
                     parts.append(str(section))
@@ -376,14 +378,16 @@ class BaseAgent:
         ]
 
         if history:
-            messages.extend(history[-10:])
+            messages.extend(
+                {**turn, "content": neutralise(turn.get("content", ""))} for turn in history[-10:]
+            )
 
-        user_content = user_message
+        user_content = neutralise(user_message)
         if context:
             ctx_lines = []
             for item in context:
                 title = item.get("title", "")
-                content = item.get("content", "")
+                content = neutralise(item.get("content", ""))
                 ctx_lines.append(f"- {title}: {content}" if title else f"- {content}")
             user_content = "Context:\n" + "\n".join(ctx_lines) + "\n\n" + user_message
 
@@ -482,14 +486,31 @@ class BaseAgent:
         user_message: str,
         history: list[dict] | None = None,
         language: str | None = None,
+        kind: MessageKind = MessageKind.CONVERSATION,
     ) -> AsyncIterator[tuple[str, str]]:
-        """A short reply to a greeting or thanks: no retrieval, no legal analysis."""
+        """A short reply without retrieval or legal analysis.
+
+        Greetings and off-topic questions get a brief model reply; questions about the assistant
+        itself get the fixed answer from its profile, without calling the model.
+        """
         self._last_references = []
         language = language or detect_language(user_message)
+        if kind == MessageKind.IDENTITY:
+            yield ("content", identity_reply(language))
+            return
+        if kind == MessageKind.INJECTION:
+            yield ("content", refusal(language))
+            return
         messages = [
-            {"role": "system", "content": CONVERSATION_PROMPT[language]},
-            *(history or [])[-CONVERSATION_HISTORY:],
-            {"role": "user", "content": user_message},
+            {
+                "role": "system",
+                "content": LIGHT_PROMPTS[kind][language] + security_rules(language),
+            },
+            *(
+                {**turn, "content": neutralise(turn.get("content", ""))}
+                for turn in (history or [])[-CONVERSATION_HISTORY:]
+            ),
+            {"role": "user", "content": neutralise(user_message)},
         ]
         async for token in self.llm.chat_stream(
             messages=messages, temperature=0.5, num_predict=CONVERSATION_MAX_TOKENS
@@ -505,11 +526,16 @@ class BaseAgent:
         language: str | None = None,
         support: list[str] | None = None,
         sources: list[dict] | None = None,
+        query: str | None = None,
     ) -> AsyncIterator[tuple[str, str]]:
         """Stream (channel, chunk) pairs: 'thinking' and 'content' as they arrive, then
         'final_thinking' and 'final' with the parsed and citation-checked text, which replace them.
+
+        ``query`` replaces the message for retrieval only, e.g. a follow-up made standalone.
         """
-        references = await self._retrieve(user_message) if use_retrieval else (sources or [])
+        references = (
+            await self._retrieve(query or user_message) if use_retrieval else (sources or [])
+        )
         self._last_references = references
         language = language or detect_language(user_message)
         excerpts = references if use_retrieval else []

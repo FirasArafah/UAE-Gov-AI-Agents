@@ -35,9 +35,13 @@ npm run build
 
 | Route | Screen |
 |---|---|
-| `#/`, `#/chat/:id` | Chat: conversation with live streaming and each agent's chain of thought |
-| `#/agents` | Agent roster |
-| `#/kb` | Knowledge base: documents and a retrieval probe |
+| `/`, `/chat/:id` | Chat: conversation over a WebSocket, each agent's chain of thought, Stop, edit and copy |
+| `/simulations`, `/simulation/:id` | Scenarios, previous runs, and one run with its events and gap report |
+| `/audit/:id` | Audit log of a run |
+| `/agents` | Agent roster |
+| `/kb` | Knowledge base: documents and search |
+
+Routing uses the History API; the dev server serves `index.html` for every page path.
 
 ## Shared code
 

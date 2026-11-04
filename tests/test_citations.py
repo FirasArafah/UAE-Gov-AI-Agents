@@ -398,3 +398,25 @@ def test_numbered_sections_name_chunks_but_contents_lines_do_not():
     labels = [label for label, _, _ in _small_ingestor()._split_into_sections(text)]
     assert any(label.startswith("1.2 Topic B") for label in labels)
     assert not any(label.endswith("32") or label.endswith("35") for label in labels)
+
+
+@pytest.mark.parametrize(
+    ("tokens", "expected"),
+    [
+        (
+            ["The model shows ", "偏见", " against", " applicants", "。"],
+            "The model shows against applicants. ",
+        ),
+        (["The ", "模型", ".", " Next"], "The. Next"),
+        (["数据保护 under the PDPL，Article (4)：rights"], "under the PDPL, Article (4): rights"),
+        (["وفقاً للمادة (4) 的 من القانون [1]."], "وفقاً للمادة (4) من القانون [1]."),
+        (["Plain ", "text.", "\n\n", "  - nested", " item"], "Plain text.\n\n  - nested item"),
+        (["Привет ", "world"], "world"),
+        (["نموذج� الفيزا"], "نموذج الفيزا"),
+    ],
+)
+def test_foreign_script_is_removed_from_streamed_answers(tokens, expected):
+    from synora.agents.script import ScriptFilter
+
+    script = ScriptFilter()
+    assert "".join(script.feed(t) for t in tokens) + script.flush() == expected

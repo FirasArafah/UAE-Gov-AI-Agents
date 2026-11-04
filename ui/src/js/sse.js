@@ -1,8 +1,9 @@
-export async function streamPost(path, body, onEvent) {
+export async function streamPost(path, body, onEvent, signal) {
   const res = await fetch("/api" + path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal,
   });
   if (!res.ok) throw new Error(res.status + " " + res.statusText);
 

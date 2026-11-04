@@ -2,6 +2,7 @@ import { api } from "../js/api.js";
 import { AGENTS, agentColor, agentInitials, agentName } from "../js/agents.js";
 import { addStrings, language, num, t } from "../js/i18n.js";
 import { h, textDir } from "../js/render.js";
+import { navigate } from "../js/router.js";
 
 addStrings({
   en: {
@@ -94,7 +95,7 @@ function scenarioCard(s) {
     try {
       const session = await api("/sessions", { method: "POST", body: JSON.stringify({ scenario_id: s.id }) });
       await api(`/sessions/${session.id}/start`, { method: "POST" });
-      location.hash = `#/simulation/${session.id}`;
+      navigate(`/simulation/${session.id}`);
     } catch (err) {
       button.disabled = false;
       button.textContent = t("sim.start");
@@ -122,7 +123,7 @@ function runRow(s, title) {
     dateStyle: "medium",
     timeStyle: "short",
   });
-  return h("a", { class: "run-row", href: `#/simulation/${s.id}` },
+  return h("a", { class: "run-row", href: `/simulation/${s.id}` },
     h("span", { class: "status-pill", "data-status": s.status, text: statusLabel(s.status) }),
     h("span", { class: "run-main" },
       h("b", { dir: textDir(title), text: title }),

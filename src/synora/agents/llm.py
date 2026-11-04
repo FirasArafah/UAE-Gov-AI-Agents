@@ -10,6 +10,7 @@ from tenacity import (
     wait_exponential,
 )
 
+from synora.agents.script import ScriptFilter, clean_text
 from synora.config import settings
 
 logger = structlog.get_logger(__name__)
@@ -60,7 +61,7 @@ class LLMClient:
                 options=self._options(temperature, num_predict),
                 **({"format": "json"} if json_mode else {}),
             )
-            return response["message"]["content"]
+            content = response["message"]["content"]
         except Exception as exc:
             logger.warning(
                 "llm.chat.failed",
@@ -68,6 +69,10 @@ class LLMClient:
                 error=str(exc),
             )
             raise
+        cleaned = clean_text(content)
+        if cleaned != content:
+            logger.info("llm.foreign_script_removed", model=self.model)
+        return cleaned
 
     async def chat_stream(
         self,
@@ -80,13 +85,22 @@ class LLMClient:
         # Model runners that run out of memory typically die before the first token.
         for attempt in range(1, STREAM_ATTEMPTS + 1):
             sent = False
+            script = ScriptFilter()
             stream = await self._open_stream(messages, temperature, num_predict)
             try:
                 async for chunk in stream:
                     content = chunk.get("message", {}).get("content", "")
                     if content:
                         sent = True
-                        yield content
+                        cleaned = script.feed(content)
+                        if cleaned:
+                            yield cleaned
+                if tail := script.flush():
+                    yield tail
+                if script.removed:
+                    logger.info(
+                        "llm.foreign_script_removed", model=self.model, chars=script.removed
+                    )
                 return
             except Exception as exc:
                 if sent or attempt == STREAM_ATTEMPTS:
