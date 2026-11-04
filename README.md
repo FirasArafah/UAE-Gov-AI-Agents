@@ -182,6 +182,8 @@ Add `--with-embeddings` to the command in the Makefile to include the bge-m3 vec
   Privacy Consultant: PDPL Article (2)).
 - **Citations.** Wrong excerpt numbers are repaired, also in streamed answers, and unsupported
   articles are flagged. A team answer has one numbered source list, so its citations are checkable.
+- **Portal pages.** `scripts/fetch_portal_pages.py` downloads official pages from u.ae as text.
+  The relevant ones were then chosen by hand.
 - **Evaluation.** `make eval-kb` runs the test set in `data/kb_eval_questions.json`. It needs no
   LLM and takes a few minutes. The latest result is in
   [docs/kb-evaluation.md](docs/kb-evaluation.md).

@@ -54,6 +54,11 @@ def test_unesco_ethics_is_not_mistaken_for_the_uae_guidelines():
     assert names == ["UNESCO"]
 
 
+def test_arabic_law_number_needs_its_year():
+    assert named_instruments("القرار رقم 14 لسنة 2010") == []
+    assert [i.name for i in named_instruments("القانون رقم 14 لسنة 2021")] == ["Decree-Law 14/2021"]
+
+
 def test_keyword_query_keeps_words_and_drops_arabic_stop_words():
     assert keyword_query("Human oversight: human (review)!") == "human | oversight | review"
     assert keyword_query("ما هي شروط دخول الأجنبي؟") == "شروط | دخول | الأجنبي"

@@ -35,7 +35,7 @@ INSTRUMENTS: tuple[Instrument, ...] = (
     ),
     _instrument(
         "Decree-Law 14/2021",
-        r"\b14\s*(?:of|/)\s*2021\b|\(14\) of 2021|رقم\s*\(?14\)?",
+        r"\b14\s*(?:of|/)\s*2021\b|\(14\) of 2021|رقم\s*\(?14\)?\s*لسنة\s*2021",
         "No. 14 of 2021",
     ),
     _instrument(
@@ -57,25 +57,25 @@ INSTRUMENTS: tuple[Instrument, ...] = (
     _instrument(
         "Labour Law",
         r"labou?r law|employment relationships?|\b33\s*(?:of|/)\s*2021\b|\(33\) of 2021"
-        r"|قانون العمل|علاقات العمل|رقم\s*\(?33\)?",
+        r"|قانون العمل|علاقات العمل|رقم\s*\(?33\)?\s*لسنة\s*2021",
         "No. 33 of 2021",
     ),
     _instrument(
         "Copyright Law",
         r"copyright law|neighbou?ring rights|\b38\s*(?:of|/)\s*2021\b|\(38\) of 2021"
-        r"|حقوق المؤلف|رقم\s*\(?38\)?",
+        r"|حقوق المؤلف|رقم\s*\(?38\)?\s*لسنة\s*2021",
         "No. 38 of 2021",
     ),
     _instrument(
         "PDPL",
         r"\bPDPL\b|personal data protection law|\b45\s*(?:of|/)\s*2021\b|\(45\) of 2021"
-        r"|قانون حماية البيانات|رقم\s*\(?45\)?",
+        r"|قانون حماية البيانات|رقم\s*\(?45\)?\s*لسنة\s*2021",
         "No. 45 of 2021",
         "رقم 45 لسنة 2021",
     ),
     _instrument(
         "Decree-Law 29/2021",
-        r"\b29\s*(?:of|/)\s*2021\b|\(29\) of 2021|entry and residence|رقم\s*\(?29\)?"
+        r"\b29\s*(?:of|/)\s*2021\b|\(29\) of 2021|entry and residence|رقم\s*\(?29\)?\s*لسنة\s*2021"
         r"|دخول وإقامة الأجانب",
         "No. 29 of 2021",
         "رقم 29 لسنة 2021",
