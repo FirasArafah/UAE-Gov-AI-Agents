@@ -431,7 +431,7 @@ class BaseAgent:
         """
         buffer = ""
         state = "before"
-        KEEP = 15
+        keep = 15
 
         raw = ""
         async for token in self.llm.chat_stream(messages=messages, temperature=self._temperature()):
@@ -452,9 +452,9 @@ class BaseAgent:
                     if ri >= 0:
                         candidates.append((ri, "response", "<response>"))
                     if not candidates:
-                        if len(buffer) > KEEP:
-                            yield ("content", buffer[:-KEEP])
-                            buffer = buffer[-KEEP:]
+                        if len(buffer) > keep:
+                            yield ("content", buffer[:-keep])
+                            buffer = buffer[-keep:]
                         break
                     idx, new_state, tag = min(candidates, key=lambda x: x[0])
                     if idx > 0:
@@ -470,9 +470,9 @@ class BaseAgent:
                         buffer = buffer[idx + len("</thinking>") :]
                         state = "between"
                     else:
-                        if len(buffer) > KEEP:
-                            yield ("thinking", buffer[:-KEEP])
-                            buffer = buffer[-KEEP:]
+                        if len(buffer) > keep:
+                            yield ("thinking", buffer[:-keep])
+                            buffer = buffer[-keep:]
                         break
 
                 elif state == "response":
@@ -483,9 +483,9 @@ class BaseAgent:
                         buffer = buffer[idx + len("</response>") :]
                         state = "after"
                     else:
-                        if len(buffer) > KEEP:
-                            yield ("content", buffer[:-KEEP])
-                            buffer = buffer[-KEEP:]
+                        if len(buffer) > keep:
+                            yield ("content", buffer[:-keep])
+                            buffer = buffer[-keep:]
                         break
 
                 elif state in ("between", "after"):
@@ -496,9 +496,9 @@ class BaseAgent:
                         buffer = buffer[ri + len("<response>") :]
                         state = "response"
                     else:
-                        if len(buffer) > KEEP:
-                            yield ("content", buffer[:-KEEP])
-                            buffer = buffer[-KEEP:]
+                        if len(buffer) > keep:
+                            yield ("content", buffer[:-keep])
+                            buffer = buffer[-keep:]
                         break
 
         if buffer:

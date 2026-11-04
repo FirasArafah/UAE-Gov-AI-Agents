@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 import structlog
@@ -23,7 +23,7 @@ class ScenarioEngine:
         if session is None:
             raise ValueError(f"session not found: {session_id}")
         session.status = SimulationStatus.RUNNING
-        session.started_at = datetime.now(timezone.utc)
+        session.started_at = datetime.now(UTC)
         session.current_sequence = 0
         await self.db.commit()
         await self.db.refresh(session)
@@ -53,7 +53,7 @@ class ScenarioEngine:
 
         if event is None:
             session.status = SimulationStatus.COMPLETED
-            session.ended_at = datetime.now(timezone.utc)
+            session.ended_at = datetime.now(UTC)
             await self.db.commit()
             logger.info("scenario.engine.completed", session=str(session_id))
             return None
@@ -72,7 +72,7 @@ class ScenarioEngine:
         remaining = last_check.scalar() or 0
         if remaining == 0:
             session.status = SimulationStatus.COMPLETED
-            session.ended_at = datetime.now(timezone.utc)
+            session.ended_at = datetime.now(UTC)
             logger.info(
                 "scenario.engine.completed_on_last_event",
                 session=str(session_id),

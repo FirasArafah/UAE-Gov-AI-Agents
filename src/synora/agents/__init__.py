@@ -5,10 +5,10 @@ from synora.agents.registry import AgentRegistry
 from synora.agents.types import AgentResponse, Retriever
 
 __all__ = [
+    "AgentRegistry",
+    "AgentResponse",
     "BaseAgent",
     "LLMClient",
     "Orchestrator",
-    "AgentRegistry",
-    "AgentResponse",
     "Retriever",
 ]

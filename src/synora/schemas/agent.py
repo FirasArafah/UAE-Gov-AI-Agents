@@ -1,6 +1,9 @@
 from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict
+
 from synora.models.enums import AgentRole
+
 
 class AgentRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)

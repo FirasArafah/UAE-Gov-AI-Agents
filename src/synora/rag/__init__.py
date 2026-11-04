@@ -5,7 +5,7 @@ from synora.rag.store import VectorStore
 
 __all__ = [
     "Embedder",
-    "VectorStore",
-    "PgVectorRetriever",
     "Ingestor",
+    "PgVectorRetriever",
+    "VectorStore",
 ]

@@ -1,5 +1,7 @@
 import asyncio
+
 from synora.rag.retriever import PgVectorRetriever
+
 
 async def main():
     r = PgVectorRetriever()

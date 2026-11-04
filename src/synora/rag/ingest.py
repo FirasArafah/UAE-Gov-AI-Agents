@@ -1,7 +1,7 @@
 import hashlib
 import re
 import unicodedata
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -143,7 +143,7 @@ class Ingestor:
         sections: list[tuple[str, str, int | None]] = []
         seen: dict[str, int] = {}
         cursor = 0
-        for idx, (c_text, page_num) in enumerate(chunks):
+        for c_text, page_num in chunks:
             pos = text.find(c_text[:40], cursor)
             pos = cursor if pos == -1 else pos
             cursor = pos
@@ -274,7 +274,7 @@ class Ingestor:
 
         meta = metadata or {}
         source_path = str(meta.get("source_uri") or meta.get("source_path") or "inline_text")
-        started_at = datetime.now(timezone.utc)
+        started_at = datetime.now(UTC)
 
         async with self._session_factory() as session:
             job = IngestionJob(
@@ -293,11 +293,11 @@ class Ingestor:
                 logger.warning("rag.ingest.empty_text", source=source_path)
 
                 async with self._session_factory() as session:
-                    job_Row = await session.get(IngestionJob, job_id)
-                    if job_Row:
-                        job_Row.status = "failed"
-                        job_Row.error_message = "Cannot ingest empty text."
-                        job_Row.finished_at = datetime.now(timezone.utc)
+                    job_row = await session.get(IngestionJob, job_id)
+                    if job_row:
+                        job_row.status = "failed"
+                        job_row.error_message = "Cannot ingest empty text."
+                        job_row.finished_at = datetime.now(UTC)
                         await session.commit()
                 return None
 
@@ -314,12 +314,12 @@ class Ingestor:
                     )
                     existing_chunks = chunks_cnt_res.scalars().all()
 
-                    job_Row = await session.get(IngestionJob, job_id)
-                    if job_Row:
-                        job_Row.status = "completed"
-                        job_Row.documents_created = 0
-                        job_Row.chunks_created = len(existing_chunks)
-                        job_Row.finished_at = datetime.now(timezone.utc)
+                    job_row = await session.get(IngestionJob, job_id)
+                    if job_row:
+                        job_row.status = "completed"
+                        job_row.documents_created = 0
+                        job_row.chunks_created = len(existing_chunks)
+                        job_row.finished_at = datetime.now(UTC)
                         await session.commit()
 
                     logger.info("rag.ingest.duplicate_skipped", document_id=str(existing_doc.id))
@@ -385,12 +385,12 @@ class Ingestor:
             await self._store.insert_chunks(doc.id, chunk_payloads)
 
             async with self._session_factory() as session:
-                job_Row = await session.get(IngestionJob, job_id)
-                if job_Row:
-                    job_Row.status = "completed"
-                    job_Row.documents_created = 1
-                    job_Row.chunks_created = len(chunk_payloads)
-                    job_Row.finished_at = datetime.now(timezone.utc)
+                job_row = await session.get(IngestionJob, job_id)
+                if job_row:
+                    job_row.status = "completed"
+                    job_row.documents_created = 1
+                    job_row.chunks_created = len(chunk_payloads)
+                    job_row.finished_at = datetime.now(UTC)
                     await session.commit()
 
             logger.info(
@@ -403,11 +403,11 @@ class Ingestor:
 
         except Exception as exc:
             async with self._session_factory() as session:
-                job_Row = await session.get(IngestionJob, job_id)
-                if job_Row:
-                    job_Row.status = "failed"
-                    job_Row.error_message = str(exc)
-                    job_Row.finished_at = datetime.now(timezone.utc)
+                job_row = await session.get(IngestionJob, job_id)
+                if job_row:
+                    job_row.status = "failed"
+                    job_row.error_message = str(exc)
+                    job_row.finished_at = datetime.now(UTC)
                     await session.commit()
             logger.error("rag.ingest.failed", source=source_path, error=str(exc))
             raise
@@ -436,7 +436,7 @@ class Ingestor:
         return await self.ingest_text(raw_text, metadata=meta, page_spans=page_spans)
 
     async def _record_failed_job(self, source_path: str, meta: dict[str, Any], error: str) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         async with self._session_factory() as session:
             session.add(
                 IngestionJob(
