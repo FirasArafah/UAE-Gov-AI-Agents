@@ -2,6 +2,7 @@ import { api } from "../js/api.js";
 import { AGENTS, agentColor, agentName } from "../js/agents.js";
 import { addStrings, duration, language, t } from "../js/i18n.js";
 import { h, renderAnswer } from "../js/render.js";
+import { createAgentPicker } from "../js/agentPicker.js";
 import { ChatSocket } from "../js/chatSocket.js";
 import { setAddress } from "../js/router.js";
 import { setPageTitle } from "../js/shell.js";
@@ -26,9 +27,6 @@ const SUGGESTIONS = {
 addStrings({
   en: {
     "chat.title": "What should the agents look into?",
-    "chat.mode": "Who answers",
-    "chat.mode.team": "Team · 4 agents",
-    "chat.mode.only": "{name} only",
     "chat.placeholder": "Message Mathuq…",
     "chat.message": "Message",
     "chat.send": "Send",
@@ -65,9 +63,6 @@ addStrings({
   },
   ar: {
     "chat.title": "ما الذي تريد من الوكلاء دراسته؟",
-    "chat.mode": "من يجيب",
-    "chat.mode.team": "الفريق · 4 وكلاء",
-    "chat.mode.only": "{name} فقط",
     "chat.placeholder": "اكتب رسالتك إلى موثوق…",
     "chat.message": "الرسالة",
     "chat.send": "إرسال",
@@ -387,17 +382,14 @@ export async function renderChat(container, params = {}) {
     ),
   );
   const status = h("p", { class: "error", role: "alert" });
-  const mode = h("select", { class: "mode-select", "aria-label": t("chat.mode") },
-    h("option", { value: "team", text: t("chat.mode.team") }),
-    Object.keys(AGENTS).map((slug) => h("option", { value: slug, text: t("chat.mode.only", { name: agentName(slug) }) })),
-  );
+  const mode = createAgentPicker("team");
   const preset = takePresetMode();
   if (preset && (preset === "team" || AGENTS[preset])) mode.value = preset;
   const input = h("textarea", { class: "composer-input", rows: 1, dir: "auto", placeholder: t("chat.placeholder"), "aria-label": t("chat.message") });
   const send = h("button", { class: "send-btn", type: "submit", "aria-label": t("chat.send"), html: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 4l-7 7h4.5v9h5v-9H19z"/></svg>' });
   const form = h("form", { class: "composer2" },
     h("div", { class: "chat-col" },
-      h("div", { class: "composer-box" }, input, h("div", { class: "composer-row2" }, mode, h("span", { style: { flex: 1 } }), send)),
+      h("div", { class: "composer-box" }, input, h("div", { class: "composer-row2" }, mode.el, h("span", { style: { flex: 1 } }), send)),
     ),
   );
 
