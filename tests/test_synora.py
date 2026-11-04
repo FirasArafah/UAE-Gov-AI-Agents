@@ -387,3 +387,45 @@ async def test_stop_cuts_an_answer_short_and_keeps_it(client):
     assert done["stopped"] and done["interrupted"]
     assert tokens_sent < 10
     assert events[-1] == ("done", {"stopped": True})
+
+
+@pytest.mark.asyncio
+async def test_editing_removes_a_chat_message_and_what_follows(client):
+    from uuid import UUID
+
+    session_id = (await client.post("/api/sessions", json={})).json()["id"]
+    async with AsyncSessionLocal() as db:
+        for seq, (role, text) in enumerate(
+            [(MessageRole.USER, "first"), (MessageRole.ASSISTANT, "a1"),
+             (MessageRole.USER, "second"), (MessageRole.ASSISTANT, "a2")], start=1
+        ):
+            db.add(Message(session_id=UUID(session_id), role=role, content=text, sequence=seq))
+        await db.commit()
+    messages = (await client.get(f"/api/sessions/{session_id}/messages")).json()
+    second = next(m for m in messages if m["content"] == "second")
+    answer = next(m for m in messages if m["content"] == "a1")
+
+    r = await client.delete(f"/api/sessions/{session_id}/messages/{answer['id']}/onward")
+    assert r.status_code == 409
+
+    r = await client.delete(f"/api/sessions/{session_id}/messages/{second['id']}/onward")
+    assert r.json() == {"deleted": 2}
+    left = [m["content"] for m in (await client.get(f"/api/sessions/{session_id}/messages")).json()]
+    assert left == ["first", "a1"]
+
+
+@pytest.mark.asyncio
+async def test_scenario_runs_cannot_be_edited(client):
+    golden = next(s for s in (await client.get("/api/scenarios")).json())
+    from uuid import UUID
+
+    r = await client.post("/api/sessions", json={"scenario_id": golden["id"]})
+    session_id = r.json()["id"]
+
+    async with AsyncSessionLocal() as db:
+        msg = Message(session_id=UUID(session_id), role=MessageRole.USER, content="x", sequence=1)
+        db.add(msg)
+        await db.commit()
+        msg_id = msg.id
+    r = await client.delete(f"/api/sessions/{session_id}/messages/{msg_id}/onward")
+    assert r.status_code == 409

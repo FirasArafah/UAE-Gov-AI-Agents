@@ -437,6 +437,33 @@ async def list_messages(session_id: UUID, db: AsyncSession = Depends(get_db)):
     return result.scalars().all()
 
 
+@router.delete("/sessions/{session_id}/messages/{message_id}/onward")
+async def delete_messages_from(
+    session_id: UUID, message_id: UUID, db: AsyncSession = Depends(get_db)
+) -> dict:
+    """Remove a chat message and everything after it, before an edited message is resent.
+
+    Only free chats can be rewritten; scenario runs are immutable records. Audit entries are
+    kept and simply lose their link to the removed messages.
+    """
+    session = await db.get(SimulationSession, session_id)
+    message = await db.get(Message, message_id)
+    if not session or not message or message.session_id != session_id:
+        raise HTTPException(status_code=404, detail="message not found")
+    scenario = await db.get(Scenario, session.scenario_id)
+    if scenario is None or scenario.slug != ADHOC_SCENARIO_SLUG:
+        raise HTTPException(status_code=409, detail="only free chats can be edited")
+    if message.role != MessageRole.USER:
+        raise HTTPException(status_code=409, detail="only your own messages can be edited")
+    result = await db.execute(
+        delete(Message).where(
+            Message.session_id == session_id, Message.sequence >= message.sequence
+        )
+    )
+    await db.commit()
+    return {"deleted": result.rowcount}
+
+
 @router.get("/sessions/{session_id}/audit", response_model=list[AuditLogRead])
 async def list_audit(session_id: UUID, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
