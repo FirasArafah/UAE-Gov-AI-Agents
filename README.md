@@ -125,6 +125,13 @@ Repeat `advance` for each event; `language` may be `en` or `ar`.
 | 5 | Contested authority (controversy) | ICP, Privacy, Auditor | independent + synthesis |
 | 6 | Policy gap report | Auditor, Privacy | independent + synthesis |
 
+## Assistant identity and light replies
+
+Greetings, thanks and off-topic questions get one short reply instead of a full team run, and
+"who are you / who made you" is answered instantly from `data/assistant_profile.json` (name,
+makers and description in English and Arabic). Edit that file to change the answer; no restart
+is needed.
+
 ## Knowledge base export (ITU reference layout)
 
 `make export-kb` writes the knowledge base in the layout of the ITU AI Readiness reference code
@@ -159,6 +166,8 @@ Add `--with-embeddings` to the command in the Makefile to include the bge-m3 vec
 | GET/POST | `/api/sessions/{id}/gaps` | Read / build the policy gap report |
 | GET | `/api/sessions/{id}/audit` | Full audit trail |
 | POST | `/api/sessions/{id}/stream` | Free-chat answers over SSE |
+| WS | `/api/ws/sessions/{id}/chat` | Free chat over a WebSocket: `{"type": "ask", ...}` streams the answer, `{"type": "stop"}` cuts it short |
+| DELETE | `/api/sessions/{id}/messages/{message_id}/onward` | Remove a chat message and what follows, to resend it edited |
 | GET | `/api/documents` | Knowledge base coverage |
 | GET | `/api/kb/search?q=` | Run retrieval directly |
 
