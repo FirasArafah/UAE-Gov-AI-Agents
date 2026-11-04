@@ -143,8 +143,10 @@ make test-all           # includes the full six-event scenario against the LLM (
 - Scenario JSON lives in `data/scenarios/`; `make seed` reloads it with `--force`.
 - `python -m synora.cli.seed_knowledge_base --refresh-metadata` corrects document titles and
   classification without re-embedding.
-- The database schema is created by `docker/postgres/init/*.sql` on first start; the Alembic
-  baseline is a placeholder for future migrations.
+- The database schema lives in `docker/postgres/init/*.sql`. Docker Compose applies it when the
+  database volume is created, and `alembic upgrade head` applies the same files to an empty
+  database outside Docker (an existing one is only stamped).
+- Fast tests use a separate `synora_test` database that they create and seed themselves.
 
 ```
 src/synora/
