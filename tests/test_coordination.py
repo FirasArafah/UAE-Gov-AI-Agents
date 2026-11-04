@@ -398,6 +398,12 @@ async def test_conversation_reply_skips_retrieval():
         ("Thanks!", "conversation"),
         ("What does the PDPL say about consent?", "question"),
         ("Who is responsible for AI bias in visas?", "question"),
+        ("My name is Firas and I work in the ICP data office.", "conversation"),
+        ("I am Maria from the privacy team", "conversation"),
+        ("اسمي معتز وأعمل في الهيئة الاتحادية للهوية", "conversation"),
+        ("My name is Firas. Can ICP use nationality in the model?", "question"),
+        ("I am wondering what the PDPL says about consent", "question"),
+        ("أنا أسأل هل يحق للهيئة استخدام الجنسية؟", "question"),
     ],
 )
 def test_rules_route_light_messages_and_subject_questions(message, kind):

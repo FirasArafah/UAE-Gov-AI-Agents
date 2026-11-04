@@ -4,8 +4,9 @@ A greeting sent to the team used to run four agents, each retrieving eight polic
 writing a legal assessment, which took over a minute of GPU time to answer 'Hello'. Messages are
 now routed in three steps, cheapest first:
 
-1. rules (no model call): greetings and thanks get a short reply, and questions about the
-   assistant itself ('who are you', 'who made you') get a fixed answer from the profile file;
+1. rules (no model call): greetings, thanks and introductions get a short reply, and
+   questions about the assistant itself ('who are you', 'who made you') get a fixed answer
+   from the profile file;
 2. subject words (no model call): a message about law, privacy, AI, visas and so on is a
    question for the agents;
 3. anything else gets one tiny model call (a few output tokens) that tells questions within the
@@ -89,6 +90,18 @@ SUBJECT_RE = re.compile(
 )
 MAX_LIGHT_WORDS = 10
 
+# "My name is Firas and I work at ICP" mentions ICP but asks nothing: it is an introduction.
+INTRODUCTION_RE = re.compile(
+    r"^(?:(?:hi|hello|hey) )?(?:my name is|my name s|i am|i m|this is|call me)\b"
+    r"|^(?:(?:مرحبا|اهلا|أهلا|السلام عليكم) )?(?:اسمي|انا اسمي|أنا اسمي|معك|انا|أنا)\b"
+)
+QUESTION_WORD_RE = re.compile(
+    r"\b(what|which|who|whom|whose|when|where|why|how|can|could|should|would|is|are|does|do|"
+    r"did|may|must|will|explain|tell|list|give|show)\b"
+    r"|(?:^| )(?:ما|ماذا|من|متى|أين|اين|لماذا|كيف|هل|كم|أي|اي|اشرح|وضح|اذكر)(?= |$)"
+)
+MAX_INTRODUCTION_WORDS = 25
+
 
 def normalise(text: str) -> str:
     text = TATWEEL_AND_MARKS_RE.sub("", text.strip().lower())
@@ -101,6 +114,15 @@ def classify_by_rules(text: str) -> MessageKind | None:
     norm = normalise(text)
     if not norm:
         return None
+    intro = INTRODUCTION_RE.search(norm)
+    if (
+        intro
+        and "?" not in text
+        and "؟" not in text
+        and len(norm.split()) <= MAX_INTRODUCTION_WORDS
+        and not QUESTION_WORD_RE.search(norm[intro.end():])
+    ):
+        return MessageKind.CONVERSATION
     if SUBJECT_RE.search(norm):
         return MessageKind.QUESTION
     if len(norm.split()) <= MAX_LIGHT_WORDS and LIGHT_RE.fullmatch(norm):
