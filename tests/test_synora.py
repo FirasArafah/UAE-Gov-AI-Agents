@@ -458,3 +458,39 @@ async def test_scenario_runs_cannot_be_edited(client):
         msg_id = msg.id
     r = await client.delete(f"/api/sessions/{session_id}/messages/{msg_id}/onward")
     assert r.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_chat_history_keeps_whole_turns_with_the_final_answer(client):
+    from uuid import UUID
+
+    from synora.api.routes import _chat_history
+
+    chat_id = UUID((await client.post("/api/sessions", json={})).json()["id"])
+    rows = []
+    for turn in range(1, 6):
+        rows.append((MessageRole.USER, f"question {turn}", {}))
+        for agent in ("icp", "auditor", "privacy"):
+            rows.append((MessageRole.ASSISTANT, f"{agent} on {turn}", {"is_synthesis": False}))
+        rows.append((MessageRole.ASSISTANT, f"final {turn}", {"is_synthesis": True}))
+    async with AsyncSessionLocal() as db:
+        for seq, (role, content, meta) in enumerate(rows, start=1):
+            db.add(
+                Message(
+                    session_id=chat_id, role=role, content=content, sequence=seq,
+                    message_metadata=meta,
+                )
+            )
+        await db.commit()
+
+    class NoAgents:
+        def items(self):
+            return []
+
+    async with AsyncSessionLocal() as db:
+        history = await _chat_history(db, chat_id, NoAgents())
+
+    assert [m["role"] for m in history] == ["user", "assistant"] * 4
+    assert history[0]["content"] == "question 2"
+    assert history[1]["content"] == "[Agent] final 2"
+    assert history[-1]["content"] == "[Agent] final 5"

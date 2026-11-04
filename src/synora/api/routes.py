@@ -522,28 +522,55 @@ async def list_audit(session_id: UUID, db: AsyncSession = Depends(get_db)):
 # ============================================================================
 
 
-CHAT_HISTORY_MESSAGES = 6
+# A team turn stores the question plus up to four answers; history keeps whole turns
+# (question and final answer) so earlier questions are not pushed out by one team reply.
+CHAT_HISTORY_TURNS = 4
+CHAT_HISTORY_SCAN = 60
+
+
+def _excerpt(text: str) -> str:
+    text = text.split("\n\n---\n", 1)[0].strip()
+    if len(text) > HISTORY_EXCERPT_CHARS:
+        text = text[:HISTORY_EXCERPT_CHARS].rstrip() + " ..."
+    return text
 
 
 async def _chat_history(
     db: AsyncSession, session_id: UUID, registry: AgentRegistry
 ) -> list[dict]:
-    """Recent turns of a free chat, so follow-up questions keep their meaning."""
+    """The last turns of a free chat, so follow-up questions keep their meaning.
+
+    Each turn is the question and its final answer: the Coordinator's synthesis when the
+    team answered, otherwise every agent's answer in one message.
+    """
     result = await db.execute(
         select(Message)
         .where(Message.session_id == session_id)
         .order_by(Message.sequence.desc())
-        .limit(CHAT_HISTORY_MESSAGES)
+        .limit(CHAT_HISTORY_SCAN)
     )
     names = {a.agent.id: a.agent.name for _, a in registry.items()}
-    history = []
+    turns: list[tuple[Message, list[Message]]] = []
     for msg in reversed(result.scalars().all()):
-        content = msg.content.split("\n\n---\n", 1)[0]
-        if len(content) > HISTORY_EXCERPT_CHARS:
-            content = content[:HISTORY_EXCERPT_CHARS].rstrip() + " ..."
-        if msg.role == MessageRole.ASSISTANT:
-            content = f"[{names.get(msg.agent_id, 'Agent')}] {content}"
-        history.append({"role": str(msg.role), "content": content})
+        if msg.role == MessageRole.USER:
+            turns.append((msg, []))
+        elif msg.role == MessageRole.ASSISTANT and turns:
+            turns[-1][1].append(msg)
+
+    history: list[dict] = []
+    for question, answers in turns[-CHAT_HISTORY_TURNS:]:
+        history.append({"role": "user", "content": _excerpt(question.content)})
+        synthesis = [m for m in answers if (m.message_metadata or {}).get("is_synthesis")]
+        kept = synthesis[-1:] or answers
+        if kept:
+            history.append(
+                {
+                    "role": "assistant",
+                    "content": "\n\n".join(
+                        f"[{names.get(m.agent_id, 'Agent')}] {_excerpt(m.content)}" for m in kept
+                    ),
+                }
+            )
     return history
 
 

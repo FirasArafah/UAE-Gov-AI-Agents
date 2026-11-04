@@ -26,9 +26,10 @@ THINKING_PATTERN = re.compile(r"<thinking>(.*?)</thinking>", re.DOTALL)
 RESPONSE_PATTERN = re.compile(r"<response>(.*?)</response>", re.DOTALL)
 
 # Orphan tag cleanup (when model produces only one of the pair)
-# Conversational replies (greetings, thanks) are short and need little history.
+# Conversational replies (greetings, thanks, "what did I ask?") are short; four turns of
+# history let them recall the conversation.
 CONVERSATION_MAX_TOKENS = 160
-CONVERSATION_HISTORY = 4
+CONVERSATION_HISTORY = 8
 
 # Tag remnants, including malformed ones the model sometimes writes ("=response>", "<response").
 TAG_REMNANT_RE = re.compile(r"[<=]\s*/?\s*(?:thinking|response)\s*>?", re.IGNORECASE)
