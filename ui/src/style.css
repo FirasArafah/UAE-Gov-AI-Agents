@@ -468,6 +468,17 @@ html[lang="ar"] .gap .sev { letter-spacing: 0; }
 
 .thread { display: flex; flex-direction: column; gap: 30px; padding: 28px 0 20px; }
 .thread:empty { display: none; }
+/* Message actions: copy and edit */
+.user-row { align-self: flex-end; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; max-width: 78%; }
+.user-row .user-msg { max-width: 100%; }
+.msg-actions, .turn-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.15s; }
+.user-row:hover .msg-actions, .user-row:focus-within .msg-actions, .turn:hover .turn-actions, .turn:focus-within .turn-actions { opacity: 1; }
+@media (hover: none) { .msg-actions, .turn-actions { opacity: 1; } }
+.icon-action { display: grid; place-items: center; width: 30px; height: 30px; border: none; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; }
+.icon-action:hover { background: var(--bg-sunken); color: var(--text); }
+.user-edit { width: min(560px, 100%); display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--line-strong); border-radius: 16px; background: var(--panel); }
+.edit-input { width: 100%; border: none; outline: none; resize: vertical; background: transparent; color: var(--text); font: inherit; line-height: 1.5; min-height: 52px; }
+.edit-buttons { display: flex; justify-content: flex-end; gap: 6px; }
 .user-msg { align-self: flex-end; max-width: 78%; padding: 10px 16px; border-radius: 20px; background: var(--bubble); color: var(--text); white-space: pre-wrap; line-height: 1.55; overflow-wrap: anywhere; }
 .turn { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 14px; }
 .turn-avatar img { width: 28px; height: 28px; border-radius: 8px; }
@@ -556,7 +567,7 @@ html[lang="ar"] .gap .sev { letter-spacing: 0; }
   .page { padding: 20px 16px 40px; }
   .chat-col { padding: 0 16px; }
   .chat-empty h1 { font-size: 1.4rem; }
-  .user-msg { max-width: 90%; }
+  .user-row { max-width: 92%; }
   .starter-grid { grid-template-columns: 1fr; }
   .turn { grid-template-columns: minmax(0, 1fr); }
   .turn-avatar { display: none; }
