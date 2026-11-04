@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     embedding_dim: int = 1024
 
     # --- RAG ---
-    rag_top_k: int = 6
+    rag_top_k: int = 8
     rag_chunk_size: int = 800
     rag_chunk_overlap: int = 100
 
