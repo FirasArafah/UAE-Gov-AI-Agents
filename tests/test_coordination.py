@@ -19,7 +19,7 @@ class FakeLLM:
     async def chat(self, messages, temperature, **kwargs):
         return self.raw
 
-    async def chat_stream(self, messages, temperature):
+    async def chat_stream(self, messages, temperature, **kwargs):
         for word in self.raw.split(" "):
             yield word + " "
 
@@ -340,3 +340,40 @@ def test_export_follows_the_itu_reference_categories(country, doc_type, folder, 
     doc = SimpleNamespace(country_code=country, doc_type=doc_type)
     assert category(doc) == folder
     assert source_type(doc) == source
+
+
+@pytest.mark.parametrize(
+    "message",
+    ["Hello", "hi there!", "Good morning team", "Thanks a lot", "ok", "Who are you?",
+     "What can you do?", "how are you", "مرحبا", "السلام عليكم", "شكراً جزيلاً", "من أنت؟",
+     "صباح الخير", "Hello, thanks"],
+)
+def test_greetings_and_thanks_are_conversational(message):
+    from synora.agents.intent import is_conversational
+
+    assert is_conversational(message)
+
+
+@pytest.mark.parametrize(
+    "message",
+    ["Hi, what does the PDPL say about consent?", "Does Article 18 apply to ICP?",
+     "hello can a visa applicant object to an automated decision", "What is AI bias?",
+     "مرحبا، ما هي المادة 18؟", "هل ينطبق القانون على الجهات الحكومية؟",
+     "Which authority can pause the system?", ""],
+)
+def test_questions_are_not_conversational(message):
+    from synora.agents.intent import is_conversational
+
+    assert not is_conversational(message)
+
+
+@pytest.mark.asyncio
+async def test_conversation_reply_skips_retrieval():
+    class Retriever:
+        async def search(self, *args, **kwargs):
+            raise AssertionError("a greeting must not search the knowledge base")
+
+    record = SimpleNamespace(role="coordinator", slug="coordinator", name="c", system_prompt="P")
+    agent = BaseAgent(record, FakeLLM("Hello! Ask me about AI governance."), Retriever())
+    chunks = [c async for c in agent.stream_conversation("Hello")]
+    assert "".join(text for _, text in chunks).strip().startswith("Hello!")

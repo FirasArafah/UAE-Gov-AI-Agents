@@ -9,6 +9,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from synora.agents.base import split_leaked_reasoning
 from synora.agents.gaps import GapAnalyst
+from synora.agents.intent import is_conversational
 from synora.agents.language import detect_language
 from synora.agents.orchestrator import AgentOutcome, Orchestrator, assessment_excerpt
 from synora.agents.registry import AgentRegistry
@@ -499,6 +500,10 @@ async def stream_message(
     agent_slugs = list(dict.fromkeys(body.agents or ["coordinator"]))
     # Every agent, the Coordinator's synthesis included, answers in the question's language.
     language = detect_language(body.message)
+    # A greeting or thanks gets one short reply, not four legal assessments.
+    conversation = is_conversational(body.message)
+    if conversation:
+        agent_slugs = ["coordinator"]
 
     async def run_agent(
         agent_slug: str,
@@ -507,8 +512,12 @@ async def stream_message(
         use_retrieval: bool = True,
         responding_to: list[str] | None = None,
         support: list[str] | None = None,
+        light: bool = False,
     ):
-        """Stream one agent's answer as SSE events, then persist and audit it."""
+        """Stream one agent's answer as SSE events, then persist and audit it.
+
+        ``light`` answers a conversational message briefly, without retrieval.
+        """
         is_synthesis = responding_to is not None
         try:
             agent = await registry.get(agent_slug)
@@ -532,13 +541,18 @@ async def stream_message(
         stream_error: str | None = None
 
         try:
-            async for channel, chunk in agent.stream_tagged(
-                message,
-                history=None if is_synthesis else history,
-                use_retrieval=use_retrieval,
-                language=language,
-                support=support,
-            ):
+            stream = (
+                agent.stream_conversation(message, history=history, language=language)
+                if light
+                else agent.stream_tagged(
+                    message,
+                    history=None if is_synthesis else history,
+                    use_retrieval=use_retrieval,
+                    language=language,
+                    support=support,
+                )
+            )
+            async for channel, chunk in stream:
                 if channel == "thinking":
                     thinking_acc += chunk
                     yield sse_event("thinking_chunk", {"agent_slug": agent_slug, "content": chunk})
@@ -566,7 +580,11 @@ async def stream_message(
                 thinking_trace=thinking_acc or None,
                 sequence=await _next_sequence(db, session_id),
                 message_metadata={
-                    "source": "chat_synthesis" if is_synthesis else "chat",
+                    "source": "chat_synthesis"
+                    if is_synthesis
+                    else "chat_conversation"
+                    if light
+                    else "chat",
                     "is_synthesis": is_synthesis,
                     "responding_to": responding_to or [],
                     "references": _reference_summaries(references),
@@ -647,12 +665,13 @@ async def stream_message(
                 "sequence": user_msg.sequence,
                 "team": team,
                 "agents": specialists if team else agent_slugs,
+                "conversation": conversation,
             },
         )
 
         answers: list[dict] = []
         for agent_slug in specialists if team else agent_slugs:
-            async for event in run_agent(agent_slug, body.message, answers):
+            async for event in run_agent(agent_slug, body.message, answers, light=conversation):
                 yield event
 
         if team and answers:

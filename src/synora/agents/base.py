@@ -12,6 +12,7 @@ from synora.agents.citations import (
     has_wrong_script,
     repair_citations,
 )
+from synora.agents.intent import CONVERSATION_PROMPT
 from synora.agents.language import NOT_COVERED, detect_language, output_contract
 from synora.agents.llm import LLMClient
 from synora.agents.types import AgentResponse, Retriever
@@ -25,6 +26,10 @@ THINKING_PATTERN = re.compile(r"<thinking>(.*?)</thinking>", re.DOTALL)
 RESPONSE_PATTERN = re.compile(r"<response>(.*?)</response>", re.DOTALL)
 
 # Orphan tag cleanup (when model produces only one of the pair)
+# Conversational replies (greetings, thanks) are short and need little history.
+CONVERSATION_MAX_TOKENS = 160
+CONVERSATION_HISTORY = 4
+
 # Tag remnants, including malformed ones the model sometimes writes ("=response>", "<response").
 TAG_REMNANT_RE = re.compile(r"[<=]\s*/?\s*(?:thinking|response)\s*>?", re.IGNORECASE)
 # "[A whole sentence or paragraph.]" but not a citation such as "[1]" or "[1, 2]".
@@ -383,6 +388,25 @@ class BaseAgent:
             temperature=self._temperature(),
         ):
             yield token
+
+    async def stream_conversation(
+        self,
+        user_message: str,
+        history: list[dict] | None = None,
+        language: str | None = None,
+    ) -> AsyncIterator[tuple[str, str]]:
+        """A short reply to a greeting or thanks: no retrieval, no legal analysis."""
+        self._last_references = []
+        language = language or detect_language(user_message)
+        messages = [
+            {"role": "system", "content": CONVERSATION_PROMPT[language]},
+            *(history or [])[-CONVERSATION_HISTORY:],
+            {"role": "user", "content": user_message},
+        ]
+        async for token in self.llm.chat_stream(
+            messages=messages, temperature=0.5, num_predict=CONVERSATION_MAX_TOKENS
+        ):
+            yield ("content", token)
 
     async def stream_tagged(
         self,
