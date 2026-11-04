@@ -38,9 +38,13 @@ NAME = r"(mathuq|mawthuq|mothooq|موثوق)"
 IDENTITY_PATTERNS = [
     rf"(who|what) are you( exactly)?|what is {NAME}|who is {NAME}|tell me about (yourself|{NAME})",
     r"who (made|built|created|developed|designed|trained|owns) you",
-    r"(who|which team) (is|are) behind (you|this)|introduce yourself|your name|what is your name",
+    r"(who|which team|who is the team) (is |are )?behind (you|this)( project| app| system)?"
+    r"|introduce yourself|your name|what is your name",
     rf"(من|ما) (انت|أنت)|ما هو {NAME}|من هو {NAME}|عرف عن نفسك|عرّف عن نفسك|ما اسمك",
-    r"من (صنعك|طورك|أنشأك|انشأك|برمجك|بناك|صممك|يملكك)|من (صنع|طور|أنشأ|برمج|صمم) {NAME}",
+    rf"من (صنعك|طورك|أنشأك|انشأك|برمجك|بناك|صممك|يملكك)|من (صنع|طور|أنشأ|برمج|صمم) {NAME}",
+    r"(who|which) (is|are) (your|the) (team|developers?|creators?|makers?|authors?)( of this)?",
+    r"who (developed|built|made|created) (this|this (app|system|project|assistant))",
+    r"(من|ما) (هو|هم)? ?(فريقك|فريق التطوير|المطور|المطورون|المطورين|صانعوك)",
 ]
 CONVERSATION_PATTERNS = [
     # English
@@ -150,9 +154,10 @@ PROFILE_PATH = Path(__file__).resolve().parents[3] / "data" / "assistant_profile
 DEFAULT_PROFILE = {
     "name": {"en": "Mathuq", "ar": "موثوق"},
     "made_by": {
-        "en": "Team SYNORA for the ITU AI for Good Lab Hackathon in the United Arab Emirates",
-        "ar": "فريق SYNORA ضمن هاكاثون مختبر الذكاء الاصطناعي من أجل الخير التابع للاتحاد "
-        "الدولي للاتصالات في دولة الإمارات",
+        "en": "the SYNORA team (Firas Arafah, Motaz Abu Amara and Maria Dawaghreh) for the ITU "
+        "AI for Good Lab Hackathon in the United Arab Emirates",
+        "ar": "فريق SYNORA (Firas Arafah وMotaz Abu Amara وMaria Dawaghreh) ضمن هاكاثون مختبر "
+        "الذكاء الاصطناعي من أجل الخير التابع للاتحاد الدولي للاتصالات في دولة الإمارات",
     },
     "about": {
         "en": "an assistant for AI governance in government services. A team of agents (the "

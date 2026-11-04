@@ -388,6 +388,12 @@ async def test_conversation_reply_skips_retrieval():
         ("What is Mathuq?", "identity"),
         ("من صنعك؟", "identity"),
         ("من أنت", "identity"),
+        ("Who are your developers?", "identity"),
+        ("Who is the team behind this?", "identity"),
+        ("Who built this project?", "identity"),
+        ("من صنع موثوق؟", "identity"),
+        ("من هم المطورون؟", "identity"),
+        ("ما فريقك", "identity"),
         ("Hello", "conversation"),
         ("Thanks!", "conversation"),
         ("What does the PDPL say about consent?", "question"),
@@ -454,3 +460,5 @@ async def test_identity_answer_comes_from_the_profile_without_the_model():
         ]
         text = "".join(t for _, t in chunks)
         assert profile["name"][language] in text and profile["made_by"][language] in text
+        for member in ("Firas Arafah", "Motaz Abu Amara", "Maria Dawaghreh"):
+            assert member in text
