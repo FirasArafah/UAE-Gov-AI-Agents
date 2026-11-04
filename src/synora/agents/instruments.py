@@ -29,6 +29,11 @@ def _instrument(name: str, pattern: str, *titles: str) -> Instrument:
 
 INSTRUMENTS: tuple[Instrument, ...] = (
     _instrument(
+        "UAE Constitution",
+        r"\bconstitution\b|الدستور",
+        "The Constitution",
+    ),
+    _instrument(
         "Decree-Law 14/2021",
         r"\b14\s*(?:of|/)\s*2021\b|\(14\) of 2021|رقم\s*\(?14\)?",
         "No. 14 of 2021",
@@ -117,6 +122,17 @@ INSTRUMENTS: tuple[Instrument, ...] = (
         "Digital Government Strategy",
     ),
 )
+
+
+# Topics that UAE law answers directly, so a question on them reads that law without naming it.
+TOPIC_SOURCES: tuple[tuple[re.Pattern[str], tuple[str, ...]], ...] = (
+    (re.compile(r"discriminat|التمييز", re.IGNORECASE), ("No. 34 of 2023",)),
+)
+
+
+def topic_sources(text: str) -> list[tuple[str, ...]]:
+    """Titles of the laws that answer a topic the text raises."""
+    return [titles for pattern, titles in TOPIC_SOURCES if pattern.search(text)]
 
 
 def named_instruments(text: str) -> list[Instrument]:

@@ -13,7 +13,7 @@ from synora.agents.citations import (
     repair_citations,
 )
 from synora.agents.guard import neutralise, refusal, security_rules
-from synora.agents.instruments import article_references, named_instruments
+from synora.agents.instruments import article_references, named_instruments, topic_sources
 from synora.agents.intent import LIGHT_PROMPTS, MessageKind, identity_reply
 from synora.agents.language import NOT_COVERED, detect_language, output_contract
 from synora.agents.llm import LLMClient
@@ -297,6 +297,8 @@ class BaseAgent:
             hits = await self.retriever.search(topic, top_k=2, titles=instrument.titles)
             same_language = [hit for hit in hits if hit.get("language") == language]
             sources += (same_language or hits)[:1]
+        for titles in topic_sources(query):
+            sources += await self.retriever.search(query, top_k=1, titles=titles)
         return sources
 
     def _verification_warning(

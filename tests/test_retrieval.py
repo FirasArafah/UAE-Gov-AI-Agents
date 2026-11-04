@@ -148,6 +148,12 @@ async def test_agency_mandate_article_is_always_considered():
 
 
 @pytest.mark.asyncio
+async def test_question_about_discrimination_reads_the_law_on_it():
+    hits = await _agent("auditor", RecordingRetriever())._retrieve("How is discrimination defined?")
+    assert "No. 34 of 2023" in [hit["title"] for hit in hits]
+
+
+@pytest.mark.asyncio
 async def test_same_article_number_of_another_law_is_left_out():
     class Retriever(RecordingRetriever):
         async def search(self, query, top_k=6, domains=None, titles=None):

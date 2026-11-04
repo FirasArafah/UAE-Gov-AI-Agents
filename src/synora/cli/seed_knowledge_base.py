@@ -22,6 +22,13 @@ SKIPPED_FILES = {"UAE_Cabinet_Resolution_65_2022_AR.pdf"}
 # Arabic editions before their English counterparts, and international instruments before
 # generic words such as "ethics" that also appear in UAE file names.
 KNOWN_METADATA: dict[str, dict[str, Any]] = {
+    "uae_constitution": {
+        "title": "The Constitution of the United Arab Emirates",
+        "domain": DocumentDomain.CROSS_DOMAIN.value,
+        "doc_type": DocumentType.LAW.value,
+        "country_code": "AE",
+        "language": "en",
+    },
     "decree_law_14_2021_icp": {
         "title": (
             "UAE Federal Decree-Law No. 14 of 2021 Establishing the Authority for "
@@ -219,6 +226,7 @@ KNOWN_METADATA: dict[str, dict[str, Any]] = {
 
 # Official page of each document, shown with its citations so a reader can check the source.
 SOURCE_URLS: dict[str, str] = {
+    "uae_constitution": "https://u.ae/en/about-the-uae/the-constitution",
     "decree_law_14_2021_icp": "https://uaelegislation.gov.ae/en/legislations/2432",
     "decree_law_44_2021_data_office": "https://uaelegislation.gov.ae/en/legislations/2433",
     "decree_law_34_2021_cybercrime": "https://uaelegislation.gov.ae/en",
