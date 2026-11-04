@@ -68,6 +68,16 @@ Open http://localhost:5173 — it lands on **Chat**, the team conversation. API 
 
 If port 5432 is taken, set `POSTGRES_PORT` in `.env`.
 
+**NVIDIA GPU (recommended).** Add the GPU override so Ollama runs on the GPU (a 6 GB laptop GPU
+answers in seconds instead of minutes):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+```
+
+or set `COMPOSE_FILE` in `.env` as shown in `.env.example`. On Windows, give Docker Desktop at
+least 10 GB of memory (`memory=10GB` in `%USERPROFILE%\.wslconfig`, then `wsl --shutdown`).
+
 ## Using the UI
 
 The UI has three pages:

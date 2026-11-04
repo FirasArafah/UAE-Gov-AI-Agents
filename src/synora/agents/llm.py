@@ -111,8 +111,12 @@ class LLMClient:
 
     @retry(**RETRY_POLICY)
     async def embed(self, text: str) -> list[float]:
+        options = {}
+        if settings.ollama_embed_num_gpu >= 0:
+            options["num_gpu"] = settings.ollama_embed_num_gpu
         response = await self._client.embeddings(
             model=self.embed_model,
+            options=options or None,
             prompt=text,
         )
         return response["embedding"]

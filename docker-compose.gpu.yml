@@ -1,0 +1,18 @@
+# NVIDIA GPU for the local LLM. Use together with docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+# or set COMPOSE_FILE in .env (see .env.example). Needs Docker with the NVIDIA runtime
+# (Docker Desktop on Windows with WSL2, or nvidia-container-toolkit on Linux).
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    environment:
+      # Flash attention and an 8-bit KV cache roughly halve context memory, so the 7B model
+      # and an 8k context fit in a 6 GB laptop GPU.
+      OLLAMA_FLASH_ATTENTION: "1"
+      OLLAMA_KV_CACHE_TYPE: "q8_0"

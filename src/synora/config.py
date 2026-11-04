@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     ollama_embed_model: str = "bge-m3"
     # Context window per request. Bilingual prompts with six policy excerpts need ~6k tokens.
     ollama_num_ctx: int = 8192
+    # GPU layers for the embedding model: 0 keeps it on the CPU so the chat model has the
+    # whole GPU. Unset (-1) lets Ollama decide.
+    ollama_embed_num_gpu: int = 0
 
     # --- Embeddings ---
     embedding_dim: int = 1024
