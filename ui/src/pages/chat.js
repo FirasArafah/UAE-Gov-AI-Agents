@@ -139,7 +139,7 @@ const logo = () => [
  * One assistant turn. Specialists' reasoning and assessments go into a collapsible
  * "Thinking" panel; the final answer (Coordinator synthesis in team mode) is shown below it.
  */
-function createTurn({ team, agents }) {
+function createTurn({ team, agents, conversation = false }) {
   const started = Date.now();
   const statusText = h("span", { text: t(team ? "chat.status.team" : "chat.status.single") });
   const timer = h("span", { class: "think-time", text: "" });
@@ -154,10 +154,11 @@ function createTurn({ team, agents }) {
     h("div", { class: "turn-avatar" }, logo()),
     h("div", { class: "turn-main" },
       h("div", { class: "turn-name" },
-        h("b", { text: team ? t("chat.team") : agentName(agents[0]) }),
-        team ? h("small", { text: t("chat.flow", { names }) }) : null,
+        h("b", { text: conversation ? t("brand") : team ? t("chat.team") : agentName(agents[0]) }),
+        team && !conversation ? h("small", { text: t("chat.flow", { names }) }) : null,
       ),
-      think,
+      // A greeting is answered directly, so there is no chain of thought to show.
+      conversation ? null : think,
       answer,
     ),
   );
@@ -253,6 +254,10 @@ function createTurn({ team, agents }) {
     finish() {
       clearInterval(tick);
       const count = Object.keys(bySlug).length;
+      if (conversation) {
+        if (!answer.childElementCount) answer.append(h("p", { class: "muted", text: t("chat.noAnswer") }));
+        return;
+      }
       statusText.textContent = t("chat.cotTime", { time: duration(Date.now() - started) });
       timer.textContent = team ? t("chat.agentCount", { n: count }) : "";
       think.classList.add("finished");
@@ -277,8 +282,9 @@ function restoreTurn(assistantMsgs, agentsById) {
   const items = assistantMsgs.map(view);
   // The final answer is the Coordinator's synthesis, or the last answer in older chats.
   const final = items.find((i) => i.meta.is_synthesis) || items[items.length - 1];
+  const conversation = items.every((i) => i.meta.source === "chat_conversation");
   const team = items.length > 1;
-  const turn = createTurn({ team, agents: items.map((i) => i.slug) });
+  const turn = createTurn({ team, agents: items.map((i) => i.slug), conversation });
   const ordered = [...items.filter((i) => i !== final), final];
   for (const i of ordered) {
     const isSynth = i === final;
@@ -292,7 +298,8 @@ function restoreTurn(assistantMsgs, agentsById) {
     });
   }
   turn.finish();
-  turn.el.querySelector(".think summary span:nth-child(2)").textContent = t("chat.cot");
+  const label = turn.el.querySelector(".think summary span:nth-child(2)");
+  if (label) label.textContent = t("chat.cot");
   return turn.el;
 }
 
@@ -406,7 +413,11 @@ export async function renderChat(container, params = {}) {
       }
       await streamPost(`/sessions/${sessionId}/stream`, { message: text, agents }, (event, data) => {
         if (event === "user_message_saved") {
-          turn = createTurn({ team: data.team, agents: data.agents?.length ? data.agents : agents });
+          turn = createTurn({
+            team: data.team,
+            agents: data.agents?.length ? data.agents : agents,
+            conversation: data.conversation,
+          });
           thread.append(turn.el);
           window.dispatchEvent(new Event("chats-changed"));
         } else if (!turn) {
