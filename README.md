@@ -18,7 +18,7 @@ Everything runs locally: no data leaves the machine and no external AI API is us
 
 | Hackathon requirement | How Mathuq meets it |
 |---|---|
-| Knowledge base of national policy, mapped to global practice | 17 files (14 documents) / 2,083 chunks: UAE PDPL (EN + AR), Decree-Law 29/2021 (EN + AR), Cabinet Resolution 65/2022 (EN), National AI Strategy 2031, AI Charter, AI Ethics Guidelines, National Cybersecurity Strategy 2019 (TDRA deck and official summary), Digital Government Strategy 2025; ITU-T Y.3172, ITU AI Ready report, OECD Recommendation on AI (full text), UNESCO Recommendation (EN + AR), EU AI Act. Chunked by article or section, with page numbers, in pgvector. |
+| Knowledge base of national policy, mapped to global practice | 173 documents / 3,301 chunks, including about 150 official pages of the UAE Government Portal and the laws on ICP, the Data Office, labour, copyright, discrimination and cybercrime: UAE PDPL (EN + AR), Decree-Law 29/2021 (EN + AR), Cabinet Resolution 65/2022 (EN), National AI Strategy 2031, AI Charter, AI Ethics Guidelines, National Cybersecurity Strategy 2019 (TDRA deck and official summary), Digital Government Strategy 2025; ITU-T Y.3172, ITU AI Ready report, OECD Recommendation on AI (full text), UNESCO Recommendation (EN + AR), EU AI Act. Chunked by article or section, with page numbers, in pgvector. |
 | Policy and legal adviser | Every agent answers in the language of the question from retrieved excerpts only; citations are checked automatically and flagged when an article is not in the sources. |
 | Institutional participants | ICP Representative (system operator), AI Auditor, Privacy Consultant (PDPL), Coordinator — each with its own mandate, temperature and retrieval domain. |
 | Multi-agent coordination | An orchestrator releases each event to its target agents. They assess **independently**; on events flagged *sequential* each agent receives the previous one's assessment; the **Coordinator synthesizes** every multi-agent event (agreements, conflicting mandates, responsible authority, escalation). |
@@ -241,9 +241,9 @@ data/          knowledge base sources and scenarios
 ## Known limitations
 
 - On CPU a full six-event run takes roughly 45–60 minutes; on a 6 GB laptop GPU, a few minutes.
-- The law establishing ICP (Federal Decree-Law No. 14 of 2021) is not in the knowledge base:
-  the UAE legislation portal does not allow automated downloads. Save it from
-  uaelegislation.gov.ae into `data/knowledge_base/raw` and run `make refresh-kb`.
+- The UAE legislation portal does not allow automated downloads. Laws from it are saved by hand
+  into `data/knowledge_base/raw`, and `make refresh-kb` then adds them.
+- No treaty text is in the knowledge base yet.
 - The Arabic edition of Cabinet Resolution 65/2022 is not ingested, because its PDF text extracts
   as broken words. The English edition is.
 - The Arabic UNESCO PDF extracts with a recurring error in one letter pair. It stays readable.

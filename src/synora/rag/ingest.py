@@ -24,9 +24,11 @@ logger = structlog.get_logger(__name__)
 # reads some right-to-left headings), and "## Heading" lines
 # written into hand-verified .ocr.txt files (for scanned PDFs with no text layer).
 # "Article 18" counts only alone on its line: "Article 18 of the Charter" is a cross-reference.
+# A ligature some PDFs extract under its glyph name: "/T_he" for "The".
+GLYPH_NAME_RE = re.compile(r"/([A-Za-z])_([a-z])")
 ARTICLE_HEADING_RE = re.compile(
     r"(?:^|\n)\s*(Article\s*\(\s*\d+\s*\)?(?:\s*BIS\b)?"
-    r"|Article\s*\d+(?:\s*BIS\b)?[ \t]*(?=\n|$)"
+    r"|Article\s*\d+(?:\s*BIS\b)?[ \t]*(?=\n|$|-[ \t])"
     r"|\(\s*\u0627\u0644\u0645\u0627\u062f\u0629\s*\d+\s*\)"
     r"|\u0627\u0644\u0645\u0627\u062f\u0629\s*\(?\s*\d+\s*\)?"
     r"|(?-i:ANNEX\s+[IVXLC]+)[ \t]*(?=\n|$)"
@@ -228,6 +230,7 @@ class Ingestor:
     def _normalize_text(text: str) -> str:
         text = unicodedata.normalize("NFKC", text)
         text = text.replace("\ufffd", "").replace("\u0640", "")
+        text = GLYPH_NAME_RE.sub(r"\1\2", text)
         return re.sub(r"[ \t]+", " ", text).strip()
 
     @staticmethod

@@ -1,0 +1,31 @@
+Data Index
+
+Source: https://u.ae/en/about-the-uae/digital-uae/data/data-index
+
+Data Index
+The data index is an indicator that measures the ability of government entities to manage and provide high-quality data in line with global standards and practices. It aims to evaluate and monitor the performance of government entities in meeting governmental requirements, global competitiveness indicators, and the provision of data needed by decision-makers for planning and policy development. This is based on the standards of the regulatory and operational framework for data management, enhancing data quality, and ensuring data flow and availability.
+Data Index underscores the UAE Government’s commitment to advancing digital transformation, optimizing government operations, and adopting cutting-edge technologies and solutions for robust data governance and secure data exchange. It ensures the reliability, quality, and comprehensiveness of data to support decision-making processes at all levels.
+Dimensions
+The index is divided into 3 main dimensions that represent the main pillars of data management in the Federal Entities. The weightage has been defined in accordance to the importance of each dimension as follows:
+Regulatory and operational framework for data management – 30 per cent
+Enhancing data quality and protection – 30 per cent
+Data accessibility and flow – 40 per cent.
+Pillars
+The Data Index adopts a set of pillars that achieve corporate leadership and government efficiency. They are:
+Focus on the current and future needs
+Financial competence, resources optimisation and collaborating relationships
+Effectiveness and results, focus in supplying high quality data
+Creativity and innovation in executing the index
+Leadership support and contribution in fulfilling the requirements of the index.
+Data index reinforces data governance as a critical component of the development of government performance and operational sustainability through standardised criteria. It ensures the availability of reliable official data as a foundation for effective strategic decision-making and public policy formulation.
+Moreover, it upholds compliance with national and international privacy legislation, while improving operational efficiency by streamlining data flow between entities to support sustainable development goals and national indicators.
+Data Index was developed in collaboration between the Federal Competitiveness and Statistics Centre (FCSC) and the Prime Minister’s Office at the Ministry of Cabinet Affairs.
+Data Index templates (PDFs)
+Data Index Standards Manual (1 MB)
+The Administrative Classification of Data Manual (1 MB)
+Data Quality Measurement Standards (1 MB)
+Data Management Team Roles & Responsibilities (1 MB)
+Approved Data List for the Data Index (1 MB).
+Source:
+UAE Government Launches 'Data Index' to Enhance Data Governance
+Data Index

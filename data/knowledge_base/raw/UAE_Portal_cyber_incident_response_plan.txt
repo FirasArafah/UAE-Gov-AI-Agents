@@ -1,0 +1,28 @@
+Cyber Incident Response Plan
+
+Source: https://u.ae/en/about-the-uae/strategies-initiatives-and-awards/strategies-plans-and-visions/cypersecurity/cyber-incident-response-plan
+
+Cyber Incident Response Plan
+The Cyber Incident Response Plan outlines the UAE’s operational approach to managing significant cyber incidents. It defines roles, responsibilities, and coordination mechanisms across sectors, aligning with the national alert schema and ensuring effective response through a structured incident management lifecycle.
+The Cyber Incident Response Framework (CIRF) and Plan (CIRP) support the implementation of the National Cybersecurity Strategy by establishing a national incident management capability and defining how the UAE will prepare for, protect against, detect, respond to, recover, and continuously learn from significant cyber incidents.
+Incident Response Roles and Responsibilities
+National Cybersecurity Operations Centre (NSOC)
+Outlines roles and responsibilities of the NSOC, operated by the CSC, which serves as the central technical hub for managing national cyber incidents in the UAE.
+National Cyber Response Group (NCRG)
+Provides roles and responsibilities of NCRG, which is a strategic body responsible for coordinating cyber incident management across the UAE during significant Level 3 incidents.
+Sector SOCs and CII operators
+Provides roles and responsibilities of the Sector SOCs and CII operators during steady-state operations and national responses to significant cyber incidents.
+Cyber Incident Response Plan
+Prepare
+Outlines requirements to establish the capability (people, processes, and technology) of cyber incident response, including reporting and information sharing enabling cyber situational awareness.
+Protect
+Outlines actions that are necessary to protect decrease the number of incidents and mitigate or decrease their impact.
+Detect
+Highlights activities aimed at identifying, analyzing, investigating, escalating and reporting a cyber incident as well as organizing an initial response to it.
+Respond
+Outlines activities to prevent an incident to overwhelm resources, limit its impact, prevent it from spreading, and allow time for developing tailored remediation.
+Recover
+Provides actions for implementing appropriate remediation and restoration activities following the Incident Response Plan at CII entities and on a national level affected by an incident.
+Learn and Improve
+Outlines actions to collect and analyze information to understand what happened, why it happened, and come up with a plan outlining recommendation for improvement and mitigation making sure that the same incident cannot happen, vulnerabilities are mitigated, and the overall cybersecurity posture of the UAE is enhanced.
+Read the full plan here. (PDF, 2.17 MB)

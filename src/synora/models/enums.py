@@ -50,6 +50,7 @@ class DocumentDomain(StrEnum):
     HEALTHCARE = "healthcare"
     EDUCATION = "education"
     TELECOM = "telecom"
+    NATIONAL_POLICY = "national_policy"
     CROSS_DOMAIN = "cross_domain"
 
 

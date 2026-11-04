@@ -1,0 +1,54 @@
+Geospatial data platforms
+
+Source: https://u.ae/en/about-the-uae/digital-uae/data/geospatial-data-platforms
+
+Union Atlas
+1MAP
+Environmental Geospatial platform
+Geodata on UAE Data portal
+Spatial Data Infrastructure Program in Abu Dhabi
+Union Atlas
+Union Atlas is a database of reliable geospatial and statistical information relating to the UAE. It reflects the country's successful journey from 1971 to 2021, future prospects and the strategic initiatives to continue and enhance the success in the next 50 years.
+It includes interactive maps, international performance indicators, geographical statistics, satellite images and visual media to highlight the country's achievements in a time series over the 50 years, in the areas of:
+culture and heritage
+economy
+education
+energy and water
+environment
+future horizon
+health
+infrastructure
+geospatial information
+women empowerment
+youth empowerment.
+Union Atlas aims to enhance operations and support future planning for various government and private entities, to achieve comprehensive development. It will contribute to supporting innovation and scientific research in the UAE.
+Union Atlas is the first of its kind in the UAE and was launched by Federal Geographic Information Centre.
+Read related news coverage on WAM.
+1MAP
+1Map is the UAE’s national geospatial platform which provides national maps, statistics and information about the country’s key sectors. It leverages latest geospatial technology and artificial intelligence technologies to provide geospatial statistical data. Through 1Map, users can find the UAE’s health facilities, educational facility, hotel establishments, statistics on foreign trade, statistical story maps and several other services.
+1Map is an initiative of Federal Competitiveness and Statistics Center to support the development of Geographic Information System (GIS) in the UAE and help decision-makers, researchers and students to get access to detailed statistics and survey outputs on geospatial dashboards. It supports national decision-making and planning through partnership and data integration with relevant partners. It aims to bring transparency by sharing data and enhance public engagement.
+Environmental Geospatial platform
+The Environmental Geospatial platform includes many interactive geographical applications which enable access to open data in various fields such as biodiversity, marine environment, green development, chemicals and waste, environmental compliance, biosecurity and others.
+The platform is an essential pillar for supporting the achievement of environment-related strategies and the Sustainable Development Goals (SDGs). It is a reliable source of environment-related spatial data in the UAE.
+Geodata on UAE Data portal
+Bayanat, the national data portal publishes data sets on geospatial data or Geographic Information System (GIS). On the page about geo data on Bayanat, you will find datasets on:
+Ajman Geo Map
+Humanitarian aids
+Schools Map
+Abu Dhabi GeoSpatial Portal.
+Spatial Data Infrastructure Program in Abu Dhabi
+The Government of Abu Dhabi has launched a Spatial Data Infrastructure Program which aims to facilitate the sharing of geospatial data among government agencies and other stakeholders, and working on raising the GeoMaturity of the emirate of Abu Dhabi. The strategic goals of the program are to develop:
+GeoSmart services – this will help Abu Dhabi government entities to transform their government services into GeoSmart services
+GeoMature Abu Dhabi – this will help the emirate to progress towards GeoMature and catalyse the process to the next Spatial Data Infrastructure (SDI) generation (SDI 3.0)
+Geo innovation – this will help the emirate to promote Geo-Innovation and exploit Public Private Partnership (PPP)
+Effective SDI Node – this will help the emirate to improve effectiveness of Abu Dhabi’s SDI Central Node
+Proper Spatial Data - this will help the emirate to regulate and facilitate the availability of high-quality geospatial data
+Strong Community - this will help the emirate to strengthen SDI Community’s development, engagement and organisation
+Clear Governance - this will help the emirate to enhance the Abu Dhabi-SDI Institutional Framework
+Enhance Outreach - this will help the emirate to enhance the outreach and communication tools to promote Abu Dhabi SDI’s community efforts.
+View Abu Dhabi Spatial Data Infrastructure Featured Content.
+Sign in to explore the Abu Dhabi Geospatial Map and other maps from Abu Dhabi Spatial Data Infrastructure and enrich them with your own data to create new maps and map layers.
+Useful links:
+Geospatial data in transportation and route planning - U.ae
+Updated On :
+08 Oct 2026

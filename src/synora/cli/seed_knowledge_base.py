@@ -22,6 +22,68 @@ SKIPPED_FILES = {"UAE_Cabinet_Resolution_65_2022_AR.pdf"}
 # Arabic editions before their English counterparts, and international instruments before
 # generic words such as "ethics" that also appear in UAE file names.
 KNOWN_METADATA: dict[str, dict[str, Any]] = {
+    "decree_law_14_2021_icp": {
+        "title": (
+            "UAE Federal Decree-Law No. 14 of 2021 Establishing the Authority for "
+            "Identity, Citizenship, Customs and Ports Security"
+        ),
+        "domain": DocumentDomain.GOVERNMENT_SERVICES.value,
+        "doc_type": DocumentType.LAW.value,
+        "country_code": "AE",
+        "language": "en",
+    },
+    "decree_law_44_2021_data_office": {
+        "title": "UAE Federal Decree-Law No. 44 of 2021 Establishing the Emirates Data Office",
+        "domain": DocumentDomain.DATA_PROTECTION.value,
+        "doc_type": DocumentType.LAW.value,
+        "country_code": "AE",
+        "language": "en",
+    },
+    "decree_law_34_2021_cybercrime": {
+        "title": "UAE Federal Decree-Law No. 34 of 2021 on Countering Rumors and Cybercrimes",
+        "domain": DocumentDomain.NATIONAL_POLICY.value,
+        "doc_type": DocumentType.LAW.value,
+        "country_code": "AE",
+        "language": "en",
+    },
+    "decree_law_34_2023_discrimination": {
+        "title": (
+            "UAE Federal Decree-Law No. 34 of 2023 on Combating Discrimination, Hatred "
+            "and Extremism"
+        ),
+        "domain": DocumentDomain.CROSS_DOMAIN.value,
+        "doc_type": DocumentType.LAW.value,
+        "country_code": "AE",
+        "language": "en",
+    },
+    "labour_law_33_2021": {
+        "title": "UAE Federal Decree-Law No. 33 of 2021 on Employment Relationships (Labour Law)",
+        "domain": DocumentDomain.NATIONAL_POLICY.value,
+        "doc_type": DocumentType.LAW.value,
+        "country_code": "AE",
+        "language": "en",
+    },
+    "copyright_law_38_2021": {
+        "title": "UAE Federal Decree-Law No. 38 of 2021 on Copyrights and Neighbouring Rights",
+        "domain": DocumentDomain.NATIONAL_POLICY.value,
+        "doc_type": DocumentType.LAW.value,
+        "country_code": "AE",
+        "language": "en",
+    },
+    "energy_strategy_2050": {
+        "title": "UAE Energy Strategy 2050",
+        "domain": DocumentDomain.NATIONAL_POLICY.value,
+        "doc_type": DocumentType.STRATEGY.value,
+        "country_code": "AE",
+        "language": "en",
+    },
+    "digital_economy_strategy": {
+        "title": "UAE Digital Economy Strategy",
+        "domain": DocumentDomain.NATIONAL_POLICY.value,
+        "doc_type": DocumentType.STRATEGY.value,
+        "country_code": "AE",
+        "language": "en",
+    },
     "unesco_ai_ethics_recommendation_ar": {
         "title": "توصية اليونسكو بشأن أخلاقيات الذكاء الاصطناعي (2021)",
         "domain": DocumentDomain.CROSS_DOMAIN.value,
@@ -157,6 +219,18 @@ KNOWN_METADATA: dict[str, dict[str, Any]] = {
 
 # Official page of each document, shown with its citations so a reader can check the source.
 SOURCE_URLS: dict[str, str] = {
+    "decree_law_14_2021_icp": "https://uaelegislation.gov.ae/en/legislations/2432",
+    "decree_law_44_2021_data_office": "https://uaelegislation.gov.ae/en/legislations/2433",
+    "decree_law_34_2021_cybercrime": "https://uaelegislation.gov.ae/en",
+    "decree_law_34_2023_discrimination": "https://uaelegislation.gov.ae/en",
+    "labour_law_33_2021": "https://faolex.fao.org/docs/pdf/uae217212E.pdf",
+    "copyright_law_38_2021": "https://added.gov.ae/ipu/-/media/Files/Batch-3/copyright.pdf",
+    "energy_strategy_2050": (
+        "https://u.ae/en/about-the-uae/strategies-initiatives-and-awards/strategies-plans-and-visions/environment-and-energy/uae-energy-strategy-2050"
+    ),
+    "digital_economy_strategy": (
+        "https://u.ae/en/about-the-uae/strategies-initiatives-and-awards/strategies-plans-and-visions/finance-and-economy/digital-economy-strategy"
+    ),
     "unesco_ai_ethics_recommendation_ar": "https://unesdoc.unesco.org/ark:/48223/pf0000381137",
     "cabinet_resolution_65_2022_ar": "https://uaelegislation.gov.ae/ar/legislations/1601",
     "pdpl_45_2021_ar": "https://uaelegislation.gov.ae/ar/legislations/1972",
@@ -184,8 +258,25 @@ SOURCE_URLS: dict[str, str] = {
     "29_2021": "https://uaelegislation.gov.ae/en/legislations/1528",
 }
 
+def portal_page_metadata(file_path: Path) -> dict[str, Any]:
+    """A page saved from the UAE government portal: its title, then its address, head the file."""
+    lines = file_path.read_text(encoding="utf-8").splitlines()
+    source_url = lines[2].removeprefix("Source: ").strip()
+    return {
+        "title": f"{lines[0].strip()} (UAE Government Portal)",
+        "source_uri": str(file_path),
+        "country_code": "AE",
+        "language": "en",
+        "domain": DocumentDomain.NATIONAL_POLICY.value,
+        "doc_type": DocumentType.STRATEGY.value,
+        "doc_metadata": {"source_url": source_url},
+    }
+
+
 def infer_metadata(file_path: Path) -> dict[str, Any]:
     name_lower = file_path.stem.lower()
+    if name_lower.startswith("uae_portal_"):
+        return portal_page_metadata(file_path)
     for key, meta in KNOWN_METADATA.items():
         if key in name_lower:
             source_url = SOURCE_URLS.get(key)

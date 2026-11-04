@@ -1,0 +1,8 @@
+Cyber Incident Response Framework
+
+Source: https://u.ae/en/about-the-uae/strategies-initiatives-and-awards/strategies-plans-and-visions/cypersecurity/cyber-incident-response-framework
+
+Cyber Incident Response Framework
+The Cyber Incident Response Framework defines the national approach to preparing for, detecting, responding to, and recovering from cyber incidents. It establishes governance, alert schemas, reporting requirements, and life-cycle management to ensure coordinated response, minimise impact, and safeguard the stability and security of UAE cyberspace.
+The Cyber Security Council has developed this framework to establish a national incident management capability and defining how the UAE will prepare for, protect against, detect, respond to, recover from, and continuously learn from significant cyber incidents; aligned with the UAE’s national priority to be a global leader in cyber security, and enhance the security posture of organisations and individuals within the UAE.
+Read the full policy here (PDF, 2.32 MB).

@@ -207,6 +207,26 @@ def test_numbered_paragraphs_name_the_chunks_of_an_instrument():
     assert labels[0] == "Paragraph 1" and "Paragraph 35" in labels
 
 
+def test_article_heading_with_its_title_on_the_same_line_is_found():
+    body = " ".join(["Authors shall enjoy the protection of this law."] * 3)
+    text = f"Article 1- Definitions\n{body}\nArticle 2- Works under protection\n{body}"
+    labels = [label for label, _, _ in _ingestor()._split_into_sections(text)]
+    assert labels == ["Article 1", "Article 2"]
+
+
+def test_portal_page_takes_its_title_and_source_from_the_file(tmp_path):
+    page = tmp_path / "UAE_Portal_some_policy.txt"
+    page.write_text("Some policy\n\nSource: https://u.ae/en/x\n\nBody.\n", encoding="utf-8")
+    meta = infer_metadata(page)
+    assert meta["title"] == "Some policy (UAE Government Portal)"
+    assert meta["doc_metadata"] == {"source_url": "https://u.ae/en/x"}
+    assert meta["domain"] == "national_policy"
+
+
+def test_ligature_glyph_names_are_repaired():
+    assert Ingestor._normalize_text("/T_he employer") == "The employer"
+
+
 def test_clauses_before_the_numbered_paragraphs_keep_no_paragraph_name():
     clauses = "1. Adopts this text on this day.\n2. Recommends that States apply it.\n"
     body = "\n".join(

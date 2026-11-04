@@ -67,6 +67,17 @@
     {"id": "event5-icp", "group": "Agents: scenario events", "agent": "icp", "event": 5, "expect_all": [{"title": "No. 29 of 2021", "section": "^Article \\(?3\\)?\\b"}, {"title": "No. 45 of 2021", "section": "^Article \\(?2\\)?\\b"}]},
     {"id": "event5-auditor", "group": "Agents: scenario events", "agent": "auditor", "event": 5, "expect": [{"title": "2024/1689"}, {"title": "UAE Charter"}]},
     {"id": "event6-auditor", "group": "Agents: scenario events", "agent": "auditor", "event": 6, "expect_all": [{"title": "National Strategy for Artificial Intelligence 2031"}, {"title": "UAE Charter"}, {"title": "UAE AI Ethics Guidelines"}, {"title": "2024/1689"}, {"title": "OECD"}, {"title": "UNESCO"}, {"title": "Y.3172"}, {"title": "AI Ready"}]},
-    {"id": "event6-privacy", "group": "Agents: scenario events", "agent": "privacy", "event": 6, "expect_all": [{"title": "No. 45 of 2021", "section": "^Article \\(?2\\)?\\b"}, {"title": "2024/1689"}]}
+    {"id": "event6-privacy", "group": "Agents: scenario events", "agent": "privacy", "event": 6, "expect_all": [{"title": "No. 45 of 2021", "section": "^Article \\(?2\\)?\\b"}, {"title": "2024/1689"}]},
+    {"id": "labour-discrimination", "group": "Labour, IP, energy and economy", "agent": "auditor", "q": "Does the UAE labour law prohibit discrimination based on race or national origin?", "expect": [{"title": "No. 33 of 2021", "section": "^Article \\(?4\\)?"}]},
+    {"id": "labour-probation", "group": "Labour, IP, energy and economy", "agent": "auditor", "q": "How long can a worker's probationary period last?", "expect": [{"title": "No. 33 of 2021", "section": "^Article \\(?9\\)?"}]},
+    {"id": "copyright-software", "group": "Labour, IP, energy and economy", "agent": "auditor", "q": "Are computer programmes and smart applications protected by copyright?", "expect": [{"title": "No. 38 of 2021", "section": "^Article 2\\b"}]},
+    {"id": "copyright-term", "group": "Labour, IP, energy and economy", "agent": "auditor", "q": "How many years after the author's death are economic rights protected?", "expect": [{"title": "No. 38 of 2021", "section": "^Article 20\\b"}]},
+    {"id": "energy-renewables", "group": "Labour, IP, energy and economy", "agent": "auditor", "q": "What is the UAE's target for renewable energy by 2030?", "expect": [{"title": "Energy Strategy 2050"}]},
+    {"id": "digital-economy-gdp", "group": "Labour, IP, energy and economy", "agent": "auditor", "q": "How much should the digital economy contribute to the UAE's GDP?", "expect": [{"title": "Digital Economy Strategy"}]},
+    {"id": "icp-law", "group": "Other UAE laws", "agent": "icp", "q": "Which law established the Authority for Identity, Citizenship, Customs and Ports Security, and what are its competences?", "expect": [{"title": "No. 14 of 2021"}]},
+    {"id": "data-office", "group": "Other UAE laws", "agent": "privacy", "q": "What are the competences of the Emirates Data Office?", "expect": [{"title": "No. 44 of 2021"}]},
+    {"id": "discrimination-law", "group": "Other UAE laws", "agent": "auditor", "q": "How does UAE law define discrimination?", "expect": [{"title": "No. 34 of 2023", "section": "^Article \\(?1\\)?"}]},
+    {"id": "cybercrime-law", "group": "Other UAE laws", "agent": "auditor", "q": "What is the penalty for hacking an electronic information system under UAE cybercrime law?", "expect": [{"title": "No. 34 of 2021"}]},
+    {"id": "constitution", "group": "Other UAE laws", "agent": "auditor", "q": "What does the UAE Constitution say about equality and justice?", "expect": [{"title": "Constitution"}]}
   ]
 }

@@ -29,6 +29,39 @@ def _instrument(name: str, pattern: str, *titles: str) -> Instrument:
 
 INSTRUMENTS: tuple[Instrument, ...] = (
     _instrument(
+        "Decree-Law 14/2021",
+        r"\b14\s*(?:of|/)\s*2021\b|\(14\) of 2021|رقم\s*\(?14\)?",
+        "No. 14 of 2021",
+    ),
+    _instrument(
+        "Data Office Law",
+        r"\b44\s*(?:of|/)\s*2021\b|\(44\) of 2021|data office|مكتب الإمارات للبيانات",
+        "No. 44 of 2021",
+    ),
+    _instrument(
+        "Cybercrime Law",
+        r"\b34\s*(?:of|/)\s*2021\b|\(34\) of 2021|cybercrime law|الجرائم الإلكترونية",
+        "No. 34 of 2021",
+    ),
+    _instrument(
+        "Anti-Discrimination Law",
+        r"\b34\s*(?:of|/)\s*2023\b|\(34\) of 2023|anti-discrimination law"
+        r"|combating discrimination|مكافحة التمييز",
+        "No. 34 of 2023",
+    ),
+    _instrument(
+        "Labour Law",
+        r"labou?r law|employment relationships?|\b33\s*(?:of|/)\s*2021\b|\(33\) of 2021"
+        r"|قانون العمل|علاقات العمل|رقم\s*\(?33\)?",
+        "No. 33 of 2021",
+    ),
+    _instrument(
+        "Copyright Law",
+        r"copyright law|neighbou?ring rights|\b38\s*(?:of|/)\s*2021\b|\(38\) of 2021"
+        r"|حقوق المؤلف|رقم\s*\(?38\)?",
+        "No. 38 of 2021",
+    ),
+    _instrument(
         "PDPL",
         r"\bPDPL\b|personal data protection law|\b45\s*(?:of|/)\s*2021\b|\(45\) of 2021"
         r"|قانون حماية البيانات|رقم\s*\(?45\)?",

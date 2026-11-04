@@ -2,7 +2,7 @@ import { api } from "../js/api.js";
 import { addStrings, num, t } from "../js/i18n.js";
 import { h, textDir } from "../js/render.js";
 
-const DOMAINS = ["government_services", "data_protection", "ai_governance", "telecom", "cross_domain"];
+const DOMAINS = ["government_services", "data_protection", "ai_governance", "telecom", "national_policy", "cross_domain"];
 const TYPES = ["law", "regulation", "strategy", "guideline", "standard", "report", "use_case", "other"];
 
 addStrings({
@@ -37,6 +37,7 @@ addStrings({
     "domain.data_protection": "Data protection",
     "domain.ai_governance": "AI governance",
     "domain.telecom": "Telecom and cybersecurity",
+    "domain.national_policy": "National policy",
     "domain.cross_domain": "Cross-domain",
     "type.law": "Law",
     "type.regulation": "Regulation",
@@ -78,6 +79,7 @@ addStrings({
     "domain.data_protection": "حماية البيانات",
     "domain.ai_governance": "حوكمة الذكاء الاصطناعي",
     "domain.telecom": "الاتصالات والأمن السيبراني",
+    "domain.national_policy": "السياسات الوطنية",
     "domain.cross_domain": "متعدد المجالات",
     "type.law": "قانون",
     "type.regulation": "لائحة",

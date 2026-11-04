@@ -1,0 +1,15 @@
+Data operability
+
+Source: https://u.ae/en/about-the-uae/digital-uae/data/data-operability
+
+The basis for data interoperability
+The UAE Smart Data Principle and Standards (Word, 0.5 MB) sets out the core standards around data classification, exchange and data quality to ensure UAE data is reliable, interoperable and fit-for-purpose. The UAE Smart Data Framework outlines a common basis for managing data that enables interoperability and exchange among entities. It draws on the guidance on how to use open standards to drive data interoperability that is set out in the European Interoperability Framework, and on other relevant open standards, including those developed by ISO and W3C. It also draws on international government experience of implementing these standards as done in the UK and US.
+Data exchange standards
+To exchange data effectively across entities, the data must be discoverable, reliable, and re-usable. To achieve this, Entities should act as publishers of data - not simply producing data for their own internal purposes, but having processes and standards in place to ensure their data is reusable by external Entities by default. The Data Exchange Standard supports this change by setting out specifications in three areas, as illustrated below, in order to:
+Ensure data is easily discoverable, interoperable and shareable
+These include specifications on metadata to ensure data can be searched for effectively and to help users understand the content and context of the data, and on data formats and data schema to facilitate interoperability of Entity data with external data.
+Ensure that the rights for data re-use are consistent and communicated clearly, in order to make it easy to re-use
+These include specifications on licensing and commercialisation to give users of data confidence in the terms under which they can utilize the data.
+Ensure that people trust the government with their data
+These include specifications on data protection, privacy, access rights, and permissions to ensure that access to data is appropriate, conformant, and protects individual privacy.
+Read more about data interoperability in The UAE Smart Data Framework (EN) - Part 1 Principle and Standards (Word, 0.5 MB) and The UAE Smart Data Framework (EN) - Part 2 Implementation Guide (Word, 2 MB).
