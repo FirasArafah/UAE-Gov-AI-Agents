@@ -236,3 +236,21 @@ async def test_stream_that_dies_mid_answer_is_not_restarted():
     with pytest.raises(RuntimeError):
         _ = [t async for t in llm.chat_stream(messages=[])]
     assert llm._client.calls == 1
+
+
+@pytest.mark.parametrize(
+    ("question", "language"),
+    [
+        ("Does PDPL Article (18) apply to ICP?", "en"),
+        ("هل تنطبق المادة (18) من PDPL على ICP؟", "ar"),
+        ("ما هو دور الهيئة؟", "ar"),
+    ],
+)
+def test_answers_follow_the_language_of_the_question(question, language):
+    from synora.agents.language import detect_language
+
+    assert detect_language(question) == language
+    prompt = _agent("privacy")._build_system_prompt([], detect_language(question))
+    expected = "Modern Standard Arabic" if language == "ar" else "English"
+    assert f"entirely in {expected}" in prompt
+    assert "English version" not in prompt

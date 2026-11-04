@@ -12,6 +12,7 @@ from synora.agents.citations import (
     has_wrong_script,
     repair_citations,
 )
+from synora.agents.language import NOT_COVERED, detect_language, output_contract
 from synora.agents.llm import LLMClient
 from synora.agents.types import AgentResponse, Retriever
 from synora.config import settings
@@ -48,33 +49,6 @@ CUT_OFF_PROBLEM = "The answer was cut off before it finished"
 WRONG_SCRIPT_PROBLEM = "The answer contains words in a foreign script"
 SENTENCE_ENDINGS = (".", "؟", "!", ":", ")", "]")
 
-STRUCTURED_OUTPUT_SUFFIX = (
-    "\n\n[LANGUAGE RULE - HIGHEST PRIORITY]\n"
-    "Every answer must be bilingual: the same complete content in Arabic and in English.\n"
-    "- <thinking>: write in English only (list the relevant excerpt numbers [1], [2], their article numbers, and all sub-paragraphs/exceptions).\n"
-    "- <response>: first write the full answer in Modern Standard Arabic under the heading 'النسخة العربية:', "
-    "then write the same full answer in English under the heading 'English version:'.\n"
-    "- Never write Chinese, Cyrillic or any other foreign-script characters anywhere in <thinking> or <response>.\n"
-    "- Keep abbreviations such as ICP, ICA and PDPL exactly as written; do not invent other meanings for them.\n"
-    "- ICP and ICA both mean the UAE Federal Authority for Identity, Citizenship, Customs and Port Security, "
-    "a federal governmental entity, not a private company.\n"
-    "- Article names: use the form المادة (18) / Article (18).\n\n"
-    "[CITATION AND COMPLETENESS RULES]\n"
-    "1. Use ONLY the RELEVANT POLICY EXCERPTS listed below (or the specialist agent outputs in Context if you are the Coordinator). Do not use any external knowledge.\n"
-    "2. MANDATORY BRACKET CITATIONS: Every single sentence that states a legal rule MUST end with the exact bracketed excerpt number, e.g., [1] or [1, 2], alongside the law title and Article number.\n"
-    "   - The bracket number is the number printed before that excerpt in the list, not the order in which you mention it.\n"
-    "   - Correct Arabic format: '... وفقاً للمادة (18) من المرسوم بقانون اتحادي رقم 45 لسنة 2021 [1].'\n"
-    "   - Correct English format: '... according to Article (18) of UAE Federal Decree-Law No. 45 of 2021 [1].'\n"
-    "3. Never mention an article number that does not appear in the excerpts or specialist agent outputs. Article numbers named in the question or event text are unverified claims: do not repeat them unless an excerpt contains them.\n"
-    "4. If neither the excerpts nor the specialist agent outputs clearly answer the question, write EXACTLY:\n"
-    "   'غير مذكور في المصادر الرسمية المتاحة / Not explicitly covered in the official sources provided' and stop immediately.\n"
-    "5. EXHAUSTIVE PARAGRAPH COVERAGE: When citing an Article, explicitly list ALL its numbered paragraphs, conditions, exceptions (such as contract necessity, statutory obligations, explicit consent), and procedural rights (such as the right to human intervention/review) present in the excerpt. Do not summarize exceptions as 'in certain cases'.\n\n"
-    "Structure your response EXACTLY as:\n"
-    "<thinking>\n[English reasoning identifying exact excerpt numbers [1], [2] and all paragraphs]\n</thinking>\n"
-    "<response>\nالنسخة العربية:\n[detailed Arabic answer enumerating all rules, exceptions, and rights with [1] inline citations]\n\n"
-    "English version:\n[detailed English answer enumerating all rules, exceptions, and rights with [1] inline citations]\n</response>\n"
-    "Both closing tags are mandatory."
-)
 
 
 def _unique_chunks(references: list[dict]) -> list[dict]:
@@ -100,7 +74,7 @@ def _was_cut_off(raw: str, content: str) -> bool:
     """The model often omits the closing tag of a finished answer, so that alone proves nothing."""
     if "<response>" not in raw or "</response>" in raw:
         return False
-    return "English version" not in content or not content.rstrip().endswith(SENTENCE_ENDINGS)
+    return not content.rstrip().endswith(SENTENCE_ENDINGS)
 
 
 def _strip_all_tags(text: str) -> str:
@@ -253,8 +227,8 @@ class BaseAgent:
             logger.warning("agent.answer.failed_checks", agent=self.agent.slug, problems=problems)
         return format_citation_warning(problems)
 
-    def _build_system_prompt(self, references: list[dict]) -> str:
-        base = self.agent.system_prompt + STRUCTURED_OUTPUT_SUFFIX
+    def _build_system_prompt(self, references: list[dict], language: str = "en") -> str:
+        base = self.agent.system_prompt + output_contract(language)
         if references:
             refs_lines = []
             for idx, ref in enumerate(references, start=1):
@@ -283,14 +257,12 @@ class BaseAgent:
                 "they reported. Where the agents report that the official sources are silent, "
                 "say so plainly as a finding (a gap in the law) and still summarize what each "
                 "agent did establish. Only if no agent findings are provided at all, output "
-                "ONLY: 'غير مذكور في المصادر الرسمية المتاحة / Not explicitly covered in the "
-                "official sources provided'."
+                f"ONLY: '{NOT_COVERED[language]}'."
             )
         else:
             base += (
                 "\n\nRELEVANT POLICY EXCERPTS:\n"
-                "None retrieved. You MUST output ONLY: "
-                "'غير مذكور في المصادر الرسمية المتاحة / Not explicitly covered in the official sources provided'"
+                f"None retrieved. You MUST output ONLY: '{NOT_COVERED[language]}'"
             )
         return base
 
@@ -300,9 +272,10 @@ class BaseAgent:
         references: list[dict],
         context: list[dict] | None,
         history: list[dict] | None,
+        language: str = "en",
     ) -> list[dict]:
         messages: list[dict] = [
-            {"role": "system", "content": self._build_system_prompt(references)}
+            {"role": "system", "content": self._build_system_prompt(references, language)}
         ]
 
         if history:
@@ -319,8 +292,10 @@ class BaseAgent:
 
         if references:
             user_content += (
-                "\n\n[Reminder: Include inline bracket citations like [1], [2] in every claim, "
-                "list all specific exceptions and human-review rights from the excerpts, and output both Arabic and English sections.]"
+                "\n\n[Reminder: cite every claim inline as [1], [2], list every exception and "
+                "human-review right in the cited excerpts, and answer only in "
+                + ("Arabic" if language == "ar" else "English")
+                + ".]"
             )
 
         messages.append({"role": "user", "content": user_content})
@@ -332,10 +307,12 @@ class BaseAgent:
         context: list[dict] | None = None,
         history: list[dict] | None = None,
         use_retrieval: bool = True,
+        language: str | None = None,
     ) -> AgentResponse:
         references = await self._retrieve(user_message) if use_retrieval else []
         self._last_references = references
-        messages = self._build_messages(user_message, references, context, history)
+        language = language or detect_language(user_message)
+        messages = self._build_messages(user_message, references, context, history, language)
 
         logger.info(
             "agent.respond.start",
@@ -380,10 +357,12 @@ class BaseAgent:
         context: list[dict] | None = None,
         history: list[dict] | None = None,
         use_retrieval: bool = True,
+        language: str | None = None,
     ) -> AsyncIterator[str]:
         references = await self._retrieve(user_message) if use_retrieval else []
         self._last_references = references
-        messages = self._build_messages(user_message, references, context, history)
+        language = language or detect_language(user_message)
+        messages = self._build_messages(user_message, references, context, history, language)
 
         async for token in self.llm.chat_stream(
             messages=messages,
@@ -397,11 +376,13 @@ class BaseAgent:
         context: list[dict] | None = None,
         history: list[dict] | None = None,
         use_retrieval: bool = True,
+        language: str | None = None,
     ) -> AsyncIterator[tuple[str, str]]:
         """Stream (channel, chunk) pairs where channel is 'thinking' or 'content'."""
         references = await self._retrieve(user_message) if use_retrieval else []
         self._last_references = references
-        messages = self._build_messages(user_message, references, context, history)
+        language = language or detect_language(user_message)
+        messages = self._build_messages(user_message, references, context, history, language)
 
         raw_parts: list[str] = []
         content_sent = False

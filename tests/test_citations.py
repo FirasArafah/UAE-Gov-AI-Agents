@@ -289,9 +289,10 @@ async def test_parts_and_translation_of_one_article_share_a_slot():
 @pytest.mark.parametrize(
     ("text", "warned"),
     [
-        ("النسخة العربية:\nجواب [1].\n\nEnglish version:\nAnswer [1].", False),
-        ("النسخة العربية:\nجواب [1].\n\nEnglish version:\nAnswer that st", True),
-        ("النسخة العربية:\nجواب فقط [1].", True),
+        ("Answer [1].", False),
+        ("Answer that st", True),
+        ("جواب كامل [1].", False),
+        ("جواب لم يكتمل بعد", True),
     ],
 )
 def test_missing_closing_tag_alone_is_not_a_cut_off(text, warned):
@@ -326,7 +327,6 @@ async def test_respond_cleans_loop_and_warns_about_bad_citation():
     assert response.content.count(LOOP) == 1
     assert "Warning: this answer failed verification" in response.content
     assert "Article (18) is not in the retrieved sources" in response.content
-    assert "cut off" in response.content
 
 
 @pytest.mark.asyncio

@@ -8,6 +8,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from synora.agents.base import split_leaked_reasoning
 from synora.agents.gaps import GapAnalyst
+from synora.agents.language import detect_language
 from synora.agents.orchestrator import AgentOutcome, Orchestrator, assessment_excerpt
 from synora.agents.registry import AgentRegistry
 from synora.agents.types import AgentResponse
@@ -495,6 +496,8 @@ async def stream_message(
     await db.refresh(user_msg)
 
     agent_slugs = list(dict.fromkeys(body.agents or ["coordinator"]))
+    # Every agent, the Coordinator's synthesis included, answers in the question's language.
+    language = detect_language(body.message)
 
     async def run_agent(
         agent_slug: str,
@@ -531,6 +534,7 @@ async def stream_message(
                 message,
                 history=None if is_synthesis else history,
                 use_retrieval=use_retrieval,
+                language=language,
             ):
                 if channel == "thinking":
                     thinking_acc += chunk
