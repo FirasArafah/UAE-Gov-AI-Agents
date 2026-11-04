@@ -82,22 +82,22 @@ least 10 GB of memory (`memory=10GB` in `%USERPROFILE%\.wslconfig`, then `wsl --
 
 The interface is available in **English and Arabic** (button at the bottom of the sidebar) and in
 light and dark themes; both choices are remembered by the browser. Every address has the form
-`http://localhost:5173/#/<page>`.
+`http://localhost:5173/<page>`.
 
-- **Chat** (`#/`): ask the whole team or one agent. Agents answer in the language of the
+- **Chat** (`/`): ask the whole team or one agent. Agents answer in the language of the
   question. In team mode the ICP Representative, AI Auditor and Privacy Consultant assess the
   question independently and the Coordinator writes the final answer; each agent's chain of
   thought streams live in the collapsible panel above it, with its sources and any citation
   warnings. Past conversations are listed under *Recent*.
-- **Simulations** (`#/simulations`): start a scenario and reopen previous runs.
-- **Simulation** (`#/simulation/<id>`): release events one at a time, read each agency's
+- **Simulations** (`/simulations`): start a scenario and reopen previous runs.
+- **Simulation** (`/simulation/<id>`): release events one at a time, read each agency's
   assessment with its reasoning and sources, the Coordinator's synthesis, and build the policy
   gap report. An event interrupted part-way can be completed from the page.
-- **Audit log** (`#/audit/<id>`): every retrieval, reasoning trace, decision, hand-off and gap
+- **Audit log** (`/audit/<id>`): every retrieval, reasoning trace, decision, hand-off and gap
   report of a run, filterable and exportable as JSON.
-- **Agents** (`#/agents`): each agency's role, mandate and primary sources, and how a team
+- **Agents** (`/agents`): each agency's role, mandate and primary sources, and how a team
   answer is made.
-- **Knowledge base** (`#/kb`): search the passages the agents retrieve from, and browse the
+- **Knowledge base** (`/kb`): search the passages the agents retrieve from, and browse the
   national and international documents.
 
 ## Running the scenario

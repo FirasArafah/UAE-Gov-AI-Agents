@@ -83,7 +83,7 @@ export async function renderAudit(container, { id }) {
   const exportBtn = h("button", { class: "btn", type: "button", text: t("audit.export") });
 
   container.append(
-    h("a", { class: "back-link", href: `#/simulation/${id}`, text: t("audit.back") }),
+    h("a", { class: "back-link", href: `/simulation/${id}`, text: t("audit.back") }),
     h("header", { class: "page-head" }, h("div", {}, h("h1", { text: t("audit.title") })), exportBtn),
     stats,
     h("div", { class: "toolbar audit-toolbar" }, actionTabs, agentFilter, search),

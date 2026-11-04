@@ -3,6 +3,7 @@ import { AGENTS, agentColor, agentName } from "../js/agents.js";
 import { addStrings, duration, language, t } from "../js/i18n.js";
 import { h, renderAnswer } from "../js/render.js";
 import { ChatSocket } from "../js/chatSocket.js";
+import { setAddress } from "../js/router.js";
 
 const TEAM = ["icp", "auditor", "privacy", "coordinator"];
 
@@ -556,7 +557,7 @@ export async function renderChat(container, params = {}) {
         const s = await api("/sessions", { method: "POST", body: JSON.stringify({}) });
         sessionId = s.id;
         storeSession(sessionId);
-        history.replaceState(null, "", `#/chat/${sessionId}`);
+        setAddress(`/chat/${sessionId}`);
       }
       if (!socket || socket.sessionId !== sessionId) {
         socket?.close();

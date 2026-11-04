@@ -2,7 +2,7 @@ import "./style.css";
 import { api } from "./js/api.js";
 import { h } from "./js/render.js";
 import { applyLanguage, language, setLanguage, t } from "./js/i18n.js";
-import { refreshRoute, route, startRouter } from "./js/router.js";
+import { navigate, refreshRoute, route, startRouter } from "./js/router.js";
 import { forgetChat, presetMode, renderChat } from "./pages/chat.js";
 import { renderRoster } from "./pages/roster.js";
 import { renderAudit } from "./pages/audit.js";
@@ -11,17 +11,6 @@ import { renderScenarios } from "./pages/scenarios.js";
 import { renderSimulation } from "./pages/simulation.js";
 
 applyLanguage();
-
-// Every address has the form /#/<page>: a bare "/", "/#", "#chat" or another path is rewritten.
-function canonicalUrl() {
-  const page = location.hash.replace(/^#\/?/, "");
-  const target = `/#/${page}`;
-  if (location.pathname !== "/" || !location.hash.startsWith("#/")) {
-    history.replaceState(null, "", target);
-  }
-}
-canonicalUrl();
-window.addEventListener("hashchange", canonicalUrl);
 
 document.getElementById("lang-toggle").addEventListener("click", () => {
   setLanguage(language() === "ar" ? "en" : "ar");
@@ -47,7 +36,7 @@ document.getElementById("theme-toggle").addEventListener("click", () => {
 
 function markActiveRecent() {
   for (const a of document.querySelectorAll("#recents a")) {
-    a.classList.toggle("active", a.getAttribute("href") === location.hash);
+    a.classList.toggle("active", a.getAttribute("href") === location.pathname);
   }
 }
 
@@ -68,7 +57,7 @@ async function loadRecents() {
   try {
     const chats = await api("/chats");
     list.replaceChildren(
-      ...chats.map((c) => h("a", { href: `#/chat/${c.id}`, dir: "auto", title: c.title, text: c.title })),
+      ...chats.map((c) => h("a", { href: `/chat/${c.id}`, dir: "auto", title: c.title, text: c.title })),
     );
     if (!chats.length) list.replaceChildren(h("small", { class: "muted", text: t("recents.empty") }));
     markActiveRecent();
@@ -109,22 +98,18 @@ route("/chat", renderChat);
 route("/chat/:id", renderChat);
 route("/new", () => {
   forgetChat();
-  location.hash = "#/";
+  navigate("/", { replace: true });
 });
 route("/ask/:agent", (_, { agent }) => {
   forgetChat();
   presetMode(agent);
-  history.replaceState(null, "", "/#/");
-  window.dispatchEvent(new HashChangeEvent("hashchange"));
+  navigate("/", { replace: true });
 });
 route("/simulations", asPage(renderScenarios));
 route("/simulation/:id", asPage(renderSimulation));
 route("/audit/:id", asPage(renderAudit));
 // Addresses used by earlier versions of the interface.
-const redirect = (to) => (_, params) => {
-  history.replaceState(null, "", `/#${to(params)}`);
-  window.dispatchEvent(new HashChangeEvent("hashchange"));
-};
+const redirect = (to) => (_, params) => navigate(to(params), { replace: true });
 for (const old of ["/overview", "/scenarios", "/sessions"]) route(old, redirect(() => "/simulations"));
 route("/session/:id", redirect(({ id }) => `/simulation/${id}`));
 route("/agents", asPage(renderRoster));
