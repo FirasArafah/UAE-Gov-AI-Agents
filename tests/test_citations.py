@@ -147,6 +147,31 @@ def test_cross_references_are_not_article_headings():
     ]
 
 
+def _small_ingestor() -> Ingestor:
+    ingestor = Ingestor()
+    ingestor.chunk_size, ingestor.chunk_overlap = 300, 0
+    return ingestor
+
+
+def test_documents_without_articles_are_labelled_by_heading():
+    def body(topic):
+        return " ".join(f"Sentence {i} about {topic} explains the principle." for i in range(6))
+
+    parts = ["Charter title line", "Introduction", body("scope"), "Algorithmic Bias", body("bias")]
+    parts += ["Human Oversight", body("oversight"), "Governance and Accountability", body("duty")]
+    text = "\n\n".join(parts)
+    ingestor = _small_ingestor()
+    labels = [label for label, _, _ in ingestor._split_into_sections(text)]
+    assert "chunk_0" not in labels
+    assert "Algorithmic Bias" in labels or "Human Oversight" in labels
+
+
+def test_text_without_headings_keeps_numbered_chunks():
+    text = "Plain paragraph without any headings at all. " * 40
+    labels = [label for label, _, _ in _small_ingestor()._split_into_sections(text)]
+    assert labels[0] == "chunk_0"
+
+
 def test_arabic_files_get_arabic_metadata():
     pdpl = infer_metadata(Path("data/raw/UAE_PDPL_45_2021_AR.pdf"))
     decree = infer_metadata(Path("data/raw/UAE_Decree_Law_29_2021_AR.pdf"))
@@ -177,6 +202,24 @@ def test_default_seed_folder_has_the_knowledge_base_with_known_metadata():
     assert "UAE_Cabinet_Resolution_65_2022.pdf" in names
     assert "UAE_Cabinet_Resolution_65_2022_AR.pdf" not in names
     assert [p.name for p in files if infer_metadata(p)["doc_type"] == "other"] == []
+
+
+@pytest.mark.parametrize(
+    ("name", "country", "language", "title_word"),
+    [
+        ("UNESCO_AI_Ethics_Recommendation_EN.pdf", "INT", "en", "UNESCO"),
+        ("UNESCO_AI_Ethics_Recommendation_AR.pdf", "INT", "ar", "اليونسكو"),
+        ("UAE_AI_Ethics_Guidelines.pdf", "AE", "en", "UAE AI Ethics"),
+        ("EU_AI_Act_2024.pdf", "EU", "en", "EU Artificial Intelligence Act"),
+        ("OECD_AI_Principles.pdf", "INT", "en", "OECD"),
+        ("UAE_Cabinet_Resolution_65_2022_AR.pdf", "AE", "ar", "قرار مجلس الوزراء"),
+        ("UAE_Cabinet_Resolution_65_2022.pdf", "AE", "en", "Cabinet Resolution"),
+    ],
+)
+def test_reference_files_do_not_collide_on_shared_words(name, country, language, title_word):
+    meta = infer_metadata(Path("data/knowledge_base/raw") / name)
+    assert (meta["country_code"], meta["language"]) == (country, language)
+    assert title_word in meta["title"]
 
 
 class FakeRetriever:

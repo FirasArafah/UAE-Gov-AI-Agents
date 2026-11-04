@@ -99,3 +99,58 @@ class AuditLogger:
             refs=len(references),
         )
         return entry
+
+    async def log_gap_report(
+        self,
+        session_id: UUID,
+        agent_id: UUID | None,
+        gap_count: int,
+        assessments_read: int,
+        references: list[dict],
+    ) -> AuditLog:
+        """Record a policy gap extraction and the international sources it was offered."""
+        entry = AuditLog(
+            session_id=session_id,
+            agent_id=agent_id,
+            action=AuditAction.POLICY_REFERENCE,
+            reasoning=(
+                f"Extracted {gap_count} policy gaps from {assessments_read} agent assessments "
+                f"against {len(references)} international reference excerpts."
+            ),
+            policy_references=references,
+            source_attributions=[],
+            audit_metadata={"gap_count": gap_count, "assessments_read": assessments_read},
+        )
+        self.db.add(entry)
+        await self.db.flush()
+        logger.info("audit.gap_report", session=str(session_id), gaps=gap_count)
+        return entry
+
+    async def log_handoff(
+        self,
+        session_id: UUID,
+        agent_id: UUID,
+        message_id: UUID | None,
+        from_agents: list[str],
+        event_sequence: int | None = None,
+    ) -> AuditLog:
+        """Record that an agent's output was built on other agents' assessments."""
+        entry = AuditLog(
+            session_id=session_id,
+            agent_id=agent_id,
+            message_id=message_id,
+            action=AuditAction.HANDOFF,
+            reasoning="Received assessments from: " + ", ".join(from_agents),
+            policy_references=[],
+            source_attributions=[],
+            audit_metadata={"from_agents": from_agents, "event_sequence": event_sequence},
+        )
+        self.db.add(entry)
+        await self.db.flush()
+        logger.info(
+            "audit.handoff",
+            session=str(session_id),
+            agent=str(agent_id),
+            from_agents=from_agents,
+        )
+        return entry

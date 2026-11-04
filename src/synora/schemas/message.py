@@ -16,4 +16,5 @@ class MessageRead(BaseModel):
     content: str
     thinking_trace: str | None
     sequence: int
+    message_metadata: dict
     created_at: datetime

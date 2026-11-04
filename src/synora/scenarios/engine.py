@@ -31,8 +31,12 @@ class ScenarioEngine:
         return session
 
     async def next_event(self, session_id: UUID) -> ScenarioEvent | None:
-        """Return the next event to release, or None if scenario exhausted."""
-        session = await self.db.get(SimulationSession, session_id)
+        """Return the next event to release, or None if scenario exhausted.
+
+        The session row is locked until the release is committed, so two concurrent advance
+        requests release consecutive events instead of the same one twice.
+        """
+        session = await self.db.get(SimulationSession, session_id, with_for_update=True)
         if session is None:
             raise ValueError(f"session not found: {session_id}")
 
@@ -107,12 +111,18 @@ class ScenarioEngine:
             "status": session.status,
             "current_sequence": session.current_sequence,
             "total_events": len(events),
+            "scenario_title": scenario.title,
             "events": [
                 {
                     "sequence": e.sequence,
                     "title": e.title,
                     "target_agent_roles": e.target_agent_roles,
                     "released": e.sequence <= session.current_sequence,
+                    # Event text is only disclosed once released: participants must not
+                    # read ahead of the information they would have at that moment.
+                    "content": e.content if e.sequence <= session.current_sequence else None,
+                    "sequential": bool((e.event_metadata or {}).get("sequential")),
+                    "scenario_type": (e.event_metadata or {}).get("scenario_type"),
                 }
                 for e in events
             ],

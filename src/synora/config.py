@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_llm_model: str = "qwen2.5:7b-instruct"
     ollama_embed_model: str = "bge-m3"
+    # Context window per request. Bilingual prompts with six policy excerpts need ~6k tokens.
+    ollama_num_ctx: int = 8192
 
     # --- Embeddings ---
     embedding_dim: int = 1024

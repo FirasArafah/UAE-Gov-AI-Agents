@@ -110,11 +110,33 @@ def _strip_all_tags(text: str) -> str:
     return text.strip()
 
 
+SOURCES_HEADING = "المصادر المسترجعة / Retrieved Sources:"
+
+
+ARABIC_SECTION_HEADING = "النسخة العربية"
+LEAKED_THINKING_LABEL = re.compile(r"^\W*thinking\W*", re.IGNORECASE)
+
+
+def split_leaked_reasoning(content: str) -> tuple[str | None, str]:
+    """Separate reasoning the model wrote without <thinking> tags from the answer.
+
+    Every answer must open with the Arabic section heading. English-only text before it is
+    reasoning that escaped its tags (often under a bare "thinking" label), not answer text.
+    """
+    idx = content.find(ARABIC_SECTION_HEADING)
+    if idx <= 0:
+        return None, content
+    preface = content[:idx].strip()
+    if not preface or ARABIC_LETTER_RE.search(preface):
+        return None, content
+    return LEAKED_THINKING_LABEL.sub("", preface).strip() or None, content[idx:]
+
+
 def _format_sources_footer(references: list[dict]) -> str:
     """Build a deterministic sources block from retrieved references."""
     if not references:
         return ""
-    lines = ["\n\n---\nالمصادر المسترجعة / Retrieved Sources:"]
+    lines = ["\n\n---\n" + SOURCES_HEADING]
     for idx, ref in enumerate(references, start=1):
         title = ref.get("title", "Untitled")
         lang = (ref.get("language") or "").upper()
@@ -176,6 +198,8 @@ class BaseAgent:
                 response = "(no response produced)"
 
         response = _strip_all_tags(response) or "(no response produced)"
+        if thinking is None:
+            thinking, response = split_leaked_reasoning(response)
         return thinking, response
 
     async def _retrieve(self, query: str) -> list[dict]:
@@ -254,10 +278,13 @@ class BaseAgent:
             base += (
                 "\n\nCOORDINATOR SYNTHESIS MODE:\n"
                 "No direct policy excerpts were retrieved in this synthesis step. "
-                "Synthesize and summarize the specialist agent findings provided in the Context or conversation history, "
-                "preserving all article numbers, exceptions, and citations they reported. "
-                "If the specialist agents reported that the information is not covered in official sources (or if no context is provided), "
-                "output ONLY: 'غير مذكور في المصادر الرسمية المتاحة / Not explicitly covered in the official sources provided'."
+                "Synthesize the specialist agent findings given in the message, Context or "
+                "conversation history, preserving the article numbers, exceptions and citations "
+                "they reported. Where the agents report that the official sources are silent, "
+                "say so plainly as a finding (a gap in the law) and still summarize what each "
+                "agent did establish. Only if no agent findings are provided at all, output "
+                "ONLY: 'غير مذكور في المصادر الرسمية المتاحة / Not explicitly covered in the "
+                "official sources provided'."
             )
         else:
             base += (
@@ -324,7 +351,8 @@ class BaseAgent:
         thinking, content = self._parse_response(raw)
         content = repair_citations(drop_repeated_paragraphs(content), references)
         warning = self._verification_warning(raw, content, references, user_message, use_retrieval)
-        if references and "Sources:" not in content:
+        # Answers routinely mention "sources", so only the footer's own heading means it is there.
+        if references and SOURCES_HEADING not in content:
             content = content + _format_sources_footer(references)
         content += warning
 
@@ -375,6 +403,34 @@ class BaseAgent:
         self._last_references = references
         messages = self._build_messages(user_message, references, context, history)
 
+        raw_parts: list[str] = []
+        content_sent = False
+        async for channel, chunk in self._split_channels(messages, raw_parts):
+            content_sent = content_sent or (channel == "content" and bool(chunk.strip()))
+            yield (channel, chunk)
+        raw = "".join(raw_parts)
+
+        _, answer = self._parse_response(raw)
+        if not content_sent:
+            # The model never closed <thinking>, so every token went to the thinking channel.
+            # Show the parsed answer instead of an empty bubble, as respond() does.
+            logger.warning("agent.stream.no_content", agent=self.agent.slug, raw_len=len(raw))
+            yield ("content", answer)
+
+        if references:
+            yield ("content", _format_sources_footer(references))
+
+        warning = self._verification_warning(raw, answer, references, user_message, use_retrieval)
+        if warning:
+            yield ("content", warning)
+
+    async def _split_channels(
+        self, messages: list[dict], raw_parts: list[str]
+    ) -> AsyncIterator[tuple[str, str]]:
+        """Route streamed tokens to 'thinking' or 'content' by the tags around them.
+
+        Every raw token is also appended to ``raw_parts`` for the caller's final checks.
+        """
         buffer = ""
         state = "before"
         KEEP = 15
@@ -382,6 +438,7 @@ class BaseAgent:
         raw = ""
         async for token in self.llm.chat_stream(messages=messages, temperature=self._temperature()):
             raw += token
+            raw_parts.append(token)
             buffer += token
             if "\n" in token and has_repeated_paragraph(raw.partition("<response>")[2]):
                 logger.warning("agent.stream.loop_stopped", agent=self.agent.slug)
@@ -449,11 +506,3 @@ class BaseAgent:
         if buffer:
             channel = "thinking" if state == "thinking" else "content"
             yield (channel, buffer)
-
-        if references:
-            yield ("content", _format_sources_footer(references))
-
-        _, answer = self._parse_response(raw)
-        warning = self._verification_warning(raw, answer, references, user_message, use_retrieval)
-        if warning:
-            yield ("content", warning)

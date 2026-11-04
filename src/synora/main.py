@@ -115,4 +115,9 @@ async def health() -> dict:
         result["ollama"] = f"error: {exc}"
         result["status"] = "degraded"
 
+    registry = getattr(app.state, "registry", None)
+    result["agents"] = sorted(registry.all_slugs()) if registry else []
+    if not result["agents"]:
+        result["status"] = "degraded"
+
     return result

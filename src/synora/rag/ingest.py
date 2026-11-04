@@ -34,6 +34,13 @@ ARTICLE_HEADING_RE = re.compile(
     re.IGNORECASE,
 )
 ARABIC_ARTICLE_WORD = "\u0627\u0644\u0645\u0627\u062f\u0629"
+
+# A short title-like line on its own between blank lines ("Algorithmic Bias", "Human Oversight").
+# Used to name chunks of documents that have no numbered articles.
+TOPIC_HEADING_RE = re.compile(r"(?:^|(?<=\n\n))([A-Z][A-Za-z,&'()/ -]{2,60}[A-Za-z)])(?=\n\n)")
+MIN_TOPIC_HEADINGS = 3
+# A heading this close to the start of a chunk names that chunk rather than the one before.
+HEADING_LOOKAHEAD = 80
 OCR_PAGE_RE = re.compile(r"^--- page (\d+) ---$", re.MULTILINE)
 
 
@@ -111,6 +118,42 @@ class Ingestor:
             results.append((chunk, self._find_page_for_offset(base_offset + pos, page_spans)))
         return results
 
+    def _split_by_topic(
+        self,
+        text: str,
+        default_section: str | None,
+        page_spans: list[tuple[int, int, int]] | None,
+    ) -> list[tuple[str, str, int | None]]:
+        """Chunk a document without articles, naming each chunk after its heading.
+
+        Falls back to chunk_<n> when the text has too few headings to be trusted.
+        """
+        chunks = self._split_with_pages(text, 0, page_spans)
+        headings = [
+            (m.start(1), m.group(1).strip())
+            for m in TOPIC_HEADING_RE.finditer(text)
+            if len(m.group(1).split()) <= 6
+        ]
+        if default_section or len(headings) < MIN_TOPIC_HEADINGS:
+            return [
+                (default_section or f"chunk_{idx}", c_text, page_num)
+                for idx, (c_text, page_num) in enumerate(chunks)
+            ]
+
+        sections: list[tuple[str, str, int | None]] = []
+        seen: dict[str, int] = {}
+        cursor = 0
+        for idx, (c_text, page_num) in enumerate(chunks):
+            pos = text.find(c_text[:40], cursor)
+            pos = cursor if pos == -1 else pos
+            cursor = pos
+            titles = [title for start, title in headings if start <= pos + HEADING_LOOKAHEAD]
+            title = titles[-1] if titles else "Preamble"
+            seen[title] = seen.get(title, 0) + 1
+            label = title if seen[title] == 1 else f"{title} (part {seen[title]})"
+            sections.append((label, c_text, page_num))
+        return sections
+
     def _split_into_sections(
         self,
         text: str,
@@ -124,12 +167,7 @@ class Ingestor:
         if annexes:
             matches = matches[: annexes[0]] + [matches[i] for i in annexes]
         if len(matches) < 2:
-            return [
-                (default_section or f"chunk_{idx}", c_text, page_num)
-                for idx, (c_text, page_num) in enumerate(
-                    self._split_with_pages(text, 0, page_spans)
-                )
-            ]
+            return self._split_by_topic(text, default_section, page_spans)
 
         section_chunks: list[tuple[str, str, int | None]] = []
 
@@ -388,5 +426,26 @@ class Ingestor:
         meta.setdefault("title", file_path.stem.replace("_", " ").title())
         meta.setdefault("source_uri", str(file_path))
 
-        raw_text, page_spans = self._extract_file_pages(file_path)
+        try:
+            raw_text, page_spans = self._extract_file_pages(file_path)
+        except Exception as exc:
+            # ingest_text records its own failures; this one happens before it is reached.
+            await self._record_failed_job(str(file_path), meta, f"text extraction failed: {exc}")
+            logger.error("rag.ingest.extract_failed", source=str(file_path), error=str(exc))
+            raise
         return await self.ingest_text(raw_text, metadata=meta, page_spans=page_spans)
+
+    async def _record_failed_job(self, source_path: str, meta: dict[str, Any], error: str) -> None:
+        now = datetime.now(timezone.utc)
+        async with self._session_factory() as session:
+            session.add(
+                IngestionJob(
+                    source_path=source_path,
+                    status="failed",
+                    started_at=now,
+                    finished_at=now,
+                    error_message=error,
+                    job_metadata=meta,
+                )
+            )
+            await session.commit()
