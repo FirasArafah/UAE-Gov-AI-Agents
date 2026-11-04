@@ -323,3 +323,20 @@ def test_gap_report_text_follows_the_requested_language():
 
     assert "Modern Standard Arabic" in report_language("ar")
     assert "in English" in report_language("en")
+
+
+@pytest.mark.parametrize(
+    ("country", "doc_type", "folder", "source"),
+    [
+        ("AE", "law", "UAE_Laws_Regulations", "national_law"),
+        ("AE", "strategy", "UAE_AI_Strategies", "national_strategy"),
+        ("INT", "standard", "International_References", "international_org_report"),
+        ("EU", "regulation", "International_References", "international_org_report"),
+    ],
+)
+def test_export_follows_the_itu_reference_categories(country, doc_type, folder, source):
+    from synora.cli.export_kb import category, source_type
+
+    doc = SimpleNamespace(country_code=country, doc_type=doc_type)
+    assert category(doc) == folder
+    assert source_type(doc) == source

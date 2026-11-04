@@ -29,3 +29,6 @@ models/
 ui/node_modules/
 ui/dist/
 ui/.vite/
+
+# Knowledge base export (make export-kb)
+kb_export/

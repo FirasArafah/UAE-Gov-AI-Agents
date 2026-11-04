@@ -111,6 +111,22 @@ Repeat `advance` for each event. Agents assess, and the Coordinator synthesizes.
 | 5 | Contested authority (controversy) | ICP, Privacy, Auditor | independent + synthesis |
 | 6 | Policy gap report | Auditor, Privacy | independent + synthesis |
 
+## Knowledge base export (ITU reference layout)
+
+`make export-kb` writes the knowledge base in the layout of the ITU AI Readiness reference code
+([CrashingGuru/ITUAIReadiness](https://github.com/CrashingGuru/ITUAIReadiness),
+`simulation/server/knowledge`) to `kb_export/`:
+
+- `InputDocs/UAE_Laws_Regulations`, `InputDocs/UAE_AI_Strategies`,
+  `InputDocs/International_References`: the source documents, which the reference `ingest.py`
+  ingests as they are (the folder becomes `document_category`)
+- `chunks.jsonl`: every indexed chunk with the reference metadata (`source_file`,
+  `source_type`, `country`, `chunk_index`, `total_chunks`, `ingested_at`, `document_category`)
+  plus `title`, `section` (article), `page`, `language`, `domain` and `doc_type`
+- `manifest.json`: per-document coverage and the chunking and embedding settings
+
+Add `--with-embeddings` to the command in the Makefile to include the bge-m3 vectors.
+
 ## API
 
 | Method | Path | Purpose |
