@@ -3,7 +3,7 @@ import { api } from "./js/api.js";
 import { h } from "./js/render.js";
 import { applyLanguage, language, setLanguage, t } from "./js/i18n.js";
 import { refreshRoute, route, startRouter } from "./js/router.js";
-import { renderChat, forgetChat } from "./pages/chat.js";
+import { forgetChat, presetMode, renderChat } from "./pages/chat.js";
 import { renderRoster } from "./pages/roster.js";
 import { renderKnowledgeBase } from "./pages/kb.js";
 
@@ -106,6 +106,12 @@ route("/chat/:id", renderChat);
 route("/new", () => {
   forgetChat();
   location.hash = "#/";
+});
+route("/ask/:agent", (_, { agent }) => {
+  forgetChat();
+  presetMode(agent);
+  history.replaceState(null, "", "/#/");
+  window.dispatchEvent(new HashChangeEvent("hashchange"));
 });
 route("/agents", asPage(renderRoster));
 route("/kb", asPage(renderKnowledgeBase));

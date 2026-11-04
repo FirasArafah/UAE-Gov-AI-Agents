@@ -109,6 +109,27 @@ export function forgetChat() {
   storeSession(null);
 }
 
+const MODE_KEY = "chatMode";
+
+/** Start the next new chat with one agent (or the team) selected. */
+export function presetMode(mode) {
+  try {
+    sessionStorage.setItem(MODE_KEY, mode);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+function takePresetMode() {
+  try {
+    const mode = sessionStorage.getItem(MODE_KEY);
+    sessionStorage.removeItem(MODE_KEY);
+    return mode;
+  } catch {
+    return null;
+  }
+}
+
 const logo = () => [
   h("img", { class: "logo logo-on-light", src: "/logo-black.svg", alt: "", width: 28, height: 28 }),
   h("img", { class: "logo logo-on-dark", src: "/logo-white.svg", alt: "", width: 28, height: 28 }),
@@ -288,6 +309,8 @@ export async function renderChat(container, params = {}) {
     h("option", { value: "team", text: t("chat.mode.team") }),
     Object.keys(AGENTS).map((slug) => h("option", { value: slug, text: t("chat.mode.only", { name: agentName(slug) }) })),
   );
+  const preset = takePresetMode();
+  if (preset && (preset === "team" || AGENTS[preset])) mode.value = preset;
   const input = h("textarea", { class: "composer-input", rows: 1, dir: "auto", placeholder: t("chat.placeholder"), "aria-label": t("chat.message") });
   const send = h("button", { class: "send-btn", type: "submit", "aria-label": t("chat.send"), html: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 4l-7 7h4.5v9h5v-9H19z"/></svg>' });
   const form = h("form", { class: "composer2" },

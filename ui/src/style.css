@@ -262,6 +262,28 @@ table.data td.mono { white-space: nowrap; }
 .spacer { flex: 1; }
 mark { background: var(--accent-soft); color: inherit; border-radius: 3px; padding: 0 2px; }
 
+/* Agents */
+.flow { margin-bottom: 24px; }
+.flow h2 { font-size: 0.9rem; color: var(--muted); font-weight: 600; margin-bottom: 16px; }
+.flow-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.flow-step { flex: 1 1 160px; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px 12px; border-radius: var(--radius); background: var(--panel-2); border: 1px solid var(--line); text-align: center; font-size: 0.86rem; font-weight: 500; color: var(--text-2); }
+.flow-step.final { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: var(--accent-soft); color: var(--text); }
+.flow-avatars { display: flex; gap: 6px; }
+.flow-avatars .avatar { width: 32px; height: 32px; border-radius: 9px; font-size: 0.7rem; }
+.flow-check { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--accent-text); font-weight: 700; }
+.flow-arrow { flex: none; width: 22px; height: 2px; background: var(--line-strong); position: relative; }
+.flow-arrow::after { content: ""; position: absolute; inset-inline-end: -1px; top: -4px; border: 5px solid transparent; border-inline-start: 7px solid var(--line-strong); border-inline-end: 0; }
+.agent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 16px; }
+.agent-card { display: flex; flex-direction: column; gap: 14px; padding: 20px; border: 1px solid var(--line); border-top: 3px solid var(--agent); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); }
+.agent-head { display: flex; align-items: center; gap: 12px; }
+.agent-head h3 { font-size: 1.02rem; }
+.agent-head small { color: var(--muted); }
+.agent-block h4 { margin: 0 0 4px; font-size: 0.74rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+html[lang="ar"] .agent-block h4 { letter-spacing: 0; }
+.agent-block p { font-size: 0.9rem; line-height: 1.65; }
+.agent-card .card-actions { margin-top: auto; }
+@media (max-width: 640px) { .flow-arrow { display: none; } }
+
 /* Knowledge base */
 .search-panel { display: flex; flex-direction: column; gap: 14px; }
 .search-row { display: flex; gap: 10px; flex-wrap: wrap; }
