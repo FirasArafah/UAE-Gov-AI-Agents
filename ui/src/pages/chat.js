@@ -27,7 +27,7 @@ const SUGGESTIONS = {
 addStrings({
   en: {
     "chat.title": "What should the agents look into?",
-    "chat.placeholder": "Message Mathuq…",
+    "chat.placeholder": "Message mawthuq…",
     "chat.message": "Message",
     "chat.send": "Send",
     "chat.stop": "Stop answering",
@@ -38,7 +38,7 @@ addStrings({
     "chat.cancel": "Cancel",
     "chat.editFailed": "The message could not be edited: {error}",
     "chat.stopped": "Stopped.",
-    "chat.team": "Mathuq team",
+    "chat.team": "mawthuq team",
     "chat.flow": "{names} → Coordinator",
     "chat.status.team": "The team is thinking",
     "chat.status.single": "Thinking",
@@ -143,10 +143,12 @@ function takePresetMode() {
   }
 }
 
-
-const COPY_ICON = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H10V7h9v14z"/></svg>';
-const CHECK_ICON = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>';
-const EDIT_ICON = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zM20.7 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+const COPY_ICON =
+  '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H10V7h9v14z"/></svg>';
+const CHECK_ICON =
+  '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>';
+const EDIT_ICON =
+  '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zM20.7 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
 
 async function copyText(text) {
   try {
@@ -164,7 +166,13 @@ async function copyText(text) {
 
 /** An icon button that copies text() and briefly shows a check mark. */
 function copyButton(text) {
-  const button = h("button", { class: "icon-action", type: "button", title: t("chat.copy"), "aria-label": t("chat.copy"), html: COPY_ICON });
+  const button = h("button", {
+    class: "icon-action",
+    type: "button",
+    title: t("chat.copy"),
+    "aria-label": t("chat.copy"),
+    html: COPY_ICON,
+  });
   button.addEventListener("click", async () => {
     await copyText(text());
     button.innerHTML = CHECK_ICON;
@@ -178,8 +186,20 @@ function copyButton(text) {
 }
 
 const logo = () => [
-  h("img", { class: "logo logo-on-light", src: "/logo-black.svg", alt: "", width: 28, height: 28 }),
-  h("img", { class: "logo logo-on-dark", src: "/logo-white.svg", alt: "", width: 28, height: 28 }),
+  h("img", {
+    class: "logo logo-on-light",
+    src: "/logo-black.svg",
+    alt: "",
+    width: 28,
+    height: 28,
+  }),
+  h("img", {
+    class: "logo logo-on-dark",
+    src: "/logo-white.svg",
+    alt: "",
+    width: 28,
+    height: 28,
+  }),
 ];
 
 /**
@@ -188,21 +208,48 @@ const logo = () => [
  */
 function createTurn({ team, agents, conversation = false }) {
   const started = Date.now();
-  const statusText = h("span", { text: t(team ? "chat.status.team" : "chat.status.single") });
+  const statusText = h("span", {
+    text: t(team ? "chat.status.team" : "chat.status.single"),
+  });
   const timer = h("span", { class: "think-time", text: "" });
   const steps = h("div", { class: "think-body" });
-  const think = h("details", { class: "think", open: true },
-    h("summary", {}, h("span", { class: "think-spinner", "aria-hidden": "true" }), statusText, timer),
+  const think = h(
+    "details",
+    { class: "think", open: true },
+    h(
+      "summary",
+      {},
+      h("span", { class: "think-spinner", "aria-hidden": "true" }),
+      statusText,
+      timer,
+    ),
     steps,
   );
   const answer = h("div", { class: "answer-slot" });
-  const names = agents.filter((s) => s !== "coordinator").map((s) => AGENTS[s]?.short || s).join(", ");
-  const el = h("div", { class: "turn" },
+  const names = agents
+    .filter((s) => s !== "coordinator")
+    .map((s) => AGENTS[s]?.short || s)
+    .join(", ");
+  const el = h(
+    "div",
+    { class: "turn" },
     h("div", { class: "turn-avatar" }, logo()),
-    h("div", { class: "turn-main" },
-      h("div", { class: "turn-name" },
-        h("b", { text: conversation ? t("brand") : team ? t("chat.team") : agentName(agents[0]) }),
-        team && !conversation ? h("small", { text: t("chat.flow", { names }) }) : null,
+    h(
+      "div",
+      { class: "turn-main" },
+      h(
+        "div",
+        { class: "turn-name" },
+        h("b", {
+          text: conversation
+            ? t("brand")
+            : team
+              ? t("chat.team")
+              : agentName(agents[0]),
+        }),
+        team && !conversation
+          ? h("small", { text: t("chat.flow", { names }) })
+          : null,
       ),
       // A greeting is answered directly, so there is no chain of thought to show.
       conversation ? null : think,
@@ -219,7 +266,13 @@ function createTurn({ team, agents, conversation = false }) {
   function addCopy() {
     const prose = answer.querySelector(".answer .prose");
     if (!prose || el.querySelector(".turn-actions")) return;
-    answer.after(h("div", { class: "turn-actions" }, copyButton(() => prose.innerText.trim())));
+    answer.after(
+      h(
+        "div",
+        { class: "turn-actions" },
+        copyButton(() => prose.innerText.trim()),
+      ),
+    );
   }
 
   const bySlug = {};
@@ -231,13 +284,28 @@ function createTurn({ team, agents, conversation = false }) {
     const text = h("div", { class: "step-text", dir: "auto" });
     const out = h("div", { class: "step-out" });
     const meta = h("small", { text: label });
-    const node = h("div", { class: "step", "--agent": agentColor(slug), "data-state": "active" },
-      h("div", { class: "step-head" }, h("span", { class: "step-dot" }), h("b", { text: agentName(slug) }), meta),
+    const node = h(
+      "div",
+      { class: "step", "--agent": agentColor(slug), "data-state": "active" },
+      h(
+        "div",
+        { class: "step-head" },
+        h("span", { class: "step-dot" }),
+        h("b", { text: agentName(slug) }),
+        meta,
+      ),
       text,
       out,
     );
     steps.append(node);
-    return (bySlug[slug] = { node, text, out, meta, content: "", thinking: "" });
+    return (bySlug[slug] = {
+      node,
+      text,
+      out,
+      meta,
+      content: "",
+      thinking: "",
+    });
   }
 
   return {
@@ -246,8 +314,13 @@ function createTurn({ team, agents, conversation = false }) {
       const isFinal = !team || data.is_synthesis;
       statusText.textContent = data.is_synthesis
         ? t("chat.status.writing")
-        : t("chat.status.reasoning", { name: agentName(data.agent_slug, data.agent_name) });
-      step(data.agent_slug, t(data.is_synthesis ? "chat.step.reading" : "chat.step.reasoning"));
+        : t("chat.status.reasoning", {
+            name: agentName(data.agent_slug, data.agent_name),
+          });
+      step(
+        data.agent_slug,
+        t(data.is_synthesis ? "chat.step.reading" : "chat.step.reasoning"),
+      );
       if (isFinal) {
         finalEl = h("div", { class: "prose streaming", dir: "auto" });
         answer.replaceChildren(finalEl);
@@ -277,26 +350,40 @@ function createTurn({ team, agents, conversation = false }) {
       if (!s) return;
       s.node.dataset.state = "done";
       if (data.thinking) s.text.textContent = data.thinking;
-      if (!s.text.textContent.trim()) s.text.replaceWith(h("div", { class: "step-empty", text: t("chat.step.noReasoning") }));
+      if (!s.text.textContent.trim())
+        s.text.replaceWith(
+          h("div", { class: "step-empty", text: t("chat.step.noReasoning") }),
+        );
       const text = data.content || s.content;
       if (data.stopped || text === "(stopped)") {
         // Stopped by the user: keep whatever was written, marked as stopped.
         s.node.dataset.state = "done";
         s.meta.textContent = t("chat.stopped");
-        const partial = text && text !== "(stopped)" ? renderAnswer(text, []) : null;
-        answer.replaceChildren(...[partial, h("p", { class: "muted stopped-note", text: t("chat.stopped") })].filter(Boolean));
+        const partial =
+          text && text !== "(stopped)" ? renderAnswer(text, []) : null;
+        answer.replaceChildren(
+          ...[
+            partial,
+            h("p", { class: "muted stopped-note", text: t("chat.stopped") }),
+          ].filter(Boolean),
+        );
         return;
       }
       if (data.interrupted || /^\(stream interrupted/.test(text)) {
         s.node.dataset.state = "failed";
         s.meta.textContent = t("chat.step.failed");
-        if (!team || data.is_synthesis) answer.replaceChildren(h("div", { class: "notice danger", text: t("chat.failed") }));
+        if (!team || data.is_synthesis)
+          answer.replaceChildren(
+            h("div", { class: "notice danger", text: t("chat.failed") }),
+          );
         return;
       }
       const refs = data.references || [];
       const isFinal = !team || data.is_synthesis;
       if (isFinal) {
-        s.meta.textContent = team ? t("chat.step.final") : t("chat.step.answered", { n: refs.length });
+        s.meta.textContent = team
+          ? t("chat.step.final")
+          : t("chat.step.answered", { n: refs.length });
         answer.replaceChildren(
           renderAnswer(text, team ? dedupe(references) : refs, {
             sourcesLabel: team ? t("chat.teamSources") : t("answer.sources"),
@@ -306,7 +393,12 @@ function createTurn({ team, agents, conversation = false }) {
         references.push(...refs);
         s.meta.textContent = t("chat.step.assessed", { n: refs.length });
         s.out.append(
-          h("details", { class: "step-answer" }, h("summary", { text: t("chat.readAssessment") }), renderAnswer(text, refs)),
+          h(
+            "details",
+            { class: "step-answer" },
+            h("summary", { text: t("chat.readAssessment") }),
+            renderAnswer(text, refs),
+          ),
         );
       }
     },
@@ -317,14 +409,18 @@ function createTurn({ team, agents, conversation = false }) {
       clearInterval(tick);
       const count = Object.keys(bySlug).length;
       if (conversation) {
-        if (!answer.childElementCount) answer.append(h("p", { class: "muted", text: t("chat.noAnswer") }));
+        if (!answer.childElementCount)
+          answer.append(h("p", { class: "muted", text: t("chat.noAnswer") }));
         addCopy();
         return;
       }
-      statusText.textContent = t("chat.cotTime", { time: duration(Date.now() - started) });
+      statusText.textContent = t("chat.cotTime", {
+        time: duration(Date.now() - started),
+      });
       timer.textContent = team ? t("chat.agentCount", { n: count }) : "";
       think.classList.add("finished");
-      if (!answer.childElementCount) answer.append(h("p", { class: "muted", text: t("chat.noAnswer") }));
+      if (!answer.childElementCount)
+        answer.append(h("p", { class: "muted", text: t("chat.noAnswer") }));
       addCopy();
     },
   };
@@ -342,13 +438,24 @@ function dedupe(references) {
 
 /** Rebuild a finished turn from stored messages (after navigating away and back). */
 function restoreTurn(assistantMsgs, agentsById) {
-  const view = (m) => ({ slug: agentsById[m.agent_id]?.slug, meta: m.message_metadata || {}, m });
+  const view = (m) => ({
+    slug: agentsById[m.agent_id]?.slug,
+    meta: m.message_metadata || {},
+    m,
+  });
   const items = assistantMsgs.map(view);
   // The final answer is the Coordinator's synthesis, or the last answer in older chats.
-  const final = items.find((i) => i.meta.is_synthesis) || items[items.length - 1];
-  const conversation = items.every((i) => i.meta.source === "chat_conversation");
+  const final =
+    items.find((i) => i.meta.is_synthesis) || items[items.length - 1];
+  const conversation = items.every(
+    (i) => i.meta.source === "chat_conversation",
+  );
   const team = items.length > 1;
-  const turn = createTurn({ team, agents: items.map((i) => i.slug), conversation });
+  const turn = createTurn({
+    team,
+    agents: items.map((i) => i.slug),
+    conversation,
+  });
   const ordered = [...items.filter((i) => i !== final), final];
   for (const i of ordered) {
     const isSynth = i === final;
@@ -375,25 +482,71 @@ export async function renderChat(container, params = {}) {
   activeSocket = null;
   let socket = null;
   const thread = h("div", { class: "thread", "aria-live": "polite" });
-  const empty = h("div", { class: "chat-empty" },
+  const empty = h(
+    "div",
+    { class: "chat-empty" },
     h("h1", { text: t("chat.title") }),
-    h("div", { class: "starter-grid" },
-      SUGGESTIONS[language()].map((text) => h("button", { class: "starter", type: "button", dir: "auto", text, onclick: () => { input.value = text; autosize(); input.focus(); } })),
+    h(
+      "div",
+      { class: "starter-grid" },
+      SUGGESTIONS[language()].map((text) =>
+        h("button", {
+          class: "starter",
+          type: "button",
+          dir: "auto",
+          text,
+          onclick: () => {
+            input.value = text;
+            autosize();
+            input.focus();
+          },
+        }),
+      ),
     ),
   );
   const status = h("p", { class: "error", role: "alert" });
   const mode = createAgentPicker("team");
   const preset = takePresetMode();
   if (preset && (preset === "team" || AGENTS[preset])) mode.value = preset;
-  const input = h("textarea", { class: "composer-input", rows: 1, dir: "auto", placeholder: t("chat.placeholder"), "aria-label": t("chat.message") });
-  const send = h("button", { class: "send-btn", type: "submit", "aria-label": t("chat.send"), html: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 4l-7 7h4.5v9h5v-9H19z"/></svg>' });
-  const form = h("form", { class: "composer2" },
-    h("div", { class: "chat-col" },
-      h("div", { class: "composer-box" }, input, h("div", { class: "composer-row2" }, mode.el, h("span", { style: { flex: 1 } }), send)),
+  const input = h("textarea", {
+    class: "composer-input",
+    rows: 1,
+    dir: "auto",
+    placeholder: t("chat.placeholder"),
+    "aria-label": t("chat.message"),
+  });
+  const send = h("button", {
+    class: "send-btn",
+    type: "submit",
+    "aria-label": t("chat.send"),
+    html: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 4l-7 7h4.5v9h5v-9H19z"/></svg>',
+  });
+  const form = h(
+    "form",
+    { class: "composer2" },
+    h(
+      "div",
+      { class: "chat-col" },
+      h(
+        "div",
+        { class: "composer-box" },
+        input,
+        h(
+          "div",
+          { class: "composer-row2" },
+          mode.el,
+          h("span", { style: { flex: 1 } }),
+          send,
+        ),
+      ),
     ),
   );
 
-  const scroller = h("div", { class: "chat-scroll" }, h("div", { class: "chat-col" }, empty, thread, status));
+  const scroller = h(
+    "div",
+    { class: "chat-scroll" },
+    h("div", { class: "chat-col" }, empty, thread, status),
+  );
   const layout = h("div", { class: "chat2" }, scroller, form);
   container.append(layout);
 
@@ -407,7 +560,8 @@ export async function renderChat(container, params = {}) {
   };
   /** Follow new text only while the reader is at the bottom, so reading back is not interrupted. */
   const follow = (force = false) => {
-    const distance = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
+    const distance =
+      scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
     if (force || distance < 140) scroller.scrollTop = scroller.scrollHeight;
   };
 
@@ -461,10 +615,12 @@ export async function renderChat(container, params = {}) {
   }
   setEmpty(thread.childElementCount === 0);
   // A chat is named after its first question, as in the Recent list, unless it was renamed.
-  const chatTitle = () => savedTitle || thread.querySelector(".user-row .user-msg")?.textContent;
+  const chatTitle = () =>
+    savedTitle || thread.querySelector(".user-row .user-msg")?.textContent;
   setPageTitle(chatTitle() || t("nav.newChat"));
   const onRename = (e) => {
-    if (!layout.isConnected) return window.removeEventListener("chat-renamed", onRename);
+    if (!layout.isConnected)
+      return window.removeEventListener("chat-renamed", onRename);
     if (e.detail.id !== sessionId) return;
     savedTitle = e.detail.title;
     setPageTitle(chatTitle());
@@ -473,7 +629,8 @@ export async function renderChat(container, params = {}) {
   follow(true);
 
   const SEND_ICON = send.innerHTML;
-  const STOP_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor"/></svg>';
+  const STOP_ICON =
+    '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor"/></svg>';
   let busy = false;
   function setBusy(value) {
     busy = value;
@@ -501,22 +658,50 @@ export async function renderChat(container, params = {}) {
   /** A sent message with copy and edit actions; editing resends it in place. */
   function userRow(text, messageId) {
     const bubble = h("div", { class: "user-msg", dir: "auto", text });
-    const actions = h("div", { class: "msg-actions" },
+    const actions = h(
+      "div",
+      { class: "msg-actions" },
       copyButton(() => text),
-      h("button", { class: "icon-action", type: "button", title: t("chat.edit"), "aria-label": t("chat.edit"), html: EDIT_ICON, onclick: () => startEdit() }),
+      h("button", {
+        class: "icon-action",
+        type: "button",
+        title: t("chat.edit"),
+        "aria-label": t("chat.edit"),
+        html: EDIT_ICON,
+        onclick: () => startEdit(),
+      }),
     );
     const row = h("div", { class: "user-row" }, bubble, actions);
     if (messageId) row.dataset.messageId = messageId;
 
     function startEdit() {
       if (busy) return;
-      const area = h("textarea", { class: "edit-input", dir: "auto", rows: 2, "aria-label": t("chat.edit") });
+      const area = h("textarea", {
+        class: "edit-input",
+        dir: "auto",
+        rows: 2,
+        "aria-label": t("chat.edit"),
+      });
       area.value = text;
-      const editor = h("div", { class: "user-edit" },
+      const editor = h(
+        "div",
+        { class: "user-edit" },
         area,
-        h("div", { class: "edit-buttons" },
-          h("button", { class: "btn sm", type: "button", text: t("chat.cancel"), onclick: () => cancel() }),
-          h("button", { class: "btn sm primary", type: "button", text: t("chat.save"), onclick: () => save(area.value.trim()) }),
+        h(
+          "div",
+          { class: "edit-buttons" },
+          h("button", {
+            class: "btn sm",
+            type: "button",
+            text: t("chat.cancel"),
+            onclick: () => cancel(),
+          }),
+          h("button", {
+            class: "btn sm primary",
+            type: "button",
+            text: t("chat.save"),
+            onclick: () => save(area.value.trim()),
+          }),
         ),
       );
       area.addEventListener("keydown", (e) => {
@@ -548,7 +733,10 @@ export async function renderChat(container, params = {}) {
       if (!newText || busy) return;
       try {
         if (row.dataset.messageId && sessionId) {
-          await api(`/sessions/${sessionId}/messages/${row.dataset.messageId}/onward`, { method: "DELETE" });
+          await api(
+            `/sessions/${sessionId}/messages/${row.dataset.messageId}/onward`,
+            { method: "DELETE" },
+          );
         }
       } catch (err) {
         status.textContent = t("chat.editFailed", { error: err.message });
@@ -575,7 +763,10 @@ export async function renderChat(container, params = {}) {
     let turn = null;
     try {
       if (!sessionId) {
-        const s = await api("/sessions", { method: "POST", body: JSON.stringify({}) });
+        const s = await api("/sessions", {
+          method: "POST",
+          body: JSON.stringify({}),
+        });
         sessionId = s.id;
         storeSession(sessionId);
         setAddress(`/chat/${sessionId}`);
@@ -600,7 +791,8 @@ export async function renderChat(container, params = {}) {
         else if (event === "thinking_chunk") turn.thinking(data);
         else if (event === "content_chunk") turn.content(data);
         else if (event === "agent_done") turn.done(data);
-        else if (event === "error") turn.error(`${agentName(data.agent_slug)}: ${data.message}`);
+        else if (event === "error")
+          turn.error(`${agentName(data.agent_slug)}: ${data.message}`);
         follow();
       });
     } catch (err) {

@@ -37,7 +37,7 @@ class MessageKind(StrEnum):
 PUNCTUATION_RE = re.compile(r"[^\w\s؀-ۿ]|[،؛؟]")
 TATWEEL_AND_MARKS_RE = re.compile(r"[ـً-ْ]")
 
-NAME = r"(mathuq|mawthuq|mothooq|موثوق)"
+NAME = r"(mawthuq|mawthuq|mothooq|موثوق)"
 
 IDENTITY_PATTERNS = [
     rf"(who|what) are you( exactly)?|what is {NAME}|who is {NAME}|tell me about (yourself|{NAME})",
@@ -141,7 +141,7 @@ def is_conversational(text: str) -> bool:
 
 
 SCOPE_PROMPT = (
-    "You route messages for Mathuq, an assistant whose agents answer questions about AI "
+    "You route messages for mawthuq, an assistant whose agents answer questions about AI "
     "governance in government services: laws and regulations, policies and strategies, "
     "immigration, visas and residency, personal data and privacy, AI ethics, bias and "
     "discrimination, accountability, cybersecurity, digital government, standards (ITU, OECD, "
@@ -186,7 +186,7 @@ async def classify(text: str, llm, previous: str | None = None) -> MessageKind:
 
 PROFILE_PATH = Path(__file__).resolve().parents[3] / "data" / "assistant_profile.json"
 DEFAULT_PROFILE = {
-    "name": {"en": "Mathuq", "ar": "موثوق"},
+    "name": {"en": "mawthuq", "ar": "موثوق"},
     "made_by": {
         "en": "the SYNORA team (Firas Arafah, Motaz Abu Amara and Maria Dawaghreh) for the ITU "
         "AI for Good Lab Hackathon in the United Arab Emirates",
@@ -228,7 +228,7 @@ def identity_reply(language: str) -> str:
 
 _ABOUT = {
     "en": (
-        "You are Mathuq, an assistant for AI governance in UAE government services. A team of "
+        "You are mawthuq, an assistant for AI governance in UAE government services. A team of "
         "agents answers questions from UAE law and international references (PDPL, UAE AI "
         "Charter, EU AI Act, OECD, UNESCO, ITU) and runs incident simulations.\n"
     ),

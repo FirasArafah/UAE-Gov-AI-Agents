@@ -1,10 +1,10 @@
-# Mathuq · موثوق
+# mawthuq · موثوق
 
 **Multi-agent AI governance simulation — ITU AI for Good Lab Hackathon 2026 (UAE)**
 
-Mathuq puts AI agents with different institutional mandates into a staged incident and
+mawthuq puts AI agents with different institutional mandates into a staged incident and
 watches how they reason, disagree and coordinate under real legislation. The reference
-scenario, *The Golden Gate Anomaly*, is an AI visa-screening system that starts rejecting
+scenario, _The Golden Gate Anomaly_, is an AI visa-screening system that starts rejecting
 applicants of one nationality at almost three times the baseline rate. Events are
 released one at a time, each agent sees only what its role would see, every legal claim
 is cited to a retrieved excerpt, and the Coordinator reconciles the independent
@@ -16,17 +16,17 @@ Everything runs locally: no data leaves the machine and no external AI API is us
 
 ## What it does
 
-| Hackathon requirement | How Mathuq meets it |
-|---|---|
+| Hackathon requirement                                        | How mawthuq meets it                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Knowledge base of national policy, mapped to global practice | 17 files (14 documents) / 2,083 chunks: UAE PDPL (EN + AR), Decree-Law 29/2021 (EN + AR), Cabinet Resolution 65/2022 (EN), National AI Strategy 2031, AI Charter, AI Ethics Guidelines, National Cybersecurity Strategy 2019 (TDRA deck and official summary), Digital Government Strategy 2025; ITU-T Y.3172, ITU AI Ready report, OECD Recommendation on AI (full text), UNESCO Recommendation (EN + AR), EU AI Act. Chunked by article or section, with page numbers, in pgvector. |
-| Policy and legal adviser | Every agent answers in Arabic and English from retrieved excerpts only; citations are checked automatically and flagged when an article is not in the sources. |
-| Institutional participants | ICP Representative (system operator), AI Auditor, Privacy Consultant (PDPL), Coordinator — each with its own mandate, temperature and retrieval domain. |
-| Multi-agent coordination | An orchestrator releases each event to its target agents. They assess **independently**; on events flagged *sequential* each agent receives the previous one's assessment; the **Coordinator synthesizes** every multi-agent event (agreements, conflicting mandates, responsible authority, escalation). |
-| Progressive, uneven information | Events are released one at a time; unreleased event text is never sent to the UI; each event reaches only its target agents. |
-| Controversy, not only the happy path | Event 5: ICP invokes sovereign and national-security grounds and the PDPL Article (2) government exclusion to refuse the fix, and no source names a body that can suspend the system. |
-| Audit logging and chain-of-thought | Every retrieval, reasoning trace, decision, hand-off and gap extraction is stored in `audit_logs` with its sources; per-agent assessments in `agent_assessments`; gaps in `policy_gaps`. |
-| Gap identification with global examples | `POST /api/sessions/{id}/gaps` turns the assessments into typed, severity-ranked gaps, each linked only to international excerpts that were actually retrieved. |
-| ITU-T Y.3172 and AI Readiness alignment | See [docs/itu-alignment.md](docs/itu-alignment.md). |
+| Policy and legal adviser                                     | Every agent answers in Arabic and English from retrieved excerpts only; citations are checked automatically and flagged when an article is not in the sources.                                                                                                                                                                                                                                                                                                                        |
+| Institutional participants                                   | ICP Representative (system operator), AI Auditor, Privacy Consultant (PDPL), Coordinator — each with its own mandate, temperature and retrieval domain.                                                                                                                                                                                                                                                                                                                               |
+| Multi-agent coordination                                     | An orchestrator releases each event to its target agents. They assess **independently**; on events flagged _sequential_ each agent receives the previous one's assessment; the **Coordinator synthesizes** every multi-agent event (agreements, conflicting mandates, responsible authority, escalation).                                                                                                                                                                             |
+| Progressive, uneven information                              | Events are released one at a time; unreleased event text is never sent to the UI; each event reaches only its target agents.                                                                                                                                                                                                                                                                                                                                                          |
+| Controversy, not only the happy path                         | Event 5: ICP invokes sovereign and national-security grounds and the PDPL Article (2) government exclusion to refuse the fix, and no source names a body that can suspend the system.                                                                                                                                                                                                                                                                                                 |
+| Audit logging and chain-of-thought                           | Every retrieval, reasoning trace, decision, hand-off and gap extraction is stored in `audit_logs` with its sources; per-agent assessments in `agent_assessments`; gaps in `policy_gaps`.                                                                                                                                                                                                                                                                                              |
+| Gap identification with global examples                      | `POST /api/sessions/{id}/gaps` turns the assessments into typed, severity-ranked gaps, each linked only to international excerpts that were actually retrieved.                                                                                                                                                                                                                                                                                                                       |
+| ITU-T Y.3172 and AI Readiness alignment                      | See [docs/itu-alignment.md](docs/itu-alignment.md).                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 ## Architecture
 
@@ -40,13 +40,13 @@ Everything runs locally: no data leaves the machine and no external AI API is us
                          └──────────── Orchestrator (MLFO role) ──────────────┘
 ```
 
-| Layer | Technology |
-|---|---|
-| API | FastAPI, SSE streaming |
-| Storage | PostgreSQL 17 + pgvector (schema in `docker/postgres/init/`) |
-| LLM | Ollama, `qwen2.5:7b-instruct`, 8k context per request |
-| Embeddings | `bge-m3` (1024-dim, multilingual Arabic/English) |
-| UI | Vanilla JS + Vite (`ui/`) |
+| Layer      | Technology                                                   |
+| ---------- | ------------------------------------------------------------ |
+| API        | FastAPI, SSE streaming                                       |
+| Storage    | PostgreSQL 17 + pgvector (schema in `docker/postgres/init/`) |
+| LLM        | Ollama, `qwen2.5:7b-instruct`, 8k context per request        |
+| Embeddings | `bge-m3` (1024-dim, multilingual Arabic/English)             |
+| UI         | Vanilla JS + Vite (`ui/`)                                    |
 
 ## Quick start
 
@@ -89,7 +89,7 @@ light and dark themes; both choices are remembered by the browser. Every address
   question independently and the Coordinator writes the final answer; each agent's chain of
   thought streams live in the collapsible panel above it, with its sources and any citation
   warnings. Agents remember the last four questions and answers of the conversation. Past
-  conversations are listed under *Recent*, where the ⋯ menu renames or deletes them.
+  conversations are listed under _Recent_, where the ⋯ menu renames or deletes them.
 - **Simulations** (`/simulations`): start a scenario and reopen previous runs.
 - **Simulation** (`/simulation/<id>`): release events one at a time, read each agency's
   assessment with its reasoning and sources, the Coordinator's synthesis, and build the policy
@@ -103,7 +103,7 @@ light and dark themes; both choices are remembered by the browser. Every address
 
 ## Running the scenario
 
-Open **Simulations**, start *The Golden Gate Anomaly* and release the events in order. The same
+Open **Simulations**, start _The Golden Gate Anomaly_ and release the events in order. The same
 flow is available through the API:
 
 ```bash
@@ -117,14 +117,14 @@ curl -s localhost:8000/api/sessions/<session>/audit
 
 Repeat `advance` for each event; `language` may be `en` or `ar`.
 
-| # | Event | Agents | Flow |
-|---|---|---|---|
-| 1 | Anomaly reported | Auditor | single |
-| 2 | Model audit request | Privacy → ICP | sequential: ICP answers Privacy's findings |
-| 3 | Proxy variables discovered | Privacy, Auditor | independent + synthesis |
-| 4 | Coordinated response decision | Coordinator | decides on the specialists' earlier assessments |
-| 5 | Contested authority (controversy) | ICP, Privacy, Auditor | independent + synthesis |
-| 6 | Policy gap report | Auditor, Privacy | independent + synthesis |
+| #   | Event                             | Agents                | Flow                                            |
+| --- | --------------------------------- | --------------------- | ----------------------------------------------- |
+| 1   | Anomaly reported                  | Auditor               | single                                          |
+| 2   | Model audit request               | Privacy → ICP         | sequential: ICP answers Privacy's findings      |
+| 3   | Proxy variables discovered        | Privacy, Auditor      | independent + synthesis                         |
+| 4   | Coordinated response decision     | Coordinator           | decides on the specialists' earlier assessments |
+| 5   | Contested authority (controversy) | ICP, Privacy, Auditor | independent + synthesis                         |
+| 6   | Policy gap report                 | Auditor, Privacy      | independent + synthesis                         |
 
 ## Assistant identity and light replies
 
@@ -166,27 +166,27 @@ Add `--with-embeddings` to the command in the Makefile to include the bge-m3 vec
 
 ## API
 
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/api/health` | DB, LLM and loaded agents |
-| GET | `/api/agents` | Agent roster |
-| GET | `/api/scenarios` | Published scenarios |
-| GET/POST | `/api/sessions` | List / create sessions |
-| GET | `/api/chats` | Recent free-chat conversations |
-| PATCH / DELETE | `/api/chats/{id}` | Rename a conversation (`{"title": ...}`) / delete it with its messages and audit entries |
-| POST | `/api/sessions/{id}/start` | Start a scenario session |
-| POST | `/api/sessions/{id}/advance` | Release the next event and run the coordination protocol |
-| POST | `/api/sessions/{id}/events/{seq}/run` | Re-run a released event that has no recorded assessments |
-| GET | `/api/sessions/{id}/timeline` | Events, with text only once released |
-| GET | `/api/sessions/{id}/messages` | Event and agent messages |
-| GET | `/api/sessions/{id}/assessments` | Structured per-agent assessments |
-| GET/POST | `/api/sessions/{id}/gaps` | Read / build the policy gap report |
-| GET | `/api/sessions/{id}/audit` | Full audit trail |
-| POST | `/api/sessions/{id}/stream` | Free-chat answers over SSE |
-| WS | `/api/ws/sessions/{id}/chat` | Free chat over a WebSocket: `{"type": "ask", ...}` streams the answer, `{"type": "stop"}` cuts it short |
-| DELETE | `/api/sessions/{id}/messages/{message_id}/onward` | Remove a chat message and what follows, to resend it edited |
-| GET | `/api/documents` | Knowledge base coverage |
-| GET | `/api/kb/search?q=` | Run retrieval directly |
+| Method         | Path                                              | Purpose                                                                                                 |
+| -------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| GET            | `/api/health`                                     | DB, LLM and loaded agents                                                                               |
+| GET            | `/api/agents`                                     | Agent roster                                                                                            |
+| GET            | `/api/scenarios`                                  | Published scenarios                                                                                     |
+| GET/POST       | `/api/sessions`                                   | List / create sessions                                                                                  |
+| GET            | `/api/chats`                                      | Recent free-chat conversations                                                                          |
+| PATCH / DELETE | `/api/chats/{id}`                                 | Rename a conversation (`{"title": ...}`) / delete it with its messages and audit entries                |
+| POST           | `/api/sessions/{id}/start`                        | Start a scenario session                                                                                |
+| POST           | `/api/sessions/{id}/advance`                      | Release the next event and run the coordination protocol                                                |
+| POST           | `/api/sessions/{id}/events/{seq}/run`             | Re-run a released event that has no recorded assessments                                                |
+| GET            | `/api/sessions/{id}/timeline`                     | Events, with text only once released                                                                    |
+| GET            | `/api/sessions/{id}/messages`                     | Event and agent messages                                                                                |
+| GET            | `/api/sessions/{id}/assessments`                  | Structured per-agent assessments                                                                        |
+| GET/POST       | `/api/sessions/{id}/gaps`                         | Read / build the policy gap report                                                                      |
+| GET            | `/api/sessions/{id}/audit`                        | Full audit trail                                                                                        |
+| POST           | `/api/sessions/{id}/stream`                       | Free-chat answers over SSE                                                                              |
+| WS             | `/api/ws/sessions/{id}/chat`                      | Free chat over a WebSocket: `{"type": "ask", ...}` streams the answer, `{"type": "stop"}` cuts it short |
+| DELETE         | `/api/sessions/{id}/messages/{message_id}/onward` | Remove a chat message and what follows, to resend it edited                                             |
+| GET            | `/api/documents`                                  | Knowledge base coverage                                                                                 |
+| GET            | `/api/kb/search?q=`                               | Run retrieval directly                                                                                  |
 
 ## Development
 
@@ -226,7 +226,7 @@ data/          knowledge base sources and scenarios
 
 ## Team
 
-Mathuq was developed by the **SYNORA team** for the ITU AI for Good Lab Hackathon in the United
+mawthuq was developed by the **SYNORA team** for the ITU AI for Good Lab Hackathon in the United
 Arab Emirates:
 
 - **Firas Arafah** · فراس عرفة

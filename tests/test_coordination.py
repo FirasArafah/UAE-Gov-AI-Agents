@@ -385,7 +385,7 @@ async def test_conversation_reply_skips_retrieval():
         ("Who are you?", "identity"),
         ("who made you", "identity"),
         ("Who built you?", "identity"),
-        ("What is Mathuq?", "identity"),
+        ("What is mawthuq?", "identity"),
         ("من صنعك؟", "identity"),
         ("من أنت", "identity"),
         ("Who are your developers?", "identity"),
