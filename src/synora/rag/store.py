@@ -40,6 +40,24 @@ COMMON_WORDS = frozenset(
         "regulations", "shall", "system", "systems",
     }
 )
+# Arabic word stems and their English terms, so an Arabic question can also match English sources
+# by exact words. Most international sources exist only in English.
+ENGLISH_TERMS = (
+    ("تأشير", "visa"),
+    ("إقام", "residence"),
+    ("تمييز", "discrimination"),
+    ("تحيز", "bias"),
+    ("شفاف", "transparency"),
+    ("تفسير", "explainability"),
+    ("مساءل", "accountability"),
+    ("رقاب", "oversight"),
+    ("خصوص", "privacy"),
+    ("مخاطر", "risk"),
+    ("اعتراض", "object"),
+    ("آلي", "automated"),
+    ("تدقيق", "audit"),
+    ("إيقاف", "suspend"),
+)
 ARABIC_ARTICLE_WORD = "المادة"
 ENGLISH_ARTICLE_RE = re.compile(r"\barticle\s*\(?\s*(\d+)")
 ARABIC_ARTICLE_RE = re.compile(r"\S*مادة\s*\(?\s*(\d+)")
@@ -57,6 +75,7 @@ def keyword_query(text: str) -> str:
     phrases += [f"{ARABIC_ARTICLE_WORD} <-> {n}" for n in arabic]
     skipped = ARABIC_STOP_WORDS | COMMON_WORDS | set(english) | set(arabic)
     words = [word for word in WORD_RE.findall(lowered) if word not in skipped]
+    words += [english for stem, english in ENGLISH_TERMS if stem in lowered]
     return " | ".join(dict.fromkeys([*phrases, *words][:MAX_KEYWORDS]))
 
 

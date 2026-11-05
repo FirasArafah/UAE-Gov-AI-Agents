@@ -59,9 +59,12 @@ ROLE_DOMAINS: dict[AgentRole, list[str]] = {
 }
 # The article that sets each agency's legal position, which all of its answers must consider:
 # ICP's sole responsibility for entry and residence, and the scope of the data protection law.
-ROLE_MANDATE_ARTICLES: dict[AgentRole, tuple[str, tuple[str, ...]]] = {
-    AgentRole.ICP: ("3", ("No. 29 of 2021", "رقم 29 لسنة 2021")),
-    AgentRole.PRIVACY: ("2", ("No. 45 of 2021", "رقم 45 لسنة 2021")),
+ROLE_MANDATE_ARTICLES: dict[AgentRole, tuple[tuple[str, tuple[str, ...]], ...]] = {
+    AgentRole.ICP: (
+        ("3", ("No. 29 of 2021", "رقم 29 لسنة 2021")),
+        ("5", ("No. 14 of 2021",)),  # The functions of the Authority, from the law establishing it
+    ),
+    AgentRole.PRIVACY: (("2", ("No. 45 of 2021", "رقم 45 لسنة 2021")),),
 }
 # Excerpts allowed beyond rag_top_k when a question names several sources, so none is dropped.
 EXTRA_NAMED_EXCERPTS = 2
@@ -250,7 +253,8 @@ class BaseAgent:
             first = named + mandate + sources
             scoped = _without_same_numbers_of_other_laws(scoped, query)
             general = _without_same_numbers_of_other_laws(general, query)
-            law = _distinct_articles(_unique_chunks(first + scoped), language)[: top_k // 2]
+            # What the query names must not use up the places of the agent's own sources.
+            law = _distinct_articles(_unique_chunks(scoped), language)[: top_k // 2]
             excerpts = _distinct_articles(_unique_chunks(first + law + general), language)
             return excerpts[: top_k + EXTRA_NAMED_EXCERPTS if sources else top_k]
         except Exception as exc:
@@ -281,10 +285,10 @@ class BaseAgent:
         return found
 
     async def _mandate_article(self) -> list[dict]:
-        number, titles = ROLE_MANDATE_ARTICLES.get(AgentRole(self.agent.role), (None, ()))
-        if number is None:
-            return []
-        return await self.retriever.find_articles([number], None, titles=titles)
+        found: list[dict] = []
+        for number, titles in ROLE_MANDATE_ARTICLES.get(AgentRole(self.agent.role), ()):
+            found += await self.retriever.find_articles([number], None, titles=titles)
+        return found
 
     async def _named_sources(self, query: str, language: str, named: list[dict]) -> list[dict]:
         """The passage closest to the query from each source it names and no article covers."""
@@ -298,6 +302,8 @@ class BaseAgent:
             same_language = [hit for hit in hits if hit.get("language") == language]
             sources += (same_language or hits)[:1]
         for titles in topic_sources(query):
+            # Its definitions, and then the passage closest to the question.
+            sources += await self.retriever.find_articles(["1"], None, titles=titles)
             sources += await self.retriever.search(query, top_k=1, titles=titles)
         return sources
 

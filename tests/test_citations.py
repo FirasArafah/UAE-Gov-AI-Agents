@@ -170,7 +170,7 @@ def test_documents_without_articles_are_labelled_by_heading():
 def test_text_without_headings_keeps_numbered_chunks():
     text = "Plain paragraph without any headings at all. " * 40
     labels = [label for label, _, _ in _small_ingestor()._split_into_sections(text)]
-    assert labels[0] == "chunk_0"
+    assert labels[0] == "Part 1"
 
 
 def test_arabic_files_get_arabic_metadata():

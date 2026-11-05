@@ -153,6 +153,21 @@ async def test_agency_mandate_article_is_always_considered():
 
 
 @pytest.mark.asyncio
+async def test_named_articles_leave_room_for_the_agents_own_sources():
+    class Retriever(RecordingRetriever):
+        async def search(self, query, top_k=6, domains=None, titles=None):
+            if not domains:
+                return []
+            return [
+                {"chunk_id": f"own-{i}", "section": f"Part {i}", "title": "Own"} for i in range(8)
+            ]
+
+    query = "Assess Articles (1), (2), (3) and (4) of the PDPL."
+    hits = await _agent("auditor", Retriever())._retrieve(query)
+    assert sum(hit["chunk_id"].startswith("own") for hit in hits) == 4
+
+
+@pytest.mark.asyncio
 async def test_question_about_discrimination_reads_the_law_on_it():
     hits = await _agent("auditor", RecordingRetriever())._retrieve("How is discrimination defined?")
     assert "No. 34 of 2023" in [hit["title"] for hit in hits]
@@ -232,6 +247,22 @@ def test_portal_page_takes_its_title_and_source_from_the_file(tmp_path):
     assert meta["title"] == "Some policy (UAE Government Portal)"
     assert meta["doc_metadata"] == {"source_url": "https://u.ae/en/x"}
     assert meta["domain"] == "national_policy"
+
+
+def test_subheading_opens_the_paragraph_under_it():
+    body = "\n".join(
+        f"{n}. Member States should do thing number {n} with great care in every context."
+        for n in range(1, 61)
+    )
+    text = body.replace("35. Member", "Human oversight\n35. Member")
+    sections = {label: chunk for label, chunk, _ in _ingestor()._split_into_sections(text)}
+    assert sections["Paragraph 35"].startswith("Human oversight")
+    assert "Human oversight" not in sections["Paragraph 34"]
+
+
+def test_arabic_question_also_searches_english_terms():
+    query = keyword_query("طلبات التأشيرات والإقامة")
+    assert "visa" in query and "residence" in query
 
 
 def test_ligature_glyph_names_are_repaired():

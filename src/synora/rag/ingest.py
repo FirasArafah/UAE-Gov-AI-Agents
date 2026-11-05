@@ -148,6 +148,21 @@ def _paragraph_sequence(matches: list[re.Match[str]]) -> list[re.Match[str]]:
     return longest
 
 
+def _paragraph_start(text: str, start: int) -> int:
+    """Where a numbered paragraph begins, counting a subheading on the line above it."""
+    if start == 0:
+        return start
+    line_start = text.rfind("\n", 0, start - 1) + 1
+    line = text[line_start:start].strip()
+    is_heading = (
+        line
+        and line[0].isalpha()
+        and line[-1] not in ".,:;!?؟؛،"
+        and len(line.split()) <= MAX_HEADING_WORDS
+    )
+    return line_start if is_heading else start
+
+
 def _paragraph_headings(text: str) -> list[tuple[int, str]]:
     """(offset, label) of each numbered paragraph, when the document is built from them."""
     matches = list(NUMBERED_PARAGRAPH_RE.finditer(text))
@@ -163,7 +178,10 @@ def _paragraph_headings(text: str) -> list[tuple[int, str]]:
     arabic = ARABIC_LETTER_RE.search(text[:2000])
     label = "\u0627\u0644\u0641\u0642\u0631\u0629" if arabic else "Paragraph"
     parts = [(m.start(1), _part_title(m.group(1))) for m in PART_HEADING_RE.finditer(text)]
-    paragraphs = [(m.start(), f"{label} {m.group(1)}") for m in _paragraph_sequence(matches)]
+    paragraphs = [
+        (_paragraph_start(text, m.start()), f"{label} {m.group(1)}")
+        for m in _paragraph_sequence(matches)
+    ]
     return sorted(parts + paragraphs)
 
 
@@ -269,12 +287,12 @@ class Ingestor:
     ) -> list[tuple[str, str, int | None]]:
         """Chunk a document without articles, naming each chunk after its heading.
 
-        Falls back to chunk_<n> when the text has too few headings to be trusted.
+        Falls back to "Part <n>" when the text has too few headings to be trusted.
         """
         headings = _paragraph_headings(text) or _topic_headings(text)
         if default_section or len(headings) < MIN_TOPIC_HEADINGS:
             return [
-                (default_section or f"chunk_{idx}", c_text, page_num)
+                (default_section or f"Part {idx + 1}", c_text, page_num)
                 for idx, (c_text, page_num) in enumerate(
                     self._split_with_pages(text, 0, page_spans)
                 )
