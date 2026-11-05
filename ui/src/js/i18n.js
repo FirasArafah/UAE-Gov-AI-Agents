@@ -8,8 +8,8 @@ const LANGUAGES = ["en", "ar"];
 
 const DICT = {
   en: {
-    "app.title": "Mathuq",
-    "brand": "Mathuq",
+    "app.title": "mawthuq",
+    brand: "mawthuq",
     "nav.main": "Main",
     "nav.skip": "Skip to content",
     "nav.menu": "Menu",
@@ -26,7 +26,8 @@ const DICT = {
     "recents.rename": "Rename",
     "recents.delete": "Delete",
     "recents.renameLabel": "New name for the chat",
-    "recents.confirmDelete": "Delete the chat “{title}”? Its messages and audit entries are removed for good.",
+    "recents.confirmDelete":
+      "Delete the chat “{title}”? Its messages and audit entries are removed for good.",
     "recents.failed": "The chat could not be changed: {error}",
     "health.ok": "Model online",
     "health.degraded": "Degraded",
@@ -45,7 +46,7 @@ const DICT = {
   },
   ar: {
     "app.title": "موثوق",
-    "brand": "موثوق",
+    brand: "موثوق",
     "nav.main": "القائمة الرئيسية",
     "nav.skip": "تخطَّ إلى المحتوى",
     "nav.menu": "القائمة",
@@ -62,7 +63,8 @@ const DICT = {
     "recents.rename": "إعادة التسمية",
     "recents.delete": "حذف",
     "recents.renameLabel": "اسم جديد للمحادثة",
-    "recents.confirmDelete": "حذف المحادثة «{title}»؟ ستُحذف رسائلها وسجلات التدقيق الخاصة بها نهائياً.",
+    "recents.confirmDelete":
+      "حذف المحادثة «{title}»؟ ستُحذف رسائلها وسجلات التدقيق الخاصة بها نهائياً.",
     "recents.failed": "تعذّر تعديل المحادثة: {error}",
     "health.ok": "النموذج متصل",
     "health.degraded": "أداء منخفض",
@@ -88,7 +90,9 @@ function initialLanguage() {
   } catch {
     /* storage unavailable */
   }
-  return (navigator.language || "").toLowerCase().startsWith("ar") ? "ar" : "en";
+  return (navigator.language || "").toLowerCase().startsWith("ar")
+    ? "ar"
+    : "en";
 }
 
 let current = initialLanguage();
@@ -104,7 +108,7 @@ export function addStrings(strings) {
 /** Translate a key, filling {placeholders} from vars. Unknown keys fall back to English. */
 export function t(key, vars = {}) {
   const text = DICT[current][key] ?? DICT.en[key] ?? key;
-  return text.replace(/\{(\w+)\}/g, (_, name) => (vars[name] ?? `{${name}}`));
+  return text.replace(/\{(\w+)\}/g, (_, name) => vars[name] ?? `{${name}}`);
 }
 
 /** Format a number with Western digits, as UAE government sites do in both languages. */
@@ -113,7 +117,10 @@ export const num = (n) => Number(n).toLocaleString("en-US");
 export function duration(ms) {
   const total = Math.max(1, Math.round(ms / 1000));
   if (total < 60) return t("time.seconds", { s: total });
-  return t("time.minutes", { m: Math.floor(total / 60), s: String(total % 60).padStart(2, "0") });
+  return t("time.minutes", {
+    m: Math.floor(total / 60),
+    s: String(total % 60).padStart(2, "0"),
+  });
 }
 
 /** Apply the language to <html> and to static markup: data-i18n and data-i18n-<attr>. */
@@ -121,8 +128,9 @@ export function applyLanguage(root = document) {
   const html = document.documentElement;
   html.lang = current;
   html.dir = isRtl() ? "rtl" : "ltr";
-  document.title = `${t("app.title")} · ${current === "ar" ? "Mathuq" : "موثوق"}`;
-  for (const el of root.querySelectorAll("[data-i18n]")) el.textContent = t(el.dataset.i18n);
+  document.title = `${t("app.title")} · ${current === "ar" ? "mawthuq" : "موثوق"}`;
+  for (const el of root.querySelectorAll("[data-i18n]"))
+    el.textContent = t(el.dataset.i18n);
   for (const attr of ["aria-label", "title", "placeholder"]) {
     for (const el of root.querySelectorAll(`[data-i18n-${attr}]`)) {
       el.setAttribute(attr, t(el.getAttribute(`data-i18n-${attr}`)));
