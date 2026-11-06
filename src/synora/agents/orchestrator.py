@@ -165,7 +165,10 @@ class Orchestrator:
             "\n\nSynthesize these independent assessments into one coordinated recommendation. "
             "State where the agencies agree, where their mandates or objectives conflict, which "
             "authority is responsible for each next step, and what must be escalated to a human "
-            "decision-maker."
+            "decision-maker. Name an authority as responsible only where an assessment cites a "
+            "source that gives it that duty; otherwise say that no source assigns it, which is a "
+            "gap. Describe each instrument as the assessments do (a binding treaty is not a "
+            "guideline), and keep the article numbers they cited."
         )
 
         return await coordinator.respond(

@@ -68,6 +68,9 @@ ROLE_MANDATE_ARTICLES: dict[AgentRole, tuple[tuple[str, tuple[str, ...]], ...]] 
 }
 # Excerpts allowed beyond rag_top_k when a question names several sources, so none is dropped.
 EXTRA_NAMED_EXCERPTS = 2
+# Passages from a source the question names without an article: its closest passage is often
+# a related provision ("Non-discrimination" in implementation) and the next the core one.
+NAMED_SOURCE_PASSAGES = 2
 
 ARABIC_LETTER_RE = re.compile(r"[\u0600-\u06FF]")
 # "No. 45 of 2021" and "رقم 45 لسنة 2021" are one law in two languages.
@@ -293,14 +296,19 @@ class BaseAgent:
     async def _named_sources(self, query: str, language: str, named: list[dict]) -> list[dict]:
         """The passage closest to the query from each source it names and no article covers."""
         sources: list[dict] = []
-        for instrument in named_instruments(query):
+        instruments = named_instruments(query)
+        # Two passages each for one or two named sources; more would crowd out the rest.
+        per_source = NAMED_SOURCE_PASSAGES if len(instruments) <= 2 else 1
+        for instrument in instruments:
             if any(t in (ref.get("title") or "") for ref in named for t in instrument.titles):
                 continue
             # Within the source its name says nothing, and would pull in its front matter.
             topic = instrument.pattern.sub(" ", query).strip() or query
-            hits = await self.retriever.search(topic, top_k=2, titles=instrument.titles)
+            hits = await self.retriever.search(
+                topic, top_k=per_source + 1, titles=instrument.titles
+            )
             same_language = [hit for hit in hits if hit.get("language") == language]
-            sources += (same_language or hits)[:1]
+            sources += (same_language or hits)[:per_source]
         for titles in topic_sources(query):
             # Its definitions, and then the passage closest to the question.
             sources += await self.retriever.find_articles(["1"], None, titles=titles)

@@ -14,7 +14,7 @@ An agency's retrieval always puts the article that sets its position first, whic
 |---|---:|---:|---:|---:|
 | UAE law (English) | 12/12 | 17% | 92% | 0.52 |
 | UAE law (Arabic) | 7/7 | 29% | 100% | 0.60 |
-| UAE strategy and policy | 8/8 | 88% | 100% | 0.94 |
+| UAE strategy and policy | 8/8 | 88% | 100% | 0.92 |
 | International references | 15/15 | 100% | 100% | 1.00 |
 | ITU standards | 5/5 | 80% | 100% | 0.90 |
 | Arabic question, English source | 5/5 | 100% | 100% | 1.00 |

@@ -825,7 +825,11 @@ async def chat_events(
             parts.append(
                 "\n\nWrite the team's final answer to the question from these answers. State "
                 "where the agents agree, where their mandates conflict, which authority is "
-                "responsible, and what a human must decide."
+                "responsible, and what a human must decide. Name an authority as responsible "
+                "only where an answer cites a source that gives it that duty; otherwise say that "
+                "no source assigns it, which is a gap. Describe each instrument as the answers "
+                "do (a binding treaty is not a guideline), and keep the article numbers they "
+                "cited."
             )
             async for event in run_agent(
                 "coordinator",
