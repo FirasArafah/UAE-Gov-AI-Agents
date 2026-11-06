@@ -637,3 +637,6 @@ html[lang="ar"] .gap .sev { letter-spacing: 0; }
 .audit-link:hover { color: var(--text); }
 .hit-title { font-weight: 600; color: inherit; }
 .doc-meta a { color: var(--accent); }
+/* A failed answer: the message and a Try again button on one line */
+.retry-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.retry-notice .btn { display: inline-flex; align-items: center; gap: 6px; }

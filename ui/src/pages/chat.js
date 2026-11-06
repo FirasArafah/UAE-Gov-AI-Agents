@@ -60,6 +60,9 @@ addStrings({
     "chat.noAnswer": "No answer was produced.",
     "chat.teamSources": "Sources consulted by the team",
     "chat.requestFailed": "The request failed: {error}",
+    "chat.regenerate": "Regenerate",
+    "chat.retry": "Try again",
+    "chat.answerFailed": "This answer did not complete.",
     "chat.audit": "Audit trail",
   },
   ar: {
@@ -97,6 +100,9 @@ addStrings({
     "chat.noAnswer": "لم تُنتَج إجابة.",
     "chat.teamSources": "المصادر التي اعتمد عليها الفريق",
     "chat.requestFailed": "فشل الطلب: {error}",
+    "chat.regenerate": "إعادة التوليد",
+    "chat.retry": "حاول مرة أخرى",
+    "chat.answerFailed": "لم تكتمل هذه الإجابة.",
     "chat.audit": "سجل التدقيق",
   },
 });
@@ -151,6 +157,38 @@ const CHECK_ICON =
   '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>';
 const EDIT_ICON =
   '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zM20.7 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+
+const REGENERATE_ICON =
+  '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>';
+
+/** The Regenerate icon button under an answer. */
+function regenerateButton(onRegenerate) {
+  return h("button", {
+    class: "icon-action",
+    type: "button",
+    title: t("chat.regenerate"),
+    "aria-label": t("chat.regenerate"),
+    html: REGENERATE_ICON,
+    onclick: () => onRegenerate(),
+  });
+}
+
+/** A failure notice with a Try again button, for answers that did not complete. */
+function retryNotice(message, onRetry) {
+  return h(
+    "div",
+    { class: "notice danger retry-notice" },
+    h("span", { text: message }),
+    onRetry
+      ? h("button", {
+          class: "btn sm",
+          type: "button",
+          html: `${REGENERATE_ICON}<span>${t("chat.retry")}</span>`,
+          onclick: () => onRetry(),
+        })
+      : null,
+  );
+}
 
 async function copyText(text) {
   try {
@@ -208,8 +246,10 @@ const logo = () => [
  * One assistant turn. Specialists' reasoning and assessments go into a collapsible
  * "Thinking" panel; the final answer (Coordinator synthesis in team mode) is shown below it.
  */
-function createTurn({ team, agents, conversation = false, sessionId = null }) {
+function createTurn({ team, agents, conversation = false, sessionId = null, onRegenerate = null }) {
   const started = Date.now();
+  // Set when the answer did not complete, so the turn offers Try again.
+  let failed = false;
   const statusText = h("span", {
     text: t(team ? "chat.status.team" : "chat.status.single"),
   });
@@ -264,17 +304,23 @@ function createTurn({ team, agents, conversation = false, sessionId = null }) {
     timer.textContent = duration(Date.now() - started);
   }, 1000);
 
-  // Copy the answer as it reads on screen: the prose of the final answer, without sources.
-  function addCopy() {
+  // Copy the answer as it reads on screen (the prose of the final answer, without sources),
+  // and ask the same question again.
+  function addActions() {
+    if (el.querySelector(".turn-actions")) return;
     const prose = answer.querySelector(".answer .prose");
-    if (!prose || el.querySelector(".turn-actions")) return;
-    answer.after(
-      h(
-        "div",
-        { class: "turn-actions" },
-        copyButton(() => prose.innerText.trim()),
-      ),
-    );
+    const buttons = [
+      prose ? copyButton(() => prose.innerText.trim()) : null,
+      onRegenerate ? regenerateButton(onRegenerate) : null,
+    ].filter(Boolean);
+    if (buttons.length) answer.after(h("div", { class: "turn-actions" }, ...buttons));
+  }
+
+  // A failed answer gets one Try again button, in place of the generic notice.
+  function showFailure(message) {
+    failed = true;
+    if (answer.querySelector(".retry-notice")) return;
+    answer.append(retryNotice(message, onRegenerate));
   }
 
   const bySlug = {};
@@ -374,10 +420,10 @@ function createTurn({ team, agents, conversation = false, sessionId = null }) {
       if (data.interrupted || /^\(stream interrupted/.test(text)) {
         s.node.dataset.state = "failed";
         s.meta.textContent = t("chat.step.failed");
-        if (!team || data.is_synthesis)
-          answer.replaceChildren(
-            h("div", { class: "notice danger", text: t("chat.failed") }),
-          );
+        if (!team || data.is_synthesis) {
+          answer.replaceChildren();
+          showFailure(t("chat.failed"));
+        }
         return;
       }
       const refs = data.references || [];
@@ -407,14 +453,19 @@ function createTurn({ team, agents, conversation = false, sessionId = null }) {
     },
     error(message) {
       answer.append(h("div", { class: "notice danger", text: message }));
+      failed = true;
+    },
+    /** The connection dropped before the answer finished. */
+    fail(message) {
+      showFailure(message);
     },
     finish() {
       clearInterval(tick);
       const count = Object.keys(bySlug).length;
+      const empty = !answer.querySelector(".answer .prose, .prose");
+      if (empty || failed) showFailure(empty ? t("chat.noAnswer") : t("chat.answerFailed"));
       if (conversation) {
-        if (!answer.childElementCount)
-          answer.append(h("p", { class: "muted", text: t("chat.noAnswer") }));
-        addCopy();
+        addActions();
         return;
       }
       statusText.textContent = t("chat.cotTime", {
@@ -422,9 +473,7 @@ function createTurn({ team, agents, conversation = false, sessionId = null }) {
       });
       timer.textContent = team ? t("chat.agentCount", { n: count }) : "";
       think.classList.add("finished");
-      if (!answer.childElementCount)
-        answer.append(h("p", { class: "muted", text: t("chat.noAnswer") }));
-      addCopy();
+      addActions();
       if (sessionId) answer.append(h("a", { class: "audit-link", href: `/audit/${sessionId}`, text: t("chat.audit") }));
     },
   };
@@ -441,7 +490,7 @@ function dedupe(references) {
 }
 
 /** Rebuild a finished turn from stored messages (after navigating away and back). */
-function restoreTurn(assistantMsgs, agentsById, sessionId) {
+function restoreTurn(assistantMsgs, agentsById, sessionId, onRegenerate = null) {
   const view = (m) => ({
     slug: agentsById[m.agent_id]?.slug,
     meta: m.message_metadata || {},
@@ -460,6 +509,7 @@ function restoreTurn(assistantMsgs, agentsById, sessionId) {
     agents: items.map((i) => i.slug),
     conversation,
     sessionId,
+    onRegenerate,
   });
   const ordered = [...items.filter((i) => i !== final), final];
   for (const i of ordered) {
@@ -599,14 +649,19 @@ export async function renderChat(container, params = {}) {
       ]);
       savedTitle = session.title;
       let group = null;
+      let question = null;
       const flush = () => {
-        if (group?.length) thread.append(restoreTurn(group, agentsById, sessionId));
+        if (group?.length) {
+          const row = question;
+          thread.append(restoreTurn(group, agentsById, sessionId, () => row.resend()));
+        }
         group = null;
       };
       for (const m of messages) {
         if (m.role === "user") {
           flush();
-          thread.append(userRow(m.content, m.id));
+          question = userRow(m.content, m.id);
+          thread.append(question);
           group = [];
         } else if (m.role === "assistant" && group) {
           group.push(m);
@@ -752,6 +807,8 @@ export async function renderChat(container, params = {}) {
       row.remove();
       await sendMessage(newText);
     }
+    // Regenerate and Try again ask the same question again, replacing its answer.
+    row.resend = () => save(text);
     return row;
   }
 
@@ -788,6 +845,7 @@ export async function renderChat(container, params = {}) {
             agents: data.agents?.length ? data.agents : agents,
             conversation: data.conversation,
             sessionId,
+            onRegenerate: () => row.resend(),
           });
           thread.append(turn.el);
           window.dispatchEvent(new Event("chats-changed"));
@@ -802,7 +860,10 @@ export async function renderChat(container, params = {}) {
         follow();
       });
     } catch (err) {
-      status.textContent = t("chat.requestFailed", { error: err.message });
+      const message = t("chat.requestFailed", { error: err.message });
+      // The connection failed: offer to ask again, under the answer or under the question.
+      if (turn) turn.fail(message);
+      else row.after(retryNotice(message, () => row.resend()));
     }
     turn?.finish();
     follow();
