@@ -51,6 +51,9 @@ class DocumentDomain(StrEnum):
     EDUCATION = "education"
     TELECOM = "telecom"
     NATIONAL_POLICY = "national_policy"
+    # Other countries' national frameworks: read for comparison when named or for the gap
+    # report, and kept out of an agency's own search so they do not rank above UAE sources.
+    GLOBAL_PRACTICE = "global_practice"
     CROSS_DOMAIN = "cross_domain"
 
 

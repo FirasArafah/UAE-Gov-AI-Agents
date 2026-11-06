@@ -207,7 +207,15 @@ async def test_gap_report_draws_on_each_international_source():
     retriever = RecordingRetriever()
     references = await GapAnalyst(None, retriever)._global_references()
     titles = {r["title"] for r in references}
-    assert titles == {"2024/1689", "OECD", "UNESCO"}
+    assert titles == {"2024/1689", "OECD", "UNESCO", "Council of Europe", "NIST AI", "Singapore"}
+    assert len(retriever.searches) == 18  # Three instruments for each theme, to fit the prompt
+
+
+def test_new_international_instruments_are_recognised():
+    names = {i.name for i in named_instruments("Compare the NIST AI RMF and Singapore's framework")}
+    assert names == {"NIST AI RMF", "Singapore Model AI Governance Framework"}
+    names = {i.name for i in named_instruments("ماذا تقول اتفاقية مجلس أوروبا؟")}
+    assert names == {"Council of Europe AI Convention"}
 
 
 def _ingestor():
@@ -247,6 +255,14 @@ def test_portal_page_takes_its_title_and_source_from_the_file(tmp_path):
     assert meta["title"] == "Some policy (UAE Government Portal)"
     assert meta["doc_metadata"] == {"source_url": "https://u.ae/en/x"}
     assert meta["domain"] == "national_policy"
+
+
+def test_article_headings_with_a_dash_are_recognised():
+    text = "\n".join(
+        f"Article {n} – Title {n}\nEach Party shall adopt measures number {n}." for n in range(1, 5)
+    )
+    labels = [label for label, _, _ in _ingestor()._split_into_sections(text)]
+    assert labels[:2] == ["Article 1", "Article 2"]
 
 
 def test_subheading_opens_the_paragraph_under_it():

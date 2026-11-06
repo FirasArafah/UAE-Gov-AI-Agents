@@ -1,7 +1,8 @@
 """Policy gap extraction: turns a session's agent assessments into structured gap records.
 
 The specialist agents surface gaps in prose. This step reads their assessments, retrieves
-international reference material (ITU, OECD, UNESCO, EU AI Act) from the knowledge base and
+international reference material (EU AI Act, OECD, UNESCO, the Council of Europe AI Convention,
+NIST AI RMF and Singapore's Model AI Governance Framework) from the knowledge base and
 asks the model for a structured list of domain-level gaps, each mapped to the global best
 practice that addresses it. Only references that were actually retrieved can be cited.
 """
@@ -17,22 +18,42 @@ from synora.models.enums import DocumentDomain, GapType
 
 logger = structlog.get_logger(__name__)
 
-# Themes the Golden Gate assessments revolve around. Each one pulls international practice
-# from the knowledge base, so the gap report can name a concrete global example.
+EU_AI_ACT = ("2024/1689",)
+OECD = ("OECD",)
+UNESCO = ("UNESCO", "اليونسكو")
+COUNCIL_OF_EUROPE = ("Council of Europe",)  # The first binding international treaty on AI
+NIST = ("NIST AI",)
+SINGAPORE = ("Singapore",)
+INTERNATIONAL_SOURCES = (EU_AI_ACT, OECD, UNESCO, COUNCIL_OF_EUROPE, NIST, SINGAPORE)
+# Themes the Golden Gate assessments revolve around, each with the instruments that address
+# it best. Each instrument is asked separately, so the report has several global examples to
+# draw on rather than whichever long document matches best, and three per theme keep the
+# prompt within the model's context window.
 GLOBAL_PRACTICE_QUERIES = (
-    "human oversight of high-risk AI systems used in public services",
-    "non-discrimination, bias testing and fairness of automated decisions",
-    "authority to suspend, withdraw or recall an AI system that causes harm",
-    "transparency, explanation and right to contest automated decisions",
-    "independent oversight body and accountability for public sector AI",
-    "data governance and quality of training data for machine learning",
-)
-# Each theme asks the instruments separately, so the report has several global examples to
-# draw on rather than whichever long document matches best.
-INTERNATIONAL_SOURCES = (
-    ("2024/1689",),  # EU AI Act
-    ("OECD",),
-    ("UNESCO", "اليونسكو"),
+    (
+        "human oversight of high-risk AI systems used in public services",
+        (EU_AI_ACT, COUNCIL_OF_EUROPE, SINGAPORE),
+    ),
+    (
+        "non-discrimination, bias testing and fairness of automated decisions",
+        (EU_AI_ACT, UNESCO, NIST),
+    ),
+    (
+        "authority to suspend, withdraw or recall an AI system that causes harm",
+        (EU_AI_ACT, COUNCIL_OF_EUROPE, NIST),
+    ),
+    (
+        "transparency, explanation and right to contest automated decisions",
+        (OECD, COUNCIL_OF_EUROPE, SINGAPORE),
+    ),
+    (
+        "independent oversight body and accountability for public sector AI",
+        (OECD, UNESCO, COUNCIL_OF_EUROPE),
+    ),
+    (
+        "data governance and quality of training data for machine learning",
+        (EU_AI_ACT, NIST, SINGAPORE),
+    ),
 )
 REFERENCES_PER_SOURCE = 1
 REFERENCE_EXCERPT_CHARS = 450
@@ -117,8 +138,8 @@ class GapAnalyst:
         if not self.retriever:
             return []
         seen: dict[str, dict] = {}
-        for query in GLOBAL_PRACTICE_QUERIES:
-            for titles in INTERNATIONAL_SOURCES:
+        for query, sources in GLOBAL_PRACTICE_QUERIES:
+            for titles in sources:
                 try:
                     hits = await self.retriever.search(
                         query, top_k=REFERENCES_PER_SOURCE, titles=titles

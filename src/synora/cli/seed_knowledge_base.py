@@ -129,6 +129,30 @@ KNOWN_METADATA: dict[str, dict[str, Any]] = {
         "country_code": "INT",
         "language": "en",
     },
+    "coe_ai_convention": {
+        "title": (
+            "Council of Europe Framework Convention on Artificial Intelligence and Human "
+            "Rights, Democracy and the Rule of Law (CETS No. 225)"
+        ),
+        "domain": DocumentDomain.CROSS_DOMAIN.value,
+        "doc_type": DocumentType.LAW.value,
+        "country_code": "INT",
+        "language": "en",
+    },
+    "nist_ai_rmf": {
+        "title": "NIST AI Risk Management Framework (AI RMF 1.0, NIST AI 100-1)",
+        "domain": DocumentDomain.GLOBAL_PRACTICE.value,
+        "doc_type": DocumentType.STANDARD.value,
+        "country_code": "US",
+        "language": "en",
+    },
+    "singapore_model_ai_governance": {
+        "title": "Singapore Model AI Governance Framework (Second Edition)",
+        "domain": DocumentDomain.GLOBAL_PRACTICE.value,
+        "doc_type": DocumentType.GUIDELINE.value,
+        "country_code": "SG",
+        "language": "en",
+    },
     "eu_ai_act": {
         "title": "EU Artificial Intelligence Act (Regulation (EU) 2024/1689)",
         "domain": DocumentDomain.CROSS_DOMAIN.value,
@@ -244,6 +268,11 @@ SOURCE_URLS: dict[str, str] = {
     "pdpl_45_2021_ar": "https://uaelegislation.gov.ae/ar/legislations/1972",
     "29_2021_ar": "https://uaelegislation.gov.ae/ar/legislations/1528",
     "unesco": "https://unesdoc.unesco.org/ark:/48223/pf0000381137",
+    "coe_ai_convention": "https://rm.coe.int/1680afae3c",
+    "nist_ai_rmf": "https://doi.org/10.6028/NIST.AI.100-1",
+    "singapore_model_ai_governance": (
+        "https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/resource-for-organisation/ai/sgmodelaigovframework2.pdf"
+    ),
     "eu_ai_act": "https://eur-lex.europa.eu/eli/reg/2024/1689/oj",
     "oecd": "https://legalinstruments.oecd.org/en/instruments/OECD-LEGAL-0449",
     "cybersecurity_strategy_2019_summary": (
@@ -265,6 +294,7 @@ SOURCE_URLS: dict[str, str] = {
     "65_2022": "https://uaelegislation.gov.ae/en/legislations/1601",
     "29_2021": "https://uaelegislation.gov.ae/en/legislations/1528",
 }
+
 
 def portal_page_metadata(file_path: Path) -> dict[str, Any]:
     """A page saved from the UAE government portal: its title, then its address, head the file."""

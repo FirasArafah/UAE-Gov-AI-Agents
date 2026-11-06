@@ -28,7 +28,7 @@ logger = structlog.get_logger(__name__)
 GLYPH_NAME_RE = re.compile(r"/([A-Za-z])_([a-z])")
 ARTICLE_HEADING_RE = re.compile(
     r"(?:^|\n)\s*(Article\s*\(\s*\d+\s*\)?(?:\s*BIS\b)?"
-    r"|Article\s*\d+(?:\s*BIS\b)?[ \t]*(?=\n|$|-[ \t])"
+    r"|Article\s*\d+(?:\s*BIS\b)?[ \t]*(?=\n|$|[-–—][ \t])"
     r"|\(\s*\u0627\u0644\u0645\u0627\u062f\u0629\s*\d+\s*\)"
     r"|\u0627\u0644\u0645\u0627\u062f\u0629\s*\(?\s*\d+\s*\)?"
     r"|(?-i:ANNEX\s+[IVXLC]+)[ \t]*(?=\n|$)"

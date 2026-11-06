@@ -108,6 +108,14 @@ INSTRUMENTS: tuple[Instrument, ...] = (
         "2024/1689",
     ),
     _instrument("OECD", r"\bOECD\b|منظمة التعاون الاقتصادي", "OECD"),
+    _instrument(
+        "Council of Europe AI Convention",
+        r"council of europe|framework convention on (?:artificial intelligence|AI)\b"
+        r"|\bCETS\s*(?:No\.?\s*)?225\b|مجلس أوروبا",
+        "Council of Europe",
+    ),
+    _instrument("NIST AI RMF", r"\bNIST\b|\bAI RMF\b", "NIST AI"),
+    _instrument("Singapore Model AI Governance Framework", r"\bsingapore\b|سنغافورة", "Singapore"),
     _instrument("UNESCO", r"\bUNESCO\b|اليونسكو", "UNESCO", "اليونسكو"),
     _instrument("ITU-T Y.3172", r"\bY\.?\s?3172\b", "Y.3172"),
     _instrument("ITU AI Readiness", r"\bAI read(?:y|iness)\b", "AI Ready"),

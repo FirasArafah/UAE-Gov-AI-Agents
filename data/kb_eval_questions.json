@@ -78,6 +78,13 @@
     {"id": "data-office", "group": "Other UAE laws", "agent": "privacy", "q": "What are the competences of the Emirates Data Office?", "expect": [{"title": "No. 44 of 2021"}]},
     {"id": "discrimination-law", "group": "Other UAE laws", "agent": "auditor", "q": "How does UAE law define discrimination?", "expect": [{"title": "No. 34 of 2023", "section": "^Article \\(?1\\)?"}]},
     {"id": "cybercrime-law", "group": "Other UAE laws", "agent": "auditor", "q": "What is the penalty for hacking an electronic information system under UAE cybercrime law?", "expect": [{"title": "No. 34 of 2021"}]},
-    {"id": "constitution", "group": "Other UAE laws", "agent": "auditor", "q": "What does the UAE Constitution say about equality and justice?", "expect": [{"title": "Constitution"}]}
+    {"id": "constitution", "group": "Other UAE laws", "agent": "auditor", "q": "What does the UAE Constitution say about equality and justice?", "expect": [{"title": "Constitution"}]},
+    {"id": "coe-non-discrimination", "group": "Global comparisons", "agent": "auditor", "q": "What does the Council of Europe AI Convention require on equality and non-discrimination?", "expect": [{"title": "Council of Europe", "text": "Equality and non-discrimination"}]},
+    {"id": "coe-remedies", "group": "Global comparisons", "agent": "auditor", "q": "Under the Council of Europe Framework Convention on AI, what remedies must be available to people harmed by an AI system?", "expect": [{"title": "Council of Europe", "text": "effective remedies"}]},
+    {"id": "nist-functions", "group": "Global comparisons", "agent": "auditor", "q": "What are the four functions of the NIST AI Risk Management Framework?", "expect": [{"title": "NIST AI", "text": "four functions"}]},
+    {"id": "nist-bias", "group": "Global comparisons", "agent": "auditor", "q": "What categories of AI bias does NIST say should be managed?", "expect": [{"title": "NIST AI", "text": "systemic, computational and statistical"}]},
+    {"id": "singapore-human-involvement", "group": "Global comparisons", "agent": "auditor", "q": "How does Singapore's Model AI Governance Framework decide the level of human involvement in AI decisions?", "expect": [{"title": "Singapore", "text": "human-in-the-loop"}, {"title": "Singapore", "text": "human-over-the-loop"}]},
+    {"id": "human-oversight-abroad", "group": "Global comparisons", "agent": "auditor", "q": "Which international instruments require human oversight of AI systems that make decisions about people?", "expect": [{"title": "2024/1689"}, {"title": "Council of Europe"}, {"title": "Singapore"}]},
+    {"id": "coe-transparency-ar", "group": "Arabic question, English source", "agent": "auditor", "q": "ما الذي تشترطه اتفاقية مجلس أوروبا بشأن الشفافية والرقابة على أنظمة الذكاء الاصطناعي؟", "expect": [{"title": "Council of Europe", "text": "Transparency and oversight"}]}
   ]
 }
