@@ -174,6 +174,23 @@ async def test_question_about_discrimination_reads_the_law_on_it():
 
 
 @pytest.mark.asyncio
+async def test_a_named_source_gives_its_two_closest_passages():
+    class Retriever(RecordingRetriever):
+        async def search(self, query, top_k=6, domains=None, titles=None):
+            if titles != ("Council of Europe",):
+                return []
+            return [
+                {"chunk_id": f"coe-{n}", "section": f"Article {n}", "title": "Council of Europe"}
+                for n in (17, 10, 1)
+            ][:top_k]
+
+    query = "How does UAE practice compare with the Council of Europe AI Convention?"
+    ids = [hit["chunk_id"] for hit in await _agent("auditor", Retriever())._retrieve(query)]
+    assert "coe-17" in ids and "coe-10" in ids
+    assert "coe-1" not in ids
+
+
+@pytest.mark.asyncio
 async def test_same_article_number_of_another_law_is_left_out():
     class Retriever(RecordingRetriever):
         async def search(self, query, top_k=6, domains=None, titles=None):
