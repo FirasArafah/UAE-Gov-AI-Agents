@@ -150,6 +150,11 @@ is needed.
 
 ## Knowledge base export (ITU reference layout)
 
+**Download the submitted knowledge base:**
+[mawthuq-knowledge-base-2026-11-06.zip](https://github.com/FirasArafah/UAE-Gov-AI-Agents/releases/download/kb-2026-11-06/mawthuq-knowledge-base-2026-11-06.zip)
+(112 documents, 3,658 chunks, 29 MB) from the
+[release page](https://github.com/FirasArafah/UAE-Gov-AI-Agents/releases/tag/kb-2026-11-06).
+
 `make export-kb` writes the knowledge base in the layout of the ITU AI Readiness reference code
 ([CrashingGuru/ITUAIReadiness](https://github.com/CrashingGuru/ITUAIReadiness),
 `simulation/server/knowledge`) to `kb_export/`:
