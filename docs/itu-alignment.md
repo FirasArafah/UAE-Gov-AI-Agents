@@ -36,7 +36,7 @@ simulated incident.
 | Human interaction and supervision | Events are released by a human; the Coordinator escalates decisions it cannot settle; every step is reviewable in the audit log |
 | AI policy and implementation opportunity identification | Structured policy gap report: type, severity, affected domain, evidence and the global practice that addresses each gap |
 | AI for social inclusion | The scenario is a discrimination incident; agents assess proxy variables (postal code, mobile prefix) for indirect nationality bias |
-| Digital infrastructure and energy | Runs on a single machine without a GPU or external API; the context window and retrieval depth are bounded and configurable |
+| Digital infrastructure and energy | Runs on a single machine with no external API: a laptop GPU with 6 GB of memory serves the 7B model (a six-event run takes about 10 minutes), and it also runs on CPU only (45–60 minutes). Embeddings stay on the CPU so the GPU holds one model; the context window and retrieval depth are bounded and configurable |
 
 ## Gap categories
 

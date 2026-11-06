@@ -245,7 +245,10 @@ data/          knowledge base sources and scenarios
 - On CPU a full six-event run takes roughly 45–60 minutes; on a 6 GB laptop GPU, a few minutes.
 - The UAE legislation portal does not allow automated downloads. Laws from it are saved by hand
   into `data/knowledge_base/raw`, and `make refresh-kb` then adds them.
-- No treaty text is in the knowledge base yet.
+- The only treaty in the knowledge base is the Council of Europe Framework Convention on AI. The
+  UN Convention on the Elimination of All Forms of Racial Discrimination (ICERD), which the UAE
+  has ratified, and texts on emergency powers are not in it yet, although both bear directly on
+  the scenario.
 - The Arabic edition of Cabinet Resolution 65/2022 is not ingested, because its PDF text extracts
   as broken words. The English edition is.
 - The Arabic UNESCO PDF extracts with a recurring error in one letter pair. It stays readable.
