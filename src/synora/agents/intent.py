@@ -86,9 +86,14 @@ SUBJECT_RE = re.compile(
     r"policies|ai|bias|biased|discrimination|data|privacy|visa|visas|residency|immigration|"
     r"right|rights|gap|gaps|standard|standards|oecd|unesco|itu|eu|charter|strategy|audit|"
     r"auditor|scenario|simulation|consent|authority|government|cyber|cybersecurity|algorithm|"
-    r"model|ethics|governance|compliance)\b"
+    r"model|ethics|governance|compliance|"
+    # The screening incident itself: "is a 23% rejection rate suspicious?"
+    r"reject|rejects|rejected|rejection|rejections|approval|approvals|applicant|applicants|"
+    r"application|applications|screening|nationality|nationalities|disparity|disparities|"
+    r"fairness|unfair|discriminatory|proxy|proxies|automated|anomaly|passport|citizenship)\b"
     r"|قانون|مادة|المادة|مرسوم|لائحة|بيانات|خصوصية|سياسة|الذكاء|تأشيرة|إقامة|حق|حقوق|فجوة|"
-    r"معيار|ميثاق|استراتيجية|تدقيق|موافقة|هيئة|حكومي|تمييز|تحيز|خوارزمية|أمن سيبراني|حوكمة",
+    r"معيار|ميثاق|استراتيجية|تدقيق|موافقة|هيئة|حكومي|تمييز|تحيز|خوارزمية|أمن سيبراني|حوكمة|"
+    r"رفض|الرفض|المتقدمين|متقدم|الجنسية|جنسية|الطلبات|عدالة|إنصاف|آلي|الآلية",
     re.IGNORECASE,
 )
 MAX_LIGHT_WORDS = 10
@@ -143,7 +148,8 @@ def is_conversational(text: str) -> bool:
 SCOPE_PROMPT = (
     "You route messages for Mawthuq, an assistant whose agents answer questions about AI "
     "governance in government services: laws and regulations, policies and strategies, "
-    "immigration, visas and residency, personal data and privacy, AI ethics, bias and "
+    "immigration, visas and residency, screening of applications (approval and rejection "
+    "rates, nationality, fairness), personal data and privacy, AI ethics, bias and "
     "discrimination, accountability, cybersecurity, digital government, standards (ITU, OECD, "
     "UNESCO, EU AI Act, Council of Europe, NIST), and the incident simulations these agents run.\n"
     "Answer with one word: IN if the message is about any of those subjects, OUT if it is not "

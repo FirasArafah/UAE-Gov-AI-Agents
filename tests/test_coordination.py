@@ -398,6 +398,9 @@ async def test_conversation_reply_skips_retrieval():
         ("Thanks!", "conversation"),
         ("What does the PDPL say about consent?", "question"),
         ("Who is responsible for AI bias in visas?", "question"),
+        ("Is a 23% rejection rate suspicious?", "question"),
+        ("Why are applicants from one nationality rejected more often?", "question"),
+        ("هل نسبة رفض 23% مريبة؟", "question"),
         ("My name is Firas and I work in the ICP data office.", "conversation"),
         ("I am Maria from the privacy team", "conversation"),
         ("اسمي معتز وأعمل في الهيئة الاتحادية للهوية", "conversation"),
@@ -416,7 +419,7 @@ def test_rules_leave_unclear_messages_to_the_model():
     from synora.agents.intent import classify_by_rules
 
     assert classify_by_rules("What is the capital of France?") is None
-    assert classify_by_rules("Is it fair to reject people for where they live?") is None
+    assert classify_by_rules("Is it fair to judge people by where they live?") is None
 
 
 class RoutingLLM:
