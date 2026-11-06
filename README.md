@@ -265,4 +265,6 @@ Arab Emirates:
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). The MIT License covers the code and the team's own files. The
+source documents in `data/knowledge_base/raw` belong to their publishers and stay under their
+terms; see [NOTICE.md](NOTICE.md).
