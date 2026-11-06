@@ -1,8 +1,8 @@
-# mawthuq · موثوق
+# Mawthuq · موثوق
 
 **Multi-agent AI governance simulation — ITU AI for Good Lab Hackathon 2026 (UAE)**
 
-mawthuq puts AI agents with different institutional mandates into a staged incident and
+Mawthuq puts AI agents with different institutional mandates into a staged incident and
 watches how they reason, disagree and coordinate under real legislation. The reference
 scenario, *The Golden Gate Anomaly*, is an AI visa-screening system that starts rejecting
 applicants of one nationality at almost three times the baseline rate. Events are
@@ -16,7 +16,7 @@ Everything runs locally: no data leaves the machine and no external AI API is us
 
 ## What it does
 
-| Hackathon requirement | How mawthuq meets it |
+| Hackathon requirement | How Mawthuq meets it |
 |---|---|
 | Knowledge base of national policy, mapped to global practice | 112 documents / 3,658 chunks, including over 80 official pages of the UAE Government Portal and the Constitution and the laws on ICP, the Data Office, labour, copyright, discrimination and cybercrime: UAE PDPL (EN + AR), Decree-Law 29/2021 (EN + AR), Cabinet Resolution 65/2022 (EN), National AI Strategy 2031, AI Charter, AI Ethics Guidelines, National Cybersecurity Strategy 2019 (TDRA deck and official summary), Digital Government Strategy 2025; ITU-T Y.3172, ITU AI Ready report, OECD Recommendation on AI (full text), UNESCO Recommendation (EN + AR), EU AI Act, Council of Europe Framework Convention on AI (the first binding AI treaty); for comparison, NIST AI RMF 1.0 (US) and Singapore's Model AI Governance Framework. Chunked by article or section, with page numbers, in pgvector. |
 | Policy and legal adviser | Every agent answers in the language of the question from retrieved excerpts only; citations are checked automatically and flagged when an article is not in the sources. |
@@ -253,7 +253,7 @@ data/          knowledge base sources and scenarios
 
 ## Team
 
-mawthuq was developed by the **SYNORA team** for the ITU AI for Good Lab Hackathon in the United
+Mawthuq was developed by the **SYNORA team** for the ITU AI for Good Lab Hackathon in the United
 Arab Emirates:
 
 - **Firas Arafah** · فراس عرفة

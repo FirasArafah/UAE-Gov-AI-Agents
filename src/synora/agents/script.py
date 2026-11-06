@@ -1,4 +1,4 @@
-"""Keep model output in the scripts mawthuq answers in: Latin and Arabic.
+"""Keep model output in the scripts Mawthuq answers in: Latin and Arabic.
 
 Qwen models sometimes slip a Chinese word or punctuation mark into an English or Arabic
 answer. The prompt forbids it, but a 7B model does not always obey, so every token the model

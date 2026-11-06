@@ -1,4 +1,4 @@
-# mawthuq UI
+# Mawthuq UI
 
 Vanilla HTML/CSS/JS + Vite. No framework.
 

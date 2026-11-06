@@ -19,7 +19,7 @@ class Settings(BaseSettings):
 
     # --- App ---
     app_env: Literal["development", "staging", "production"] = "development"
-    app_name: str = "mawthuq"
+    app_name: str = "Mawthuq"
     app_version: str = "0.1.0"
     log_level: str = "INFO"
 

@@ -27,7 +27,7 @@ const SUGGESTIONS = {
 addStrings({
   en: {
     "chat.title": "What should the agents look into?",
-    "chat.placeholder": "Message mawthuq…",
+    "chat.placeholder": "Message Mawthuq…",
     "chat.message": "Message",
     "chat.send": "Send",
     "chat.stop": "Stop answering",
@@ -38,7 +38,7 @@ addStrings({
     "chat.cancel": "Cancel",
     "chat.editFailed": "The message could not be edited: {error}",
     "chat.stopped": "Stopped.",
-    "chat.team": "mawthuq team",
+    "chat.team": "Mawthuq team",
     "chat.flow": "{names} → Coordinator",
     "chat.status.team": "The team is thinking",
     "chat.status.single": "Thinking",

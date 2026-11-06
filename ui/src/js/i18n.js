@@ -8,8 +8,8 @@ const LANGUAGES = ["en", "ar"];
 
 const DICT = {
   en: {
-    "app.title": "mawthuq",
-    brand: "mawthuq",
+    "app.title": "Mawthuq",
+    brand: "Mawthuq",
     "nav.main": "Main",
     "nav.skip": "Skip to content",
     "nav.menu": "Menu",
@@ -128,7 +128,7 @@ export function applyLanguage(root = document) {
   const html = document.documentElement;
   html.lang = current;
   html.dir = isRtl() ? "rtl" : "ltr";
-  document.title = `${t("app.title")} · ${current === "ar" ? "mawthuq" : "موثوق"}`;
+  document.title = `${t("app.title")} · ${current === "ar" ? "Mawthuq" : "موثوق"}`;
   for (const el of root.querySelectorAll("[data-i18n]"))
     el.textContent = t(el.dataset.i18n);
   for (const attr of ["aria-label", "title", "placeholder"]) {
