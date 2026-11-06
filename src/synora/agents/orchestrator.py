@@ -3,6 +3,7 @@ from uuid import UUID
 
 import structlog
 
+from synora.agents.citations import merge_references, renumber_citations
 from synora.agents.registry import AgentRegistry
 from synora.agents.types import AgentResponse
 from synora.models.scenario import ScenarioEvent
@@ -90,7 +91,10 @@ class Orchestrator:
                         context.append(
                             {
                                 "title": f"Assessment by {prior.response.agent_name}",
-                                "content": assessment_excerpt(prior.response.content),
+                                # Its excerpt numbers mean nothing in this agent's own list.
+                                "content": assessment_excerpt(
+                                    renumber_citations(prior.response.content, {})
+                                ),
                             }
                         )
             try:
@@ -151,8 +155,10 @@ class Orchestrator:
             f"Event: {event.title}\n{event.content}\n",
             "Independent agent assessments:",
         ]
-        for i, a in enumerate(assessments, start=1):
-            excerpt = assessment_excerpt(a.content)
+        # Each agent numbered its own excerpts; one list makes the numbers mean one source each.
+        sources, mappings = merge_references([a.references for a in assessments])
+        for i, (a, mapping) in enumerate(zip(assessments, mappings, strict=True), start=1):
+            excerpt = assessment_excerpt(renumber_citations(a.content, mapping))
             parts.append(f"\n[Assessment {i}] {a.agent_name} ({a.role}):\n{excerpt}")
 
         parts.append(
@@ -169,4 +175,5 @@ class Orchestrator:
             use_retrieval=False,
             support=[a.content for a in assessments],
             language=self.language,
+            sources=sources,
         )

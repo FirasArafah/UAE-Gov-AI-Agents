@@ -1,0 +1,9 @@
+The Enabler - a national data enabler platform
+
+Source: https://u.ae/en/about-the-uae/digital-uae/data/the-enabler
+
+‘The Enabler’ is a digital platform that provides statistical data of the UAE and digital data products in a safe, flexible and speedy manner.
+The platform displays the latest national data available through 25 interactive dashboards. These dashboards can be can be customised as needed, with full scalability to expand the volume and quality of data to meet the needs of decision-makers and government entities as per future requirements.
+The platform enables the modification of user’s interfaces and the methods of data presentation according to a user’s needs. It also provides analytical reports, geospatial maps and tools for research in order to facilitate access to the required information in accordance with best international practices in the field of data security, availability, and data management and in terms of timeliness.
+Updated On :
+08 Jul 2025

@@ -1,4 +1,4 @@
-.PHONY: help up down logs sh test test-fast test-all seed seed-kb export-kb reset build-prod build-dev
+.PHONY: help up down logs sh test test-fast test-all seed seed-kb refresh-kb eval-kb export-kb reset build-prod build-dev
 
 help:
 	@echo "SYNORA — common commands"
@@ -14,6 +14,8 @@ help:
 	@echo "  test-all       All tests including LLM E2E (~11 min)"
 	@echo "  seed           Seed agents + scenarios"
 	@echo "  seed-kb        Ingest data/knowledge_base/raw into the vector store"
+	@echo "  refresh-kb     Update an existing knowledge base, embedding only changed text"
+	@echo "  eval-kb        Measure retrieval against data/kb_eval_questions.json (no LLM)"
 	@echo "  export-kb      Export the knowledge base in the ITU reference layout to kb_export/"
 	@echo "  reset          Drop DB + rebuild + seed"
 
@@ -52,6 +54,13 @@ seed:
 
 seed-kb:
 	docker compose exec -T backend python -m synora.cli.seed_knowledge_base
+
+refresh-kb:
+	docker compose exec -T backend python -m synora.cli.seed_knowledge_base --refresh
+
+eval-kb:
+	docker compose exec -T backend python -m synora.cli.eval_kb > docs/kb-evaluation.md
+	@cat docs/kb-evaluation.md
 
 export-kb:
 	docker compose exec -T backend python -m synora.cli.export_kb --out /tmp/kb_export

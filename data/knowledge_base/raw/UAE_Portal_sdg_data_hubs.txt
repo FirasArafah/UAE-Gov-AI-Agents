@@ -1,0 +1,89 @@
+SDGs’ data hubs
+
+Source: https://u.ae/en/about-the-uae/digital-uae/data/sdg-data-hubs
+
+The UAE SDG Data Hub
+UN Stats Open SDG Data Hub
+UAE initiatives to fulfill the SDGs
+Global contributions of the UAE SDG Data Hub
+The UAE SDG Data Hub
+The UAE SDG Data Hub is similar to UN Stats Open SDG Data Hub in concept. It monitors and records the country’s progress in achieving the SDGs.
+The Hub includes four main elements. They are:
+Spatially referenced data - open data on the SDG indicator data on the emirate level can be downloaded in various formats and explored on an interactive map
+Data stories – this section consists of significant data at the national and emirate levels in a story format, engaging us with the topic instantly
+Initiatives & Surveys – they summarise the SDG-related initiatives in an easy-to-visualise manner with high-level explanation followed by, setting of the goal and the progress so far
+Media highlights – these provide access to a library of speeches by the UAE’s ministers and footage of events, in video format.
+The UAE was the first country in the Gulf region to launch the SDG Data Hub in October 2017. This was a joint effort between Federal Competitiveness and Statistics Centre (FCSC) and United Nations Department of Economic and Social Affairs (UNDESA). Globally, the UAE was the first country to include SDG-related initiatives as a part of the SDG hub in February 2019. These initiatives shed light on UAE’s relentless efforts towards achieving the SDGs.
+The UAE started publishing data to the UN SDG portal in February 2019 making it the second country worldwide (after Ireland) and the first country in the Middle East to publish relevant data and statistics.
+The database of SDG indicators is available in the format of geospatial data web services which helps in:
+production of maps
+data visualisations
+data analyses.
+It is available in multiple easy-to-use downloadable formats.
+UN Stats Open SDG Data Hub
+The UN Stats Open SDG Data Hub is a portal that provides information on the development and implementation of initiatives and other efforts that contribute to the achievement of the 17 Sustainable Development Goals (SDGs) by the year 2030 as set by the United Nations.
+The Open SDG Data Hub aims to be a one-stop resource for decision-makers, policy-makers, international observers, media for data and information relating to the progress of countries towards achieving the SDGs.
+The portal helps experts with regular supply of authentic and updated information for them to monitor and analyze the status of progress of each country and if needed, to modify create policies. This helps in promoting transparency towards the SDGs.
+UAE initiatives to fulfill the SDGs
+These are some of the initiatives launched by the UAE to fulfill the various SDGs.
+UAE Foreign Aid Initiative
+UAE has always been a forerunner in providing aid for communities around the world. This upholds the philosophy of UAE to treat the entire world with a feeling of brotherhood. Based on these lines, The UAE Foreign Aid initiative continually provides aid to communities with an intention to establish effective partnerships. UAE’s aid always aims to eradicate poverty while increasing international peace and stability which guarantees the improvement of living standards of all people. Institutions like Emirates Airline Foundation, Sharjah Charity House, Emirates Red Crescent and Khalifa Bin Zayed Al Nahyan Foundation work in hand to achieve philanthropic goals.
+Read more details about this initiative on the UAE SDG Data Hub.
+Air Quality Index Initiative
+In line with SDG 11 for creating sustainable cities and communities, UAE has launched the UAE Air Quality Index (AQI) Initiative. This initiative utilizes cutting-edge technology to monitor air quality on a real-time basis and uses specific algorithms to forecast the AQI status for up to three days in advance. It also predicts the concentration of dust and particulate matters with a diameter of less than 2.5 microns, a particulate matter (PM) level of 2.5. These highly accurate air quality readings are based on satellite data. This largely helps decision-makers to create strategies and policies that create an impact to reduce air pollution. Usage of Geographical Information System (GIS) mapping software like ESRI helps provide information in a geospatial manner that makes understanding and processing of data much easier.
+There are 51 Air Quality Stations located all over UAE that help us know the level of particulate matter, air quality and the air quality index for up to 3 days. This can be easily accessed by the MOCCAE Smart App on the Apple Store and Google Play.
+Read more about this initiative on the UAE SDG Data Hub.
+UAE Sustainable Wildlife
+In line with SDG 14 concerning life below water and SDG 15 concerning life on land, UAE has launched the UAE Sustainable Wildlife Initiative that targets to ensure sustainable wildlife in the country along with raising awareness about how important it is to preserve biodiversity. These aims are also in line with achieving the targets set by Aichi Targets 2021. The three pillars of this initiative are:
+National Red List Project
+This follows the International Union for Conservation of Nature (IUCN) Red list Methodology to identify and assess birds, mammals, amphibians, reptiles, selected marine species (sharks, rays and corals) and publish a national Red List Assessment for the UAE by 2020. Geospatial maps and the animals on the red list are given in detail in the UAE Sustainable Wildlife Initiative for further reading.
+The Important Bird Areas (IBA) Program
+The IBA Regional Inventory identified 19 sites in the UAE and recognized them as Important Bird Areas in 1994. The number of sites has been updated to 30 which is a significant progress in conservation and protection of these areas. This indicates that significant efforts have gone into identifying, monitoring and subsequently conserving the priority sites and that the UAE is complying with Convention on Biological Diversity (CBD), the Convention on Migratory Species (CMS), including the Raptor Memorandum of Understanding and the United Nations Convention to Combat Desertification (UNCCD), as well as the Convention on Wetlands (Ramsar Convention). Geospatial maps and visualizations of these areas are given in detail on the UAE Sustainable Wildlife Initiative page.
+Read more about the Important Bird Areas (IBM) Program - (PDF, 10, 263 KB).
+UAE’s Natural Wonders
+UAE is home to 43 nature reserves with significant environmental assets. With inbound tourists reaching 16 million in 2017, the concept of ecotourism is picking up pace to help people understand and embrace the natural wonders of UAE. Ministry of Climate Change and Environment (MOCCAE) is actively raising awareness about ecotourism and as part of its mandate it has launched a multi-phase national project named ‘The UAE’s Natural Wonders’ to promote ecotourism across the seven emirates.
+The GeoEnvAE mobile application by MOCCAE available on Apple Store and the Google Play provides users with spatial information related to ministry’s service centers covering all of UAE including environment, biodiversity, protected areas, and agricultural statistics information.
+Rehabilitation of Coastal and Marine Habitat Initiative
+In line with SDG 14 concerning life below water and SDG 15 concerning life on land, UAE has launched the Rehabilitation of Coastal and Marine Habitat Initiative. Creating a sustainable natural ecosystem, preserving marine life, rehabilitating degraded coastal areas, restoring coral reefs is all in the framework of the Strategy 2017-2021 in the framework of the Ministry of Climate Change & Environment. Preserving natural habitats and providing a multi-dimensional community structure for marine organisms are of utmost importance for a sustainable environment.
+The Mangroves Cultivation Project has ensured that 273,210 mangrove seedlings have been planted in an area of 283,068 sq. meters to help maintain the ecological balance.
+Artificial Reef Deployment has helped to promote marine fauna. 2,805 artificial reefs deployed within an area of 154,709 sq. meters and 20,000 coral fragments transplanted in an area of 2,500,000 sq. meters in partnership with local authorities is one of the major achievements in creating a sustainable environment.
+More information on this initiative and a web mapping application to study the UAE’s marine habitats can be found on the website about Rehabilitation of Coastal and Marine Habitat Initiative.
+Environmental Performance Enhancement Initiative
+In line with SDG 11 for creating sustainable cities and communities, UAE has launched the Environmental Performance Enhancement Initiative. The aim of this initiative is to create a centralized integrated system that improves and strengthens the environmental performance of the country to improve the global competitiveness index in line with the UAE 2071 targets. This helps the country to achieve the Vision 2021 by creating an economy that is diverse and contributes to sustainable development based on innovation and research.
+This initiative has helped to:
+Create inventories of domestic and federal environmental legislations in the state, create certified companies for environmental impact assessment studies and a national database of various industrial activities
+Implement updates of the environmental requirements by industrial projects by the decision of the Council of Ministers No. 37 of 2001 on the Environmental Impact assessment system
+Map the distribution of industrial activities and facilities at the state level.
+Read more about this initiative on the page relating to Environmental Performance Enhancement Initiative.
+Integrated Waste Management in the UAE
+In line with SDG 11 for creating sustainable cities and communities and SDG 12 for responsible consumption and production, UAE has launched the Integrated Waste Management Initiative. The UAE has worked considerably to reduce the number of landfills and aims to treat 75% of municipal solid waste. The achievements of this initiative include:
+launching a Federal Law for Integrated Waste Management in 2018
+launching the National Waste Management Database in 2018
+·opening 16 Emirates Manjam (waste collection centers) in neighborhoods and residential areas.
+Further articles on the initiative and a geospatial visualisation of the location of Emirates Manjam centers can be found on the website of Integrated Waste Management Initiative.
+Find out in these reports some of UAE's achievements in SDGs:
+UAE and the 2030 Agenda for Sustainable Development –VNR 2022
+Achieving SDGs in the UAE private sector
+Excellence in implementation 2017- SDGs
+Excellence in implementation 2018- SDGs
+Executive summary-SDGs
+The State of Arab Youth on SDGs.
+Global contributions of the UAE SDG Data Hub
+The UAE SDG Data Hub has been actively participating in events and forums relating to SDGs globally. Some of its contributions include:
+presenting the Data for Good paper in the International Conference for Sustainable Development - ICSD 2019, USA
+publishing a Case Study on GIS Practices by FCSA in ESRI
+being nominated as a Semi-Finalist at the P3 Concordia Awards that recognizes and honors leading Public-Private Partnerships impacting communities around the world
+being nominated as a Finalist in the Ideas UK Innovation Award
+being nominated as a Finalist in the GIS WORX 2019 event for the Excellence in GIS Implementation (EGI) Award
+submitting an application to H. H. Sheikh Salim Al-Ali Al-Sabah, the Emir of Kuwait for projects involving innovative IT solutions, programs, network systems, portals, mobile apps and artificial intelligence
+taking part in the 2019 GIS for a Sustainable World Conference held in Geneva, Switzerland
+taking part in 2 sessions of ESRI User Conference 2019 held in San Diego, USA
+presenting a sub-event session titled “The Federated Information System for the SDGs” in the United Nations 50th Statistical Commission 2019 held in New York
+taking part in the Eighth Session of the United Nations Committee of Experts on Global Geospatial Information Management (UNGGIM) held in Deqing, China
+taking part in the ESRI Middle East User Conference 2018 – Plenary Session
+showcasing in
+Abu Dhabi UN Climate Change Preparation Meeting 2019
+Public Policy Forum 2019 – by Mohammed Bin Rashid School of Government (MBRG)
+World Data Forum.
+Updated On :
+08 Jul 2025

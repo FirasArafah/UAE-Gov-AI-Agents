@@ -15,7 +15,7 @@ const SOURCES_SPLIT = "\n\n---\n";
 addStrings({
   en: {
     "audit.title": "Audit log",
-    "audit.back": "Back to the simulation",
+    "audit.back": "Back",
     "audit.export": "Export JSON",
     "audit.stat.records": "Records",
     "audit.stat.decisions": "Decisions",
@@ -40,7 +40,7 @@ addStrings({
   },
   ar: {
     "audit.title": "سجل التدقيق",
-    "audit.back": "العودة إلى المحاكاة",
+    "audit.back": "رجوع",
     "audit.export": "تصدير JSON",
     "audit.stat.records": "السجلات",
     "audit.stat.decisions": "القرارات",
@@ -112,10 +112,16 @@ export async function renderAudit(container, { id }) {
   });
 
   container.append(
+    // Both a simulation and a chat link here, so "back" returns to whichever it was.
     h("a", {
       class: "back-link",
       href: `/simulation/${id}`,
       text: t("audit.back"),
+      onclick: (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        history.back();
+      },
     }),
     h(
       "header",

@@ -1,0 +1,10 @@
+National Cyber Security Accreditation Program
+
+Source: https://u.ae/en/about-the-uae/strategies-initiatives-and-awards/strategies-plans-and-visions/cypersecurity/national-cyber-security-accreditation-program
+
+National Cyber Security Accreditation Program
+The National Cyber Accreditation Program (NCAP) by the UAE Cyber Security Council establishes a framework for consistent evaluation, accreditation, and certification of entities. Its key goal is to deploy systematic accreditation mechanisms to help government entities, cybersecurity providers, and training organisations meet the baseline cybersecurity standards to align with UAE’s cyber security strategy and national policy mandates.
+The NCAP will enable UAE government and Entities the ability to demonstrate their conforming to baseline cyber security requirements, and grant the ability to work with provider entities who also conform to baseline cyber security requirements. This national level baseline will provide assurance to stakeholders that these entities adhere to best practices and will continue to maintain a minimum standard of cyber security maturity. This will ensure a consistent level of cyber security services are provided across the country, driving up standards and quality of service across the UAE.
+Read the full policy here (PDF, 2.2 MB).
+Updated On :
+02 Jul 2026

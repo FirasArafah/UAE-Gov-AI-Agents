@@ -1,0 +1,80 @@
+Open government data
+
+Source: https://u.ae/en/about-the-uae/digital-uae/data/open-government-data
+
+Open government data
+The benefits of open government data can be reaped if it is supported by a legal framework. To support the open government data, the UAE has taken the following steps:
+Smart Data Strategy (PDF, 1.72 MB)
+Launched data protection laws
+The UAE Smart Data framework (PDF, 2.18 MB)
+the open data guidelines
+adopted open data policy; an example can be found on the website of Telecommunications and Digital Government Regulatory Authority
+launched Dubai Data strategy; one of its aim is to optimise use of data for data providers
+passed the Dubai Data law; one of its aim is data protection and privacy of the individual
+launched DubaiPulse, that will serve as the central platform for providing computing and storage services, core analytic services and big data services
+launched the UAE's data portal - Bayanat to make data open for public use
+launched the Abu Dhabi Data to build the foundational capabilities of the data management agenda across the government of Abu Dhabi
+launched Abu Dhabi Government Data Management Policy
+launched Abu Dhabi Government Data Management Standards
+launched Ajman Data which provides datasets from various government entities in Ajman, to enable all society segments collaborate in pursuing Ajman Vision 2021
+launched UAE SDG Data Hub to monitor and record the country’s progress in achieving the SDGs. The Hub includes four main elements. They are:
+Spatially referenced data - open data on the SDG indicator data on the emirate level can be downloaded in various formats and explored on an interactive map
+Data stories – this section consists of significant data at the national and emirate levels in a story format, engaging us with the topic instantly
+Initiatives & Surveys – they summarise the SDG-related initiatives in an easy-to-visualize manner with high-level explanation followed by, setting of the goal and the progress so far
+Media highlights – these provide access to a library of speeches by the UAE’s ministers and footage of events, in video format.
+Federal Competitiveness and Statistics Centre is the UAE government source for national statistics in all sectors. In addition, all federal entities in the UAE have open data and publications on their portals available to the public.
+Below are links to open data available in the following sectors in the UAE:
+Open Data for health - Ministry of Health & Prevention
+Open Data for education - Ministry of Education
+Open Data for government human resources and employment - Federal Authority for Government Human Resources (FAHR)
+Open Data for social affairs - Ministry of Community Development
+Open Data for labour and private sector establishments - Ministry of Human Resources & Emiratisation
+Open Data for finance matters on the website of Ministry of Finance. It includes:
+Federal budgets
+Government Financial Statistics
+Statistical Reports on the Gulf Market
+Read open data policy of Ministry of Finance.
+Open Data which relates to environment - Ministry of Climate Change and Environment
+Open Data for Justice – Ministry of Justice
+Open Data for Telecommunications and Digital Government - Telecommunications and Digital Government Regulatory Authority.
+Launched data protection laws
+Smart Data Strategy (PDF, 1.72 MB)
+The UAE Smart Data Framework (PDF, 2.18 MB)
+The open data guidelines
+Adopted open data policy; an example can be found on the website of the
+Telecommunications and Digital Government Regulatory Authority
+Launched Dubai Data Strategy; one of its aims is to optimise the use of data for data providers
+Passed the Dubai Data Law; one of its aims is data protection and privacy of the individual
+Launched DubaiPulse, the central platform for computing, storage, core analytics, and big data services
+Launched the UAE's data portal – Bayanat – to make data open for public use
+Launched the Abu Dhabi Data initiative to build foundational capabilities for the government’s data management agenda
+Launched Abu Dhabi Government Data Management Policy
+Launched Abu Dhabi Government Data Management Standards
+Launched Ajman Data, providing datasets from various government entities in Ajman to support Ajman Vision 2021
+Launched UAE SDG Data Hub to monitor and record the country’s progress in achieving the SDGs.
+The Hub includes four main elements.
+What is open government data?
+Government data that is freely available for anyone to use, reuse, distribute or share with others without restrictions is called open government data. As per the UN eGovernment Survey 2018 (PDF, 2 MB), open government data is government information proactively disclosed and made available online for all to access, without restriction.
+Benefits of open government data
+Disclosing government data brings transparency in government transactions and makes them accountable for their actions. It facilitates public scrutiny and evaluation of government performance. Open data helps in efficient use of resources, designing customised service delivery and creation of more jobs. It helps people to make informed decisions about public policies and identify development opportunities. Through all its endeavours, open government data helps to achieve the SDGs.
+A document issued by World Bank (PDF, 1.5 MB) estimates the direct, annual economic value of open government data in two different studies as up to 40 billion euros throughout the European Union and close to 2 billion pounds in the UK.
+Increasingly many countries have launched an open data portal. In 2014, just 46 countries had an open data portal. However, in 2018, 139 countries had an open data portal as per the UN eGovernment Survey 2018.
+The UAE has two data portals: UAE Numbers and Bayanat.
+The World Bank document brings out the key benefits of open data which are:
+Fostering in economic growth and job creation.
+Open data can promote economic growth by helping launch new businesses, create new jobs, increase efficiency in existing organisations and generally improve the climate for foreign investment.
+Improving efficiency, effectiveness and coverage of public services
+Open data can help strengthen healthcare systems by connecting patients to providers, promote education and ongoing learning, and relieve hunger and improve food security on both a large and small scale.
+Increasing transparency, accountability and citizen participation
+Open data can expose and prevent mismanagement and corruption. It also helps ensure environmental sustainability through transparent data that can help reduce pollution, conserve natural resources, and build resilience to climate change.
+Facilitating better information sharing within the government
+Open data can help improve cities and urban infrastructure. It is key to high-tech smart cities, modern urban planning and the transformation of urban transportation. It can also improve resilience to disasters and ensure that critical resources will be deployed well in emergencies.
+Data Change Management Framework
+The Dubai Data Change Management Framework provides a practical structure to facilitate transition within the Dubai government. Through a change plan guide, the Dubai Data Manual and supportive toolkits, the Change Management Framework will enable the growth of an effective and sustainable open and shared data culture.
+Open Data Guidelines
+The purpose of Open Data Guidelines is to guide the governmental bodies (ministries, agencies, Councils, etc.) what they are required to adhere to when they follow the Open data policy on their website. The scope of this document is limited to the websites of government agencies in the United Arab Emirates. As the document is open for continuous development, its scope can be expanded as dictated by the public policy of the Government of the United Arab Emirates and related instructions.
+Related links
+UAE federal open data licence (PDF, 500 KB)
+UAE Smart Data Classifications (PDF, 500 KB)
+UAE Smart Data Framework (PDF, 500 KB)
+UAE Smart Data Principles (PDF, 500 KB)

@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
 from synora.agents.base import split_leaked_reasoning
+from synora.agents.citations import merge_references, renumber_citations
 from synora.agents.gaps import GapAnalyst
 from synora.agents.intent import MessageKind, classify
 from synora.agents.language import detect_language
@@ -149,6 +150,7 @@ async def _earlier_assessments(
                     agent_name=agent.agent.name,
                     role=str(agent.agent.role),
                     content=msg.content,
+                    references=metadata.get("references") or [],
                 )
             )
     return assessments
@@ -162,6 +164,7 @@ def _reference_summaries(references: list[dict]) -> list[dict]:
             "section": r.get("section"),
             "page": r.get("page") or (r.get("metadata") or {}).get("page"),
             "language": r.get("language"),
+            "source_url": r.get("source_url"),
         }
         for r in references
     ]
@@ -217,7 +220,7 @@ async def _persist_outcome(
             )
         )
 
-        if references:
+        if references and response.retrieved:
             await audit.log_retrieval(
                 session_id=session_id,
                 agent_id=agent.agent.id,
@@ -314,6 +317,7 @@ async def list_documents(db: AsyncSession = Depends(get_db)):
             chunk_count=chunks,
             page_count=pages,
             section_count=sections,
+            source_url=(doc.doc_metadata or {}).get("source_url"),
         )
         for doc, chunks, pages, sections in result.all()
     ]
@@ -344,6 +348,7 @@ async def search_knowledge_base(
             language=h.get("language"),
             score=h.get("score") or 0.0,
             content=h.get("content") or "",
+            source_url=h.get("source_url"),
         )
         for h in hits
     ]
@@ -622,6 +627,7 @@ async def chat_events(
         use_retrieval: bool = True,
         responding_to: list[str] | None = None,
         support: list[str] | None = None,
+        sources: list[dict] | None = None,
         light: MessageKind | None = None,
     ):
         """Stream one agent's answer as SSE events, then persist and audit it.
@@ -661,6 +667,7 @@ async def chat_events(
                     use_retrieval=use_retrieval,
                     language=language,
                     support=support,
+                    sources=sources,
                     query=None if is_synthesis else search_query,
                 )
             )
@@ -672,6 +679,10 @@ async def chat_events(
                 if channel == "thinking":
                     thinking_acc += chunk
                     yield ("thinking_chunk", {"agent_slug": agent_slug, "content": chunk})
+                elif channel == "final_thinking":
+                    thinking_acc = chunk
+                elif channel == "final":
+                    content_acc = chunk
                 else:
                     content_acc += chunk
                     yield ("content_chunk", {"agent_slug": agent_slug, "content": chunk})
@@ -680,7 +691,7 @@ async def chat_events(
             logger.error("stream.llm_failed", agent=agent_slug, error=stream_error)
             yield ("error", {"agent_slug": agent_slug, "message": stream_error})
 
-        references = [] if is_synthesis else (agent.last_references or [])
+        references = agent.last_references or []
         leaked, content_acc = split_leaked_reasoning(content_acc)
         if leaked:
             thinking_acc = f"{thinking_acc}\n{leaked}".strip()
@@ -713,7 +724,7 @@ async def chat_events(
             db.add(asst_msg)
             await db.flush()
 
-            if references:
+            if references and not is_synthesis:
                 await audit.log_retrieval(
                     session_id=session_id,
                     agent_id=agent.agent.id,
@@ -747,7 +758,12 @@ async def chat_events(
 
             if content_acc and not stream_error and not stopped:
                 answers.append(
-                    {"slug": agent_slug, "name": agent.agent.name, "content": content_acc}
+                    {
+                        "slug": agent_slug,
+                        "name": agent.agent.name,
+                        "content": content_acc,
+                        "references": references,
+                    }
                 )
             yield (
                 "agent_done",
@@ -801,8 +817,10 @@ async def chat_events(
 
         if team and answers and not should_stop():
             parts = [f"Question: {body.message}\n", "Independent agent answers:"]
-            for i, a in enumerate(answers, start=1):
-                excerpt = assessment_excerpt(a["content"])
+            # Each agent numbered its own excerpts; one list makes each number mean one source.
+            team_sources, mappings = merge_references([a["references"] for a in answers])
+            for i, (a, mapping) in enumerate(zip(answers, mappings, strict=True), start=1):
+                excerpt = assessment_excerpt(renumber_citations(a["content"], mapping))
                 parts.append(f"\n[Answer {i}] {a['name']}:\n{excerpt}")
             parts.append(
                 "\n\nWrite the team's final answer to the question from these answers. State "
@@ -816,6 +834,7 @@ async def chat_events(
                 use_retrieval=False,
                 responding_to=[a["slug"] for a in answers],
                 support=[a["content"] for a in answers],
+                sources=team_sources,
             ):
                 yield event
 

@@ -1,0 +1,17 @@
+Central Bank Digital Currency Strategy - the Digital Dirham
+
+Source: https://u.ae/en/about-the-uae/strategies-initiatives-and-awards/strategies-plans-and-visions/finance-and-economy/central-bank-digital-currency-strategy
+
+The Central Bank Digital Currency Strategy is one of the initiatives of the Financial Infrastructure Transformation (FIT) Programme (PDF, 350 KB) that aims to accelerate the digital transformation of the financial services sector. FIT Programme was launched by the Central Bank of the UAE.
+The Central Bank Digital Currency (CBDC) is a type of digital money that is issued and guaranteed by the central banks. It is safe to use, cost-effective, and efficient for making payments and storing value.
+Objectives
+As part of the UAE's digital transformation, CBDC will address the obstructions of domestic and cross-border payments, enhance financial inclusion and the move towards a cashless society. It will strengthen the UAE's payment infrastructure by providing additional robust payment channels and ensuring a resilient reliable financial system.
+CBUAE aims to ensure the readiness of the UAE to integrate the payment infrastructures with the future potential tokenization world, the tokenization of the financial and non-financial activities.
+The first phase of the CBDC Strategy comprises three major pillars. They are:
+the soft launch of mBridge to facilitate real value cross-border CBDC transactions for international trade settlement
+proof-of concept work for bilateral CBDC bridges with India
+proof-of-concept work for domestic CBDC issuance covering wholesale and retail usage.
+Read more about the Central Bank Digital Currency Strategy (PDF, 250 KB).
+Read news coverage on WAM.
+Updated On :
+30 Dec 2024

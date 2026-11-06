@@ -145,7 +145,7 @@ SCOPE_PROMPT = (
     "governance in government services: laws and regulations, policies and strategies, "
     "immigration, visas and residency, personal data and privacy, AI ethics, bias and "
     "discrimination, accountability, cybersecurity, digital government, standards (ITU, OECD, "
-    "UNESCO, EU AI Act), and the incident simulations these agents run.\n"
+    "UNESCO, EU AI Act, Council of Europe, NIST), and the incident simulations these agents run.\n"
     "Answer with one word: IN if the message is about any of those subjects, OUT if it is not "
     "(general knowledge, maths, coding, entertainment, sport, weather, personal advice and so "
     "on). A follow-up to an earlier question on those subjects ('shorten that', 'and for "

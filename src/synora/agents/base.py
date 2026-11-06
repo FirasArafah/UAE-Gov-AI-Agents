@@ -13,6 +13,7 @@ from synora.agents.citations import (
     repair_citations,
 )
 from synora.agents.guard import neutralise, refusal, security_rules
+from synora.agents.instruments import article_references, named_instruments, topic_sources
 from synora.agents.intent import LIGHT_PROMPTS, MessageKind, identity_reply
 from synora.agents.language import NOT_COVERED, detect_language, output_contract
 from synora.agents.llm import LLMClient
@@ -44,16 +45,33 @@ TEMPERATURE_MAP: dict[AgentRole, float] = {
     AgentRole.COORDINATOR: 0.5,
 }
 
-# Half of each agent's excerpts come from its own legal domain, so a long scenario text cannot
-# crowd out the law the agent must apply. The other half is a general search of all documents.
+# Half of each agent's excerpts come from its own domain, so a long scenario text cannot crowd
+# out the sources the agent must apply. The other half is a general search of all documents.
 ROLE_DOMAINS: dict[AgentRole, list[str]] = {
     AgentRole.ICP: [DocumentDomain.GOVERNMENT_SERVICES.value],
-    AgentRole.AUDITOR: [DocumentDomain.DATA_PROTECTION.value],
+    AgentRole.AUDITOR: [DocumentDomain.AI_GOVERNANCE.value, DocumentDomain.CROSS_DOMAIN.value],
     AgentRole.PRIVACY: [DocumentDomain.DATA_PROTECTION.value],
-    AgentRole.COORDINATOR: [DocumentDomain.DATA_PROTECTION.value],
+    AgentRole.COORDINATOR: [
+        DocumentDomain.DATA_PROTECTION.value,
+        DocumentDomain.GOVERNMENT_SERVICES.value,
+        DocumentDomain.AI_GOVERNANCE.value,
+    ],
 }
+# The article that sets each agency's legal position, which all of its answers must consider:
+# ICP's sole responsibility for entry and residence, and the scope of the data protection law.
+ROLE_MANDATE_ARTICLES: dict[AgentRole, tuple[tuple[str, tuple[str, ...]], ...]] = {
+    AgentRole.ICP: (
+        ("3", ("No. 29 of 2021", "رقم 29 لسنة 2021")),
+        ("5", ("No. 14 of 2021",)),  # The functions of the Authority, from the law establishing it
+    ),
+    AgentRole.PRIVACY: (("2", ("No. 45 of 2021", "رقم 45 لسنة 2021")),),
+}
+# Excerpts allowed beyond rag_top_k when a question names several sources, so none is dropped.
+EXTRA_NAMED_EXCERPTS = 2
 
 ARABIC_LETTER_RE = re.compile(r"[\u0600-\u06FF]")
+# "No. 45 of 2021" and "رقم 45 لسنة 2021" are one law in two languages.
+LAW_NUMBER_RE = re.compile(r"(\d+)\D{1,12}(20\d\d)")
 
 CUT_OFF_PROBLEM = "The answer was cut off before it finished"
 WRONG_SCRIPT_PROBLEM = "The answer contains words in a foreign script"
@@ -69,15 +87,40 @@ def _unique_chunks(references: list[dict]) -> list[dict]:
     return list(unique.values())
 
 
-def _distinct_articles(references: list[dict]) -> list[dict]:
-    """Keep one chunk per article, so its parts and translation do not fill every slot."""
+def _law_key(ref: dict) -> object:
+    title = ref.get("title") or ""
+    match = LAW_NUMBER_RE.search(title)
+    return match.groups() if match else title
+
+
+def _distinct_articles(references: list[dict], language: str | None = None) -> list[dict]:
+    """Keep one chunk per article of each law, so parts and translations do not fill every slot.
+
+    Article 18 of two different laws stays two entries. Of an article's editions, the one in
+    ``language`` is kept, at the position of the first one found.
+    """
     unique: dict[object, dict] = {}
     for ref in references:
         section = ref.get("section") or ""
         numbers = article_numbers(section)
-        key = (min(numbers), "Annex" in section) if numbers else ref["chunk_id"]
-        unique.setdefault(key, ref)
+        key = (_law_key(ref), min(numbers), "Annex" in section) if numbers else ref["chunk_id"]
+        kept = unique.get(key)
+        if kept is None or (kept.get("language") != language and ref.get("language") == language):
+            unique[key] = ref
     return list(unique.values())
+
+
+def _without_same_numbers_of_other_laws(references: list[dict], query: str) -> list[dict]:
+    """A query naming Article 14 of the EU AI Act is not asking about Article (14) of the PDPL."""
+    named = [(number, law) for number, law in article_references(query) if law is not None]
+
+    def belongs_to_another_law(ref: dict) -> bool:
+        numbers = article_numbers(ref.get("section") or "")
+        laws = [law for number, law in named if number in numbers]
+        title = ref.get("title") or ""
+        return bool(laws) and not any(t in title for law in laws for t in law.titles)
+
+    return [ref for ref in references if not belongs_to_another_law(ref)]
 
 
 def _was_cut_off(raw: str, content: str) -> bool:
@@ -202,17 +245,18 @@ class BaseAgent:
             if not domains:
                 return general
             scoped = await self.retriever.search(query, top_k=top_k, domains=domains)
+            language = detect_language(query)
             # An article the query names comes first: similarity search can miss it.
-            numbers = sorted((n for n in article_numbers(query) if n.isdigit()), key=int)
-            named = (
-                await self.retriever.find_articles(
-                    numbers, domains, arabic=ARABIC_LETTER_RE.search(query) is not None
-                )
-                if numbers
-                else []
-            )
-            law = _distinct_articles(_unique_chunks(named + scoped))[: top_k // 2]
-            return _distinct_articles(_unique_chunks(law + general))[:top_k]
+            named = await self._named_articles(query, domains)
+            mandate = await self._mandate_article()
+            sources = await self._named_sources(query, language, named)
+            first = named + mandate + sources
+            scoped = _without_same_numbers_of_other_laws(scoped, query)
+            general = _without_same_numbers_of_other_laws(general, query)
+            # What the query names must not use up the places of the agent's own sources.
+            law = _distinct_articles(_unique_chunks(scoped), language)[: top_k // 2]
+            excerpts = _distinct_articles(_unique_chunks(first + law + general), language)
+            return excerpts[: top_k + EXTRA_NAMED_EXCERPTS if sources else top_k]
         except Exception as exc:
             logger.warning(
                 "agent.retrieval.failed",
@@ -220,6 +264,48 @@ class BaseAgent:
                 error=str(exc),
             )
             return []
+
+    async def _named_articles(self, query: str, domains: list[str]) -> list[dict]:
+        """Articles the query names, from the instrument named beside them or else the domain."""
+        numbers_by_instrument: dict[object, list[str]] = {}
+        for number, instrument in article_references(query):
+            if number.isdigit():
+                numbers_by_instrument.setdefault(instrument, []).append(number)
+
+        arabic = ARABIC_LETTER_RE.search(query) is not None
+        found: list[dict] = []
+        for instrument, numbers in numbers_by_instrument.items():
+            ordered = sorted(numbers, key=int)
+            if instrument is None:
+                found += await self.retriever.find_articles(ordered, domains, arabic=arabic)
+            else:
+                found += await self.retriever.find_articles(
+                    ordered, None, arabic=arabic, titles=instrument.titles
+                )
+        return found
+
+    async def _mandate_article(self) -> list[dict]:
+        found: list[dict] = []
+        for number, titles in ROLE_MANDATE_ARTICLES.get(AgentRole(self.agent.role), ()):
+            found += await self.retriever.find_articles([number], None, titles=titles)
+        return found
+
+    async def _named_sources(self, query: str, language: str, named: list[dict]) -> list[dict]:
+        """The passage closest to the query from each source it names and no article covers."""
+        sources: list[dict] = []
+        for instrument in named_instruments(query):
+            if any(t in (ref.get("title") or "") for ref in named for t in instrument.titles):
+                continue
+            # Within the source its name says nothing, and would pull in its front matter.
+            topic = instrument.pattern.sub(" ", query).strip() or query
+            hits = await self.retriever.search(topic, top_k=2, titles=instrument.titles)
+            same_language = [hit for hit in hits if hit.get("language") == language]
+            sources += (same_language or hits)[:1]
+        for titles in topic_sources(query):
+            # Its definitions, and then the passage closest to the question.
+            sources += await self.retriever.find_articles(["1"], None, titles=titles)
+            sources += await self.retriever.search(query, top_k=1, titles=titles)
+        return sources
 
     def _verification_warning(
         self,
@@ -236,7 +322,9 @@ class BaseAgent:
         cited counts as supported even if the synthesis prompt only showed an excerpt of it.
         """
         extra_sources = None if use_retrieval and not support else [user_message, *(support or [])]
-        problems = find_citation_problems(content, references, extra_sources)
+        problems = find_citation_problems(
+            content, references, extra_sources, check_excerpts=use_retrieval
+        )
         if _was_cut_off(raw, content):
             problems.append(CUT_OFF_PROBLEM)
         if has_wrong_script(content):
@@ -274,8 +362,9 @@ class BaseAgent:
                 "conversation history, preserving the article numbers, exceptions and citations "
                 "they reported. Where the agents report that the official sources are silent, "
                 "say so plainly as a finding (a gap in the law) and still summarize what each "
-                "agent did establish. Only if no agent findings are provided at all, output "
-                f"ONLY: '{NOT_COVERED[language]}'."
+                "agent did establish. Keep the bracket numbers of the findings you reuse, such "
+                "as [3]: they point to the team's source list shown under your answer. Only if "
+                f"no agent findings are provided at all, output ONLY: '{NOT_COVERED[language]}'."
             )
         else:
             base += (
@@ -329,11 +418,15 @@ class BaseAgent:
         use_retrieval: bool = True,
         language: str | None = None,
         support: list[str] | None = None,
+        sources: list[dict] | None = None,
     ) -> AgentResponse:
-        references = await self._retrieve(user_message) if use_retrieval else []
+        """Answer one message. A synthesis passes the ``sources`` its findings cite instead of
+        retrieving: they are listed under the answer, but not shown to the model again."""
+        references = await self._retrieve(user_message) if use_retrieval else (sources or [])
         self._last_references = references
         language = language or detect_language(user_message)
-        messages = self._build_messages(user_message, references, context, history, language)
+        excerpts = references if use_retrieval else []
+        messages = self._build_messages(user_message, excerpts, context, history, language)
 
         logger.info(
             "agent.respond.start",
@@ -347,7 +440,9 @@ class BaseAgent:
             temperature=self._temperature(),
         )
         thinking, content = self._parse_response(raw)
-        content = repair_citations(drop_repeated_paragraphs(content), references)
+        content = drop_repeated_paragraphs(content)
+        if use_retrieval:
+            content = repair_citations(content, references)
         warning = self._verification_warning(
             raw, content, references, user_message, use_retrieval, support
         )
@@ -371,6 +466,7 @@ class BaseAgent:
             content=content,
             thinking_trace=thinking,
             references=references,
+            retrieved=use_retrieval,
             raw_response=raw,
         )
 
@@ -437,16 +533,21 @@ class BaseAgent:
         use_retrieval: bool = True,
         language: str | None = None,
         support: list[str] | None = None,
+        sources: list[dict] | None = None,
         query: str | None = None,
     ) -> AsyncIterator[tuple[str, str]]:
-        """Stream (channel, chunk) pairs where channel is 'thinking' or 'content'.
+        """Stream (channel, chunk) pairs: 'thinking' and 'content' as they arrive, then
+        'final_thinking' and 'final' with the parsed and citation-checked text, which replace them.
 
         ``query`` replaces the message for retrieval only, e.g. a follow-up made standalone.
         """
-        references = await self._retrieve(query or user_message) if use_retrieval else []
+        references = (
+            await self._retrieve(query or user_message) if use_retrieval else (sources or [])
+        )
         self._last_references = references
         language = language or detect_language(user_message)
-        messages = self._build_messages(user_message, references, context, history, language)
+        excerpts = references if use_retrieval else []
+        messages = self._build_messages(user_message, excerpts, context, history, language)
 
         raw_parts: list[str] = []
         content_sent = False
@@ -455,21 +556,29 @@ class BaseAgent:
             yield (channel, chunk)
         raw = "".join(raw_parts)
 
-        _, answer = self._parse_response(raw)
+        thinking, answer = self._parse_response(raw)
         if not content_sent:
             # The model never closed <thinking>, so every token went to the thinking channel.
             # Show the parsed answer instead of an empty bubble, as respond() does.
             logger.warning("agent.stream.no_content", agent=self.agent.slug, raw_len=len(raw))
             yield ("content", answer)
 
-        if references:
-            yield ("content", _format_sources_footer(references))
+        # Tokens have already been shown; "final" replaces them with the checked answer.
+        answer = drop_repeated_paragraphs(answer)
+        if use_retrieval:
+            answer = repair_citations(answer, references)
+        footer = _format_sources_footer(references)
+        if footer:
+            yield ("content", footer)
 
         warning = self._verification_warning(
             raw, answer, references, user_message, use_retrieval, support
         )
         if warning:
             yield ("content", warning)
+        if thinking:
+            yield ("final_thinking", thinking)
+        yield ("final", answer + footer + warning)
 
     async def _split_channels(
         self, messages: list[dict], raw_parts: list[str]

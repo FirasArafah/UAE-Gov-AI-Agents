@@ -200,13 +200,13 @@ export function renderAnswer(content, references = [], { sourcesLabel = t("answe
     );
   }
   const items = references?.length
-    ? references.map((r, i) => ({ n: i + 1, title: r.title, detail: [r.section, r.page ? t("answer.page", { n: r.page }) : null].filter(Boolean).join(" · ") }))
+    ? references.map((r, i) => ({ n: i + 1, title: r.title, url: r.source_url, detail: [r.section, r.page ? t("answer.page", { n: r.page }) : null].filter(Boolean).join(" · ") }))
     : parsed.sources;
   if (items.length) {
     el.append(
       h("details", { class: "answer-sources" },
         h("summary", { text: `${sourcesLabel} (${items.length})` }),
-        h("ol", { class: "sources" }, items.map((s) => h("li", {}, h("span", { class: "n", text: `[${s.n}]` }), h("span", { dir: "auto" }, s.title, s.detail ? h("small", { text: " — " + s.detail }) : null)))),
+        h("ol", { class: "sources" }, items.map((s) => h("li", {}, h("span", { class: "n", text: `[${s.n}]` }), h("span", { dir: "auto" }, s.url ? h("a", { href: s.url, target: "_blank", rel: "noopener", text: s.title }) : s.title, s.detail ? h("small", { text: " — " + s.detail }) : null)))),
       ),
     );
   }

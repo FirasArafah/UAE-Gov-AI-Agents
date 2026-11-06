@@ -2,7 +2,7 @@ import { api } from "../js/api.js";
 import { addStrings, num, t } from "../js/i18n.js";
 import { h, textDir } from "../js/render.js";
 
-const DOMAINS = ["government_services", "data_protection", "ai_governance", "cross_domain"];
+const DOMAINS = ["government_services", "data_protection", "ai_governance", "telecom", "national_policy", "global_practice", "cross_domain"];
 const TYPES = ["law", "regulation", "strategy", "guideline", "standard", "report", "use_case", "other"];
 
 addStrings({
@@ -27,6 +27,7 @@ addStrings({
     "kb.docs.none": "No document matches these filters.",
     "kb.docs.pages": "{n} pages",
     "kb.docs.passages": "{n} passages",
+    "kb.docs.source": "Official source",
     "kb.group.national": "United Arab Emirates",
     "kb.group.international": "International references",
     "kb.lang.ar": "Arabic",
@@ -35,6 +36,9 @@ addStrings({
     "domain.government_services": "Government services",
     "domain.data_protection": "Data protection",
     "domain.ai_governance": "AI governance",
+    "domain.telecom": "Telecom and cybersecurity",
+    "domain.national_policy": "National policy",
+    "domain.global_practice": "Global practice",
     "domain.cross_domain": "Cross-domain",
     "type.law": "Law",
     "type.regulation": "Regulation",
@@ -66,6 +70,7 @@ addStrings({
     "kb.docs.none": "لا توجد وثائق مطابقة لهذه المرشحات.",
     "kb.docs.pages": "{n} صفحة",
     "kb.docs.passages": "{n} مقطعاً",
+    "kb.docs.source": "المصدر الرسمي",
     "kb.group.national": "دولة الإمارات العربية المتحدة",
     "kb.group.international": "المراجع الدولية",
     "kb.lang.ar": "العربية",
@@ -74,6 +79,9 @@ addStrings({
     "domain.government_services": "الخدمات الحكومية",
     "domain.data_protection": "حماية البيانات",
     "domain.ai_governance": "حوكمة الذكاء الاصطناعي",
+    "domain.telecom": "الاتصالات والأمن السيبراني",
+    "domain.national_policy": "السياسات الوطنية",
+    "domain.global_practice": "الممارسات العالمية",
     "domain.cross_domain": "متعدد المجالات",
     "type.law": "قانون",
     "type.regulation": "لائحة",
@@ -228,6 +236,7 @@ function docCard(d) {
       h("span", { text: domainLabel(d.domain) }),
       d.page_count ? h("span", { text: t("kb.docs.pages", { n: num(d.page_count) }) }) : null,
       h("span", { text: t("kb.docs.passages", { n: num(d.chunk_count) }) }),
+      d.source_url ? h("a", { href: d.source_url, target: "_blank", rel: "noopener", text: t("kb.docs.source") }) : null,
     ),
   );
 }
@@ -248,7 +257,9 @@ function hitCard(r, q) {
   const score = Math.max(0, Math.min(1, r.score));
   return h("article", { class: "hit" },
     h("header", {},
-      h("b", { dir: textDir(r.title), text: r.title }),
+      r.source_url
+        ? h("a", { class: "hit-title", href: r.source_url, target: "_blank", rel: "noopener", dir: textDir(r.title), text: r.title })
+        : h("b", { dir: textDir(r.title), text: r.title }),
       r.section ? h("span", { class: "tag", dir: "auto", text: r.section }) : null,
       r.page ? h("span", { class: "tag", text: t("kb.page", { n: r.page }) }) : null,
       h("span", { class: "spacer" }),

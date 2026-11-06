@@ -1,0 +1,20 @@
+National Cyber Security Governance Framework
+
+Source: https://u.ae/en/about-the-uae/strategies-initiatives-and-awards/strategies-plans-and-visions/cypersecurity/national-cyber-security-governance-framework
+
+National Cyber Security Governance Framework
+National Cyber Security Governance Framework
+The
+National Cyber Security Governance Framework
+defines the model for effective cyber security governance in the UAE. It supports the nation’s goal to lead globally in cyber security while enhancing the security posture of organisations and individuals.
+The UAE
+Cyber Security Council
+has developed the
+National Cyber Security Governance Framework
+to set out the model employed for good cyber security governance within the UAE, aligned with the UAE’s national priority to be a global leader in cyber security, and enhance the security posture of organisations and individuals within the UAE.
+National Cyber Security Governance Model
+The National Cyber Security Governance Model establishes a multi-tiered structure led by the UAE Cyber Security Council (CSC), which defines national strategies, policies, and frameworks while coordinating with Emirate Leads and Sector Leads to ensure consistent implementation across the country. Emirate Leads, appointed by each Emirate’s Executive Council, align local cyber security strategies with national objectives, oversee Emirate-level CIIP programs, and integrate their monitoring capabilities with the National SOC. Sector Leads, delegated by the CSC, regulate specific critical infrastructure sectors, enforce sector-specific standards, and drive resilience and incident response within their domains. This governance model ensures unified national oversight while enabling Emirate-specific and sector-specific execution, fostering resilience, intelligence sharing, and alignment with UAE cyber security objectives.
+Read the full document of the
+National Cyber Security Governance Framework.
+Updated On :
+03 Jul 2026

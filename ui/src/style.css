@@ -631,3 +631,9 @@ html[lang="ar"] .gap .sev { letter-spacing: 0; }
   .turn { grid-template-columns: minmax(0, 1fr); }
   .turn-avatar { display: none; }
 }
+
+/* Links from an answer to its audit trail and from a passage to its official source */
+.audit-link { display: inline-block; margin-top: 10px; font-size: 0.8rem; color: var(--muted); }
+.audit-link:hover { color: var(--text); }
+.hit-title { font-weight: 600; color: inherit; }
+.doc-meta a { color: var(--accent); }
